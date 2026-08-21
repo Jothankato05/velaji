@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 // Real end-to-end smoke test: boots the actual app on an ephemeral in-memory
-// DB and hits it over real HTTP with fetch — same "verify against reality,
-// not mocks" discipline used on ImmuniReach.
+// DB and hits it over real HTTP with fetch — verify against reality, not mocks.
 
 import './testEnv';
 import { app } from '../src/app';

@@ -11,9 +11,7 @@ yet.
 
 A working software prototype for the parts of the "National Child Immunisation
 & Health Assurance Programme" (NCIHAP) concept that are actually buildable as
-software by one team, right now — separate from ImmuniReach, though the two
-could integrate later (e.g. ImmuniReach's reminder/voice-call engine could
-dial caregivers using data from this system).
+software by one team, right now.
 
 The name was chosen after checking it against search engines, npm, and
 GitHub — as a single word it returns no existing product, company, notable
@@ -30,8 +28,7 @@ it requires government authority, inter-agency agreements, and money this
 repo has no access to. This prototype does not pretend to have solved that
 layer. Where it would need to plug in, it stops at an explicit, visible seam
 (see `nhiaIntegrationStatus: 'not_connected'` on every certificate) instead
-of faking a connection — the same pattern ImmuniReach uses for its stubbed
-EMR/DHIS2 provider.
+of faking a connection.
 
 **CHIN is explicitly not Nigeria's NIN.** It's a system-generated ID scoped
 to this software only, for tracking a child across visits and facilities
@@ -66,8 +63,8 @@ database over real HTTP — not mocked:
    `POST /api/auth/login` and the public `GET /api/verify/:chin` requires a
    bearer token (`Authorization: Bearer <token>`) from `/api/auth/login`.
    Passwords are scrypt-hashed, tokens are self-signed HMAC (12h TTL), no
-   new dependency — same approach as ImmuniReach's `requireAuth`. There is
-   no open registration endpoint on purpose: accounts are created with
+   new dependency. There is no open registration endpoint on purpose:
+   accounts are created with
    `npx tsx src/scripts/createStaffUser.ts <username> <password> "<Full Name>" [staff|admin]`,
    deliberately, by someone with server access — not self-served.
 7. **Reminder engine** — a background job (`REMINDER_ENGINE_ENABLED=true`)

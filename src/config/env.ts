@@ -12,8 +12,8 @@ const schema = z.object({
   APP_BASE_URL: z
     .string()
     .default('http://localhost:4100')
-    // Lesson learned the hard way on ImmuniReach: a trailing slash here silently
-    // breaks every link/signature built by concatenation. Normalize once, here.
+    // A trailing slash here silently breaks every link/signature built by
+    // string concatenation (e.g. QR verification URLs). Normalize once, here.
     .transform((value) => value.replace(/\/+$/, '')),
   CARD_SIGNING_SECRET: z.string().default('dev-only-insecure-secret-change-me'),
   // Deliberately separate from CARD_SIGNING_SECRET: the QR-verification token

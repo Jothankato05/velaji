@@ -20,9 +20,8 @@ export const apiRouter = Router();
 // --- Public routes. These MUST be registered before the requireAuth layer
 // below — Express middleware applies in registration order, and an
 // unscoped `.use(requireAuth)` registered earlier would intercept every
-// path that comes after it in the stack, public or not. (This exact
-// ordering mistake took down every Twilio webhook in ImmuniReach once —
-// see that repo's routes/index.ts for the postmortem comment.) ---
+// path that comes after it in the stack, public or not. Getting this order
+// wrong silently 401s every webhook/public endpoint mounted after it. ---
 apiRouter.get('/health', (_req, res) => res.json({ ok: true, service: 'velaji' }));
 apiRouter.post('/api/auth/login', asyncHandler(login));
 

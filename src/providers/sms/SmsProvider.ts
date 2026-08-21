@@ -12,7 +12,7 @@ export interface SmsSendResult {
 /**
  * The seam a real SMS provider (Twilio, Africa's Talking, Termii...) plugs
  * into. Kept deliberately narrow so swapping providers never touches the
- * reminder logic. Same pattern ImmuniReach uses for telephony/SMS.
+ * reminder logic.
  */
 export interface SmsProvider {
   readonly name: string;

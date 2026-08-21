@@ -5,9 +5,8 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
  * deliberately just a completion flag with a verification code — NOT a real
  * NHIA financial/insurance integration. That integration is a genuine
  * national policy undertaking outside what this prototype can or should
- * fake. This record is the seam a real integration would plug into later,
- * mirroring how ImmuniReach stubs its EMR/DHIS2 provider rather than faking
- * one.
+ * fake. This record is the seam a real integration would plug into later —
+ * an explicit, visible stub rather than a faked connection.
  */
 const certificateSchema = new Schema(
   {

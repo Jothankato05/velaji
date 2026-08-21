@@ -4,7 +4,7 @@ import { env } from '../config/env';
 /**
  * Minimal self-rolled bearer token: base64url(JSON payload) + "." + HMAC
  * signature over that payload, using node's crypto only (no jsonwebtoken
- * dependency). Same shape as ImmuniReach's auth tokens.
+ * dependency).
  */
 export interface TokenPayload {
   sub: string;
