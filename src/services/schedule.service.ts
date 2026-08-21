@@ -3,7 +3,6 @@ import { ROUTINE_IMMUNIZATION_SCHEDULE } from '../data/routine-immunization-sche
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const AMBER_WINDOW_DAYS = 7; // due within this many days -> "due soon"
-const RED_GRACE_DAYS = 14; // overdue by more than this -> RED
 const GREY_LOST_DAYS = 90; // overdue by more than this -> treat as lost-to-follow-up
 
 export interface DoseInput {
@@ -15,6 +14,21 @@ export interface DoseInput {
 }
 
 export type ChildStatusColor = 'GREEN' | 'AMBER' | 'RED' | 'GREY' | 'BLUE';
+
+/** Per-dose status for a single un-administered dose. Never returns BLUE. */
+export type DoseStatusColor = 'GREEN' | 'AMBER' | 'RED' | 'GREY';
+
+/**
+ * Status of one un-administered dose relative to now. An administered dose has
+ * no pending status, so callers must filter those out first.
+ */
+export function computeDoseStatus(dueDate: Date, now: Date = new Date()): DoseStatusColor {
+  const daysUntilDue = (dueDate.getTime() - now.getTime()) / DAY_MS;
+  if (daysUntilDue > AMBER_WINDOW_DAYS) return 'GREEN';
+  if (daysUntilDue >= 0) return 'AMBER';
+  if (daysUntilDue >= -GREY_LOST_DAYS) return 'RED';
+  return 'GREY';
+}
 
 export function buildDosesForChild(dateOfBirth: Date): DoseInput[] {
   return ROUTINE_IMMUNIZATION_SCHEDULE.map((entry) => ({
@@ -42,19 +56,7 @@ export function computeChildStatus(doses: DoseInput[], now: Date = new Date()): 
 
   for (const dose of doses) {
     if (dose.administeredDate) continue;
-    const daysUntilDue = (dose.dueDate.getTime() - now.getTime()) / DAY_MS;
-
-    let doseStatus: ChildStatusColor;
-    if (daysUntilDue > AMBER_WINDOW_DAYS) {
-      doseStatus = 'GREEN';
-    } else if (daysUntilDue >= -RED_GRACE_DAYS) {
-      doseStatus = daysUntilDue >= 0 ? 'AMBER' : 'RED';
-    } else if (daysUntilDue >= -GREY_LOST_DAYS) {
-      doseStatus = 'RED';
-    } else {
-      doseStatus = 'GREY';
-    }
-
+    const doseStatus = computeDoseStatus(dose.dueDate, now);
     if (rank[doseStatus] > rank[worst]) worst = doseStatus;
   }
 

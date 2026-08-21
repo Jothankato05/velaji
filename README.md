@@ -70,9 +70,25 @@ database over real HTTP — not mocked:
    no open registration endpoint on purpose: accounts are created with
    `npx tsx src/scripts/createStaffUser.ts <username> <password> "<Full Name>" [staff|admin]`,
    deliberately, by someone with server access — not self-served.
+7. **Reminder engine** — a background job (`REMINDER_ENGINE_ENABLED=true`)
+   scans outstanding children each cycle and sends caregivers **one** SMS per
+   child, leading with the most-overdue vaccine and noting how many others
+   are due (never one text per dose — that's spam and, on a paid gateway,
+   money). It enforces a per-dose cooldown and an attempt cap; a child who
+   ignores the cap, or whose doses go severely overdue (GREY), is **escalated
+   for human tracing** rather than texted forever. Sending is confined to a
+   daytime window so nobody is woken at 3am. The SMS provider is a seam
+   (`SMS_PROVIDER`, currently a console `stub`) — a real gateway (Twilio,
+   Africa's Talking, Termii) drops in without touching the reminder logic.
+   Endpoints: `POST /api/reminders/run` (admin, run a cycle on demand),
+   `GET /api/children/:chin/reminders` (a child's reminder history).
 
 ## Explicit known gaps (do not treat as production-ready)
 
+- **No real SMS gateway yet.** The reminder engine is fully wired but ships
+  with a console `stub` provider — it logs what it would send. A real
+  gateway plugs into `src/providers/sms` behind the existing seam.
+- **No frontend.** Staff interact via the API only; no UI built yet.
 - **No offline-first sync.** Endpoints assume a live connection. A
   low-connectivity rollout needs a local-first store + sync protocol; not
   built yet.
@@ -120,12 +136,14 @@ npm test
 src/
   config/       env parsing + startup guards, DB connection
   data/         routine immunization schedule reference data
-  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser
-  services/     chin, schedule/status, card+QR, verification token, certificate, handoff
-  controllers/  request handlers (incl. auth)
+  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog
+  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content
+  providers/    sms/ — pluggable SMS provider seam (stub for now)
+  controllers/  request handlers (incl. auth, reminders)
   middleware/   requireAuth, error handling
+  jobs/         reminder.job.ts — the background scan-and-dispatch scheduler
   routes/       route wiring — public routes registered before the auth layer
   scripts/      createStaffUser.ts (CLI-only account creation)
 tests/
-  run-tests.ts  end-to-end smoke suite over real HTTP, incl. auth success/failure paths
+  run-tests.ts  end-to-end smoke suite over real HTTP, plus reminder-engine unit tests (cooldown, cap, quiet hours, escalation)
 ```

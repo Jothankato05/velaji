@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireRole } from '../middleware/requireAuth';
 import { login, me } from '../controllers/auth.controller';
 import { createFacility, listFacilities, nearestFacility } from '../controllers/facilities.controller';
 import { createCaregiver } from '../controllers/caregivers.controller';
@@ -13,6 +13,7 @@ import {
   recordHandoff
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
+import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 
 export const apiRouter = Router();
 
@@ -22,7 +23,7 @@ export const apiRouter = Router();
 // path that comes after it in the stack, public or not. (This exact
 // ordering mistake took down every Twilio webhook in ImmuniReach once —
 // see that repo's routes/index.ts for the postmortem comment.) ---
-apiRouter.get('/health', (_req, res) => res.json({ ok: true, service: 'ncihap-prototype' }));
+apiRouter.get('/health', (_req, res) => res.json({ ok: true, service: 'velaji' }));
 apiRouter.post('/api/auth/login', asyncHandler(login));
 
 // Reached by scanning a printed card's QR code — gated by the card's own
@@ -47,3 +48,7 @@ apiRouter.post('/api/children/:chin/doses', asyncHandler(recordDose));
 apiRouter.get('/api/children/:chin/card.svg', asyncHandler(getCard));
 apiRouter.get('/api/children/:chin/certificate', asyncHandler(getCertificate));
 apiRouter.post('/api/children/:chin/handoff', asyncHandler(recordHandoff));
+apiRouter.get('/api/children/:chin/reminders', asyncHandler(getChildReminderLog));
+
+// Admin-only: manually kick a reminder cycle (useful for testing / on-demand runs).
+apiRouter.post('/api/reminders/run', requireRole('admin'), asyncHandler(triggerReminderCycle));

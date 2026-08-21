@@ -6,9 +6,15 @@
 import './testEnv';
 import { app } from '../src/app';
 import { connectDatabase, disconnectDatabase } from '../src/config/db';
-import { isValidChinFormat } from '../src/services/chin.service';
+import { isValidChinFormat, generateChin } from '../src/services/chin.service';
 import { StaffUserModel } from '../src/models/StaffUser';
 import { hashPassword } from '../src/utils/password';
+import { ChildModel } from '../src/models/Child';
+import { CaregiverModel } from '../src/models/Caregiver';
+import { FacilityModel } from '../src/models/Facility';
+import { ReminderLogModel } from '../src/models/ReminderLog';
+import { ReminderService } from '../src/services/reminder.service';
+import type { SmsMessage, SmsProvider, SmsSendResult } from '../src/providers/sms';
 
 type TestFn = () => Promise<void>;
 const suites: [string, TestFn][] = [];
@@ -207,6 +213,234 @@ test('a facility handoff moves the child and is logged with geolocation', async 
 
   const { body: child } = await json('GET', `/api/children/${encodeURIComponent(chin)}`);
   assert(child.currentFacilityId === facilityBId, 'child currentFacilityId was not updated after handoff');
+});
+
+// --- Reminder engine tests (drive the service directly with a fake provider
+// and a controlled clock, so cooldown/cap/quiet-hours are deterministic) ---
+
+const DAY = 24 * 60 * 60 * 1000;
+const NOON = new Date('2026-08-21T12:00:00'); // inside the 08–20 send window
+
+class FakeSms implements SmsProvider {
+  readonly name = 'fake';
+  readonly sent: SmsMessage[] = [];
+  async send(message: SmsMessage): Promise<SmsSendResult> {
+    this.sent.push(message);
+    return { ok: true, providerMessageId: `fake_${this.sent.length}` };
+  }
+}
+
+// Create an isolated facility + caregiver + child with a single dose due
+// `dueDaysAgo` days before NOON. Returns the child's id and CHIN.
+async function makeReminderChild(dueDaysAgo: number, opts: { phone?: string | null } = {}) {
+  const facility = await FacilityModel.create({
+    name: 'Reminder Test PHC',
+    lgaName: 'AMAC',
+    stateName: 'FCT',
+    location: { lat: 9.05, lng: 7.4 }
+  });
+  const caregiver = await CaregiverModel.create({
+    fullName: 'Test Caregiver',
+    phone: opts.phone === undefined ? '+2348030000000' : (opts.phone ?? '')
+  });
+  const chin = generateChin();
+  const child = await ChildModel.create({
+    chin,
+    fullName: 'Test Child',
+    sex: 'male',
+    dateOfBirth: new Date(NOON.getTime() - 400 * DAY),
+    caregiverId: caregiver._id,
+    homeFacilityId: facility._id,
+    currentFacilityId: facility._id,
+    doses: [
+      {
+        vaccineCode: 'PENTA',
+        displayName: 'Pentavalent (DPT-HepB-Hib)',
+        doseNumber: 1,
+        dueDate: new Date(NOON.getTime() - dueDaysAgo * DAY),
+        administeredDate: null
+      }
+    ]
+  });
+  return { childId: child._id, chin };
+}
+
+// Remove a test child from later scans without deleting the audit trail.
+async function retireChild(childId: unknown) {
+  await ChildModel.updateOne({ _id: childId }, { completedAt: NOON });
+}
+
+test('reminder engine texts an overdue caregiver and logs it', async () => {
+  const { childId, chin } = await makeReminderChild(10); // 10 days overdue -> RED
+  const fake = new FakeSms();
+  const svc = new ReminderService({
+    smsProvider: fake,
+    now: () => NOON,
+    cooldownHours: 48,
+    maxPerDose: 3,
+    sendStartHour: 8,
+    sendEndHour: 20
+  });
+
+  const summary = await svc.runCycle();
+  assert(summary.sent >= 1, `expected at least one send, got ${summary.sent}`);
+  assert(fake.sent.length >= 1, 'fake provider received no message');
+  assert(fake.sent[0].to === '+2348030000000', 'sent to the wrong number');
+  assert(/overdue/i.test(fake.sent[0].body), 'RED reminder should say overdue');
+
+  const logs = await ReminderLogModel.find({ childId });
+  assert(logs.length === 1, `expected 1 reminder log, got ${logs.length}`);
+  assert(logs[0].chin === chin && logs[0].status === 'sent', 'log row is wrong');
+
+  await retireChild(childId);
+});
+
+test('reminder engine sends ONE consolidated text for a child with several overdue doses', async () => {
+  // Build a child with 3 distinct overdue doses (not the single-dose helper).
+  const facility = await FacilityModel.create({
+    name: 'Multi PHC', lgaName: 'AMAC', stateName: 'FCT', location: { lat: 9, lng: 7 }
+  });
+  const caregiver = await CaregiverModel.create({ fullName: 'Multi Carer', phone: '+2348055554444' });
+  const chin = generateChin();
+  const child = await ChildModel.create({
+    chin, fullName: 'Multi Child', sex: 'female',
+    dateOfBirth: new Date(NOON.getTime() - 400 * DAY),
+    caregiverId: caregiver._id, homeFacilityId: facility._id, currentFacilityId: facility._id,
+    doses: [
+      { vaccineCode: 'PENTA', displayName: 'Pentavalent', doseNumber: 1, dueDate: new Date(NOON.getTime() - 30 * DAY), administeredDate: null },
+      { vaccineCode: 'OPV', displayName: 'Oral Polio Vaccine', doseNumber: 1, dueDate: new Date(NOON.getTime() - 20 * DAY), administeredDate: null },
+      { vaccineCode: 'PCV', displayName: 'Pneumococcal', doseNumber: 1, dueDate: new Date(NOON.getTime() - 10 * DAY), administeredDate: null }
+    ]
+  });
+
+  const fake = new FakeSms();
+  const svc = new ReminderService({
+    smsProvider: fake, now: () => NOON, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20
+  });
+
+  const summary = await svc.runCycle();
+  assert(fake.sent.length === 1, `expected exactly ONE text for the child, got ${fake.sent.length}`);
+  assert(summary.remindableChildren >= 1, 'expected child counted as remindable');
+  // Lead vaccine is the most overdue (Pentavalent, 30 days), and it should
+  // mention the 2 others are also due.
+  assert(/Pentavalent/.test(fake.sent[0].body), 'lead vaccine should be the most overdue one');
+  assert(/2 other vaccines are also due/.test(fake.sent[0].body), `expected the "2 others" note, got: ${fake.sent[0].body}`);
+
+  const logs = await ReminderLogModel.find({ childId: child._id });
+  assert(logs.length === 1, `expected 1 log row, got ${logs.length}`);
+
+  await retireChild(child._id);
+});
+
+test('reminder engine respects the cooldown window', async () => {
+  const { childId } = await makeReminderChild(10);
+  const fake = new FakeSms();
+  const svc = new ReminderService({
+    smsProvider: fake,
+    now: () => NOON,
+    cooldownHours: 48,
+    maxPerDose: 3,
+    sendStartHour: 8,
+    sendEndHour: 20
+  });
+
+  await svc.runCycle(); // first send
+  const after1 = fake.sent.length;
+  const second = await svc.runCycle(); // same clock -> within cooldown
+  assert(fake.sent.length === after1, 'cooldown did not suppress the second send');
+  assert(second.skippedCooldown >= 1, 'expected a cooldown skip to be reported');
+
+  await retireChild(childId);
+});
+
+test('reminder engine sends again once the cooldown has elapsed', async () => {
+  const { childId } = await makeReminderChild(10);
+  const fake = new FakeSms();
+  let clock = NOON;
+  const svc = new ReminderService({
+    smsProvider: fake,
+    now: () => clock,
+    cooldownHours: 48,
+    maxPerDose: 3,
+    sendStartHour: 8,
+    sendEndHour: 20
+  });
+
+  await svc.runCycle(); // send #1 at NOON
+  clock = new Date(NOON.getTime() + 3 * DAY); // past the 48h cooldown, still RED (13d)
+  await svc.runCycle(); // send #2
+  assert(fake.sent.length === 2, `expected 2 sends across the gap, got ${fake.sent.length}`);
+
+  await retireChild(childId);
+});
+
+test('reminder engine escalates instead of texting forever past the attempt cap', async () => {
+  const { childId, chin } = await makeReminderChild(10);
+  const fake = new FakeSms();
+  let clock = NOON;
+  const svc = new ReminderService({
+    smsProvider: fake,
+    now: () => clock,
+    cooldownHours: 24,
+    maxPerDose: 1, // one reminder, then it's a human's problem
+    sendStartHour: 8,
+    sendEndHour: 20
+  });
+
+  await svc.runCycle(); // the single allowed send
+  assert(fake.sent.length === 1, 'expected exactly one send at cap=1');
+
+  clock = new Date(NOON.getTime() + 2 * DAY); // past cooldown, but cap is reached
+  const escalated = await svc.runCycle();
+  assert(fake.sent.length === 1, 'should not send beyond the attempt cap');
+  assert(escalated.skippedMaxAttempts >= 1, 'expected a max-attempts skip');
+  assert(
+    escalated.escalations.some((e) => e.startsWith(chin)),
+    'capped dose should be flagged for human escalation'
+  );
+
+  await retireChild(childId);
+});
+
+test('reminder engine does not text a severely overdue (GREY) child, it escalates', async () => {
+  const { childId, chin } = await makeReminderChild(200); // 200 days overdue -> GREY
+  const fake = new FakeSms();
+  const svc = new ReminderService({
+    smsProvider: fake,
+    now: () => NOON,
+    cooldownHours: 48,
+    maxPerDose: 3,
+    sendStartHour: 8,
+    sendEndHour: 20
+  });
+
+  const summary = await svc.runCycle();
+  assert(fake.sent.length === 0, 'GREY (lost-to-follow-up) child should not be auto-texted');
+  assert(
+    summary.escalations.some((e) => e.startsWith(chin)),
+    'GREY dose should be flagged for human tracing'
+  );
+
+  await retireChild(childId);
+});
+
+test('reminder engine stays silent outside the send window', async () => {
+  const { childId } = await makeReminderChild(10);
+  const fake = new FakeSms();
+  const svc = new ReminderService({
+    smsProvider: fake,
+    now: () => new Date('2026-08-21T03:00:00'), // 3am, outside 08–20
+    cooldownHours: 48,
+    maxPerDose: 3,
+    sendStartHour: 8,
+    sendEndHour: 20
+  });
+
+  const summary = await svc.runCycle();
+  assert(summary.quietHoursSkipped === true, 'expected quietHoursSkipped');
+  assert(fake.sent.length === 0, 'nothing should be sent at 3am');
+
+  await retireChild(childId);
 });
 
 async function main() {
