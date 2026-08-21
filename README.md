@@ -1,7 +1,11 @@
-# Nwakwado
+# Velaji
 
-*Nwa* (Igbo: child) + from *ịkwado* (to prepare, support, get ready) —
-"child support/readiness."
+A coined name, chosen deliberately over a real local-language compound:
+every short, meaningful Yoruba/Igbo/Hausa word tried for this (toju, dagba,
+kwado, aabo...) turned out to already belong to a real company somewhere —
+this space is heavily mined. Velaji is short, easy to say, and — as far as
+search engines, npm, and GitHub can confirm — genuinely not in use anywhere
+yet.
 
 A working software prototype for the parts of the "National Child Immunisation
 & Health Assurance Programme" (NCIHAP) concept that are actually buildable as
