@@ -1,5 +1,7 @@
 # Velaji
 
+**Author:** Jothan Jerry Kato ([@Jothankato05](https://github.com/Jothankato05))
+
 A coined name, chosen deliberately over a real local-language compound:
 every short, meaningful Yoruba/Igbo/Hausa word tried for this (toju, dagba,
 kwado, aabo...) turned out to already belong to a real company somewhere —
