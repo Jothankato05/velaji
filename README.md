@@ -1,6 +1,7 @@
-# Omotoju
+# Nwakwado
 
-*Omo* (Yoruba: child) + *tọ́jú* (to take care of, nurture) — "child-care."
+*Nwa* (Igbo: child) + from *ịkwado* (to prepare, support, get ready) —
+"child support/readiness."
 
 A working software prototype for the parts of the "National Child Immunisation
 & Health Assurance Programme" (NCIHAP) concept that are actually buildable as
