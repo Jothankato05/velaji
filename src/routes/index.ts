@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
+import { requireAuth } from '../middleware/requireAuth';
+import { login, me } from '../controllers/auth.controller';
 import { createFacility, listFacilities, nearestFacility } from '../controllers/facilities.controller';
 import { createCaregiver } from '../controllers/caregivers.controller';
 import {
@@ -14,7 +16,24 @@ import { verifyChin } from '../controllers/verify.controller';
 
 export const apiRouter = Router();
 
+// --- Public routes. These MUST be registered before the requireAuth layer
+// below — Express middleware applies in registration order, and an
+// unscoped `.use(requireAuth)` registered earlier would intercept every
+// path that comes after it in the stack, public or not. (This exact
+// ordering mistake took down every Twilio webhook in ImmuniReach once —
+// see that repo's routes/index.ts for the postmortem comment.) ---
 apiRouter.get('/health', (_req, res) => res.json({ ok: true, service: 'ncihap-prototype' }));
+apiRouter.post('/api/auth/login', asyncHandler(login));
+
+// Reached by scanning a printed card's QR code — gated by the card's own
+// signed token, not staff auth, because a caregiver or a receiving
+// facility with no account still needs to be able to check status.
+apiRouter.get('/api/verify/:chin', asyncHandler(verifyChin));
+
+// --- Everything below requires a staff bearer token. ---
+apiRouter.use(requireAuth);
+
+apiRouter.get('/api/auth/me', asyncHandler(me));
 
 apiRouter.post('/api/facilities', asyncHandler(createFacility));
 apiRouter.get('/api/facilities', asyncHandler(listFacilities));
@@ -28,7 +47,3 @@ apiRouter.post('/api/children/:chin/doses', asyncHandler(recordDose));
 apiRouter.get('/api/children/:chin/card.svg', asyncHandler(getCard));
 apiRouter.get('/api/children/:chin/certificate', asyncHandler(getCertificate));
 apiRouter.post('/api/children/:chin/handoff', asyncHandler(recordHandoff));
-
-// Public — reached by scanning a printed card's QR code, gated by the
-// signed token instead of staff auth.
-apiRouter.get('/api/verify/:chin', asyncHandler(verifyChin));

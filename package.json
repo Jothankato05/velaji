@@ -1,7 +1,7 @@
 {
-  "name": "ncihap",
+  "name": "omotoju",
   "version": "1.0.0",
-  "description": "",
+  "description": "Omotoju — child health identity, QR-verifiable card, and immunization status tracking prototype.",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

@@ -7,6 +7,8 @@ import './testEnv';
 import { app } from '../src/app';
 import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { isValidChinFormat } from '../src/services/chin.service';
+import { StaffUserModel } from '../src/models/StaffUser';
+import { hashPassword } from '../src/utils/password';
 
 type TestFn = () => Promise<void>;
 const suites: [string, TestFn][] = [];
@@ -19,11 +21,17 @@ function assert(cond: unknown, message: string): asserts cond {
 }
 
 let baseUrl = '';
+let authToken = '';
 
-async function json(method: string, path: string, body?: unknown) {
+async function json(method: string, path: string, body?: unknown, opts?: { auth?: boolean }) {
+  const useAuth = opts?.auth !== false; // default: send the staff bearer token
+  const headers: Record<string, string> = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (useAuth && authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
   const res = await fetch(`${baseUrl}${path}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
   const text = await res.text();
@@ -45,6 +53,47 @@ test('health check responds', async () => {
   const { status, body } = await json('GET', '/health');
   assert(status === 200, `expected 200, got ${status}`);
   assert(body.ok === true, 'expected ok:true');
+});
+
+test('a staff endpoint rejects a request with no token', async () => {
+  const { status } = await json('POST', '/api/facilities', { name: 'x', lgaName: 'x', stateName: 'x', lat: 0, lng: 0 }, { auth: false });
+  assert(status === 401, `expected 401 with no token, got ${status}`);
+});
+
+test('a staff endpoint rejects a garbage token', async () => {
+  const saved = authToken;
+  authToken = 'not.a.realtoken';
+  const { status } = await json('GET', '/api/facilities');
+  authToken = saved;
+  assert(status === 401, `expected 401 with a garbage token, got ${status}`);
+});
+
+test('login rejects a wrong password, then succeeds and yields a working token', async () => {
+  // Seed the account the way ops would — the CLI script, not an open
+  // registration endpoint (see src/scripts/createStaffUser.ts).
+  await StaffUserModel.create({
+    username: 'nurse.amina',
+    passwordHash: await hashPassword('correct horse battery staple'),
+    fullName: 'Amina Bello',
+    role: 'staff'
+  });
+
+  const bad = await json('POST', '/api/auth/login', { username: 'nurse.amina', password: 'wrong password' }, { auth: false });
+  assert(bad.status === 401, `expected 401 for wrong password, got ${bad.status}`);
+
+  const good = await json(
+    'POST',
+    '/api/auth/login',
+    { username: 'nurse.amina', password: 'correct horse battery staple' },
+    { auth: false }
+  );
+  assert(good.status === 200, `expected 200 for correct login, got ${good.status}: ${JSON.stringify(good.body)}`);
+  assert(typeof good.body.token === 'string' && good.body.token.length > 0, 'expected a token in the login response');
+  authToken = good.body.token;
+
+  const me = await json('GET', '/api/auth/me');
+  assert(me.status === 200, `expected /api/auth/me to accept the fresh token, got ${me.status}`);
+  assert(me.body.user.username === 'nurse.amina', 'token did not resolve back to the right user');
 });
 
 test('CHIN check-digit rejects a tampered code', async () => {
@@ -117,7 +166,9 @@ test('verify endpoint rejects a missing/forged token', async () => {
 });
 
 test('printable card SVG embeds a real QR verification link', async () => {
-  const res = await fetch(`${baseUrl}/api/children/${encodeURIComponent(chin)}/card.svg`);
+  const res = await fetch(`${baseUrl}/api/children/${encodeURIComponent(chin)}/card.svg`, {
+    headers: { Authorization: `Bearer ${authToken}` }
+  });
   assert(res.status === 200, `expected 200, got ${res.status}`);
   const svg = await res.text();
   assert(svg.includes('<svg'), 'response is not SVG');

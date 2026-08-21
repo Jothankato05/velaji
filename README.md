@@ -1,10 +1,18 @@
-# NCIHAP prototype
+# Omotoju
+
+*Omo* (Yoruba: child) + *tọ́jú* (to take care of, nurture) — "child-care."
 
 A working software prototype for the parts of the "National Child Immunisation
-& Health Assurance Programme" concept that are actually buildable as software
-by one team, right now — separate from ImmuniReach, though the two could
-integrate later (e.g. ImmuniReach's reminder/voice-call engine could dial
-caregivers using data from this system).
+& Health Assurance Programme" (NCIHAP) concept that are actually buildable as
+software by one team, right now — separate from ImmuniReach, though the two
+could integrate later (e.g. ImmuniReach's reminder/voice-call engine could
+dial caregivers using data from this system).
+
+The name was chosen after checking it against search engines, npm, and
+GitHub — as a single word it returns no existing product, company, notable
+person, or package with this name. That's not a substitute for a real
+trademark/CAC search before any formal launch, but it's clean as far as
+open research can confirm.
 
 ## What this is NOT
 
@@ -47,13 +55,17 @@ database over real HTTP — not mocked:
 5. **Completion certificate as a flag** — once every scheduled dose is
    recorded, a certificate record is issued automatically. It is a
    completion flag with a verification code, nothing more.
+6. **Staff authentication** — every `/api/*` endpoint except
+   `POST /api/auth/login` and the public `GET /api/verify/:chin` requires a
+   bearer token (`Authorization: Bearer <token>`) from `/api/auth/login`.
+   Passwords are scrypt-hashed, tokens are self-signed HMAC (12h TTL), no
+   new dependency — same approach as ImmuniReach's `requireAuth`. There is
+   no open registration endpoint on purpose: accounts are created with
+   `npx tsx src/scripts/createStaffUser.ts <username> <password> "<Full Name>" [staff|admin]`,
+   deliberately, by someone with server access — not self-served.
 
 ## Explicit known gaps (do not treat as production-ready)
 
-- **No auth yet.** All `/api/*` endpoints except `/api/verify/:chin` are
-  currently open. The verify endpoint is deliberately public/token-gated;
-  the rest need facility-staff auth before this touches real data — see
-  ImmuniReach's `requireAuth`/token pattern for a reusable approach.
 - **No offline-first sync.** Endpoints assume a live connection. A
   low-connectivity rollout needs a local-first store + sync protocol; not
   built yet.
@@ -72,7 +84,22 @@ npm run dev
 
 No MongoDB install required — `ALLOW_IN_MEMORY_DB=true` (the default in
 `.env.example`) starts an ephemeral in-memory MongoDB. Data does not persist
-across restarts; point `MONGODB_URI` at a real database once that matters.
+across restarts; point `MONGODB_URI` at a real database once that matters
+(a staff account created against one in-memory instance won't exist in a
+different process's instance — point both at the same `MONGODB_URI` if you
+need to log in against a separately-running dev server).
+
+Create a staff login, then log in to get a bearer token:
+
+```bash
+npx tsx src/scripts/createStaffUser.ts nurse.amina "a real password" "Amina Bello" staff
+
+curl -X POST http://localhost:4100/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"nurse.amina","password":"a real password"}'
+# -> { "token": "...", "user": { ... } }
+# Use it as: -H "Authorization: Bearer <token>"
+```
 
 Run the real end-to-end test suite (boots the app, hits it over actual HTTP):
 
@@ -86,10 +113,12 @@ npm test
 src/
   config/       env parsing + startup guards, DB connection
   data/         routine immunization schedule reference data
-  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff
+  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser
   services/     chin, schedule/status, card+QR, verification token, certificate, handoff
-  controllers/  request handlers
-  routes/       route wiring
+  controllers/  request handlers (incl. auth)
+  middleware/   requireAuth, error handling
+  routes/       route wiring — public routes registered before the auth layer
+  scripts/      createStaffUser.ts (CLI-only account creation)
 tests/
-  run-tests.ts  end-to-end smoke suite over real HTTP
+  run-tests.ts  end-to-end smoke suite over real HTTP, incl. auth success/failure paths
 ```
