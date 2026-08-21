@@ -2,6 +2,14 @@
 
 **Author:** Jothan Jerry Kato ([@Jothankato05](https://github.com/Jothankato05))
 
+> **Velaji is the platform. NCIHAP is the programme.**
+> **Velaji** is the software platform — the product built, owned, and
+> maintained here. The **National Child Immunisation & Health Assurance
+> Programme (NCIHAP)** is the government-facing initiative Velaji is designed
+> to deliver. The two are deliberately kept separate: a health authority owns
+> and names the *programme*; Velaji is the *technology* that runs it. This
+> repository is Velaji.
+
 A coined name, chosen deliberately over a real local-language compound:
 every short, meaningful Yoruba/Igbo/Hausa word tried for this (toju, dagba,
 kwado, aabo...) turned out to already belong to a real company somewhere —
@@ -9,9 +17,8 @@ this space is heavily mined. Velaji is short, easy to say, and — as far as
 search engines, npm, and GitHub can confirm — genuinely not in use anywhere
 yet.
 
-A working software prototype for the parts of the "National Child Immunisation
-& Health Assurance Programme" (NCIHAP) concept that are actually buildable as
-software by one team, right now.
+A working software prototype for the parts of the NCIHAP concept that are
+actually buildable as software by one team, right now.
 
 The name was chosen after checking it against search engines, npm, and
 GitHub — as a single word it returns no existing product, company, notable
