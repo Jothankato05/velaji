@@ -14,6 +14,7 @@ import {
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
+import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 
 export const apiRouter = Router();
 
@@ -51,3 +52,7 @@ apiRouter.get('/api/children/:chin/reminders', asyncHandler(getChildReminderLog)
 
 // Admin-only: manually kick a reminder cycle (useful for testing / on-demand runs).
 apiRouter.post('/api/reminders/run', requireRole('admin'), asyncHandler(triggerReminderCycle));
+
+// The human-tracing work queue: children the reminder engine gave up texting.
+apiRouter.get('/api/escalations', asyncHandler(getEscalations));
+apiRouter.post('/api/escalations/:id/resolve', asyncHandler(postResolveEscalation));

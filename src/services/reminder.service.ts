@@ -2,11 +2,15 @@ import { ChildModel } from '../models/Child';
 import { CaregiverModel } from '../models/Caregiver';
 import { FacilityModel } from '../models/Facility';
 import { ReminderLogModel } from '../models/ReminderLog';
+import { EscalationModel } from '../models/Escalation';
+import type { Types } from 'mongoose';
 import { getSmsProvider } from '../providers/sms';
 import type { SmsProvider } from '../providers/sms';
 import { computeDoseStatus } from './schedule.service';
 import { buildReminderSms } from './reminder-content';
 import { env } from '../config/env';
+
+type EscalationReason = 'max_attempts' | 'lost_to_followup';
 
 export interface ReminderCycleSummary {
   scannedChildren: number;
@@ -27,6 +31,7 @@ export interface ReminderServiceOptions {
   caregiverModel?: typeof CaregiverModel;
   facilityModel?: typeof FacilityModel;
   reminderLogModel?: typeof ReminderLogModel;
+  escalationModel?: typeof EscalationModel;
   smsProvider?: SmsProvider;
   now?: () => Date;
   cooldownHours?: number;
@@ -47,6 +52,7 @@ export class ReminderService {
   private caregiverModel: typeof CaregiverModel;
   private facilityModel: typeof FacilityModel;
   private reminderLogModel: typeof ReminderLogModel;
+  private escalationModel: typeof EscalationModel;
   private smsProvider: SmsProvider;
   private now: () => Date;
   private cooldownHours: number;
@@ -59,12 +65,35 @@ export class ReminderService {
     this.caregiverModel = options.caregiverModel ?? CaregiverModel;
     this.facilityModel = options.facilityModel ?? FacilityModel;
     this.reminderLogModel = options.reminderLogModel ?? ReminderLogModel;
+    this.escalationModel = options.escalationModel ?? EscalationModel;
     this.smsProvider = options.smsProvider ?? getSmsProvider();
     this.now = options.now ?? (() => new Date());
     this.cooldownHours = options.cooldownHours ?? env.REMINDER_COOLDOWN_HOURS;
     this.maxPerDose = options.maxPerDose ?? env.REMINDER_MAX_PER_DOSE;
     this.sendStartHour = options.sendStartHour ?? env.REMINDER_SEND_START_HOUR;
     this.sendEndHour = options.sendEndHour ?? env.REMINDER_SEND_END_HOUR;
+  }
+
+  /**
+   * Raise (or refresh) an open escalation for one child+dose. Idempotent:
+   * the partial unique index means re-asserting the same escalation each
+   * cycle just updates lastSeenAt/reason instead of creating duplicates.
+   */
+  private async recordEscalation(
+    child: { _id: Types.ObjectId; chin: string },
+    doseKey: string,
+    reason: EscalationReason,
+    remindersSent: number,
+    now: Date
+  ): Promise<void> {
+    await this.escalationModel.findOneAndUpdate(
+      { childId: child._id, doseKey, status: 'open' },
+      {
+        $set: { reason, remindersSent, lastSeenAt: now },
+        $setOnInsert: { childId: child._id, chin: child.chin, doseKey, status: 'open', raisedAt: now }
+      },
+      { upsert: true }
+    );
   }
 
   async runCycle(): Promise<ReminderCycleSummary> {
@@ -108,6 +137,12 @@ export class ReminderService {
         const doseKey = `${dose.vaccineCode}#${dose.doseNumber}`;
         if (status === 'GREY') {
           // Lost to follow-up: stop texting, hand to a human for tracing.
+          const sentSoFar = await this.reminderLogModel.countDocuments({
+            childId: child._id,
+            doseKey,
+            status: 'sent'
+          });
+          await this.recordEscalation(child, doseKey, 'lost_to_followup', sentSoFar, now);
           summary.escalations.push(`${child.chin} ${doseKey}`);
           continue;
         }
@@ -134,6 +169,7 @@ export class ReminderService {
       if (priorSends.length >= this.maxPerDose) {
         // Caregiver isn't responding about the most urgent dose — needs a person.
         summary.skippedMaxAttempts += 1;
+        await this.recordEscalation(child, lead.doseKey, 'max_attempts', priorSends.length, now);
         summary.escalations.push(`${child.chin} ${lead.doseKey}`);
         continue;
       }

@@ -8,6 +8,7 @@ import { generateChin, normalizeChin } from '../services/chin.service';
 import { buildDosesForChild, computeChildStatus } from '../services/schedule.service';
 import { generatePrintableCardSvg } from '../services/card.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
+import { autoResolveForDose } from '../services/escalation.service';
 import { AppError } from '../utils/AppError';
 
 async function findChildOr404(chinParam: string | string[]) {
@@ -105,6 +106,8 @@ export async function recordDose(req: Request, res: Response) {
 
   await child.save();
   await maybeIssueCertificate(child);
+  // Recording the dose removes the reason any escalation for it was raised.
+  await autoResolveForDose(child._id, `${vaccineCode}#${Number(doseNumber)}`);
 
   res.json(toChildView(child));
 }

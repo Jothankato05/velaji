@@ -86,6 +86,14 @@ database over real HTTP — not mocked:
    Africa's Talking, Termii) drops in without touching the reminder logic.
    Endpoints: `POST /api/reminders/run` (admin, run a cycle on demand),
    `GET /api/children/:chin/reminders` (a child's reminder history).
+8. **Escalation queue** — the reminder engine's flags don't vanish into a log;
+   each becomes a durable, workable item. `GET /api/escalations` is the
+   health worker's queue: every child the engine gave up texting, enriched
+   with caregiver phone, facility, which vaccine, the reason (not responding
+   vs. lost to follow-up), and how overdue it is — everything needed to go
+   trace the family. `POST /api/escalations/:id/resolve` closes one with an
+   outcome and note; recording the missing dose **auto-resolves** it, so the
+   queue never shows stale work. One open item per child+dose, no duplicates.
 
 ## Explicit known gaps (do not treat as production-ready)
 
@@ -140,10 +148,10 @@ npm test
 src/
   config/       env parsing + startup guards, DB connection
   data/         routine immunization schedule reference data
-  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog
-  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content
+  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog, Escalation
+  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations
   providers/    sms/ — pluggable SMS provider seam (stub for now)
-  controllers/  request handlers (incl. auth, reminders)
+  controllers/  request handlers (incl. auth, reminders, escalations)
   middleware/   requireAuth, error handling
   jobs/         reminder.job.ts — the background scan-and-dispatch scheduler
   routes/       route wiring — public routes registered before the auth layer
