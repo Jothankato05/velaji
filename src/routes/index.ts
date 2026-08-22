@@ -10,6 +10,7 @@ import {
   recordDose,
   getCard,
   getCertificate,
+  getJourney,
   recordHandoff
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
@@ -50,6 +51,7 @@ apiRouter.get('/api/children/:chin', asyncHandler(getChild));
 apiRouter.post('/api/children/:chin/doses', asyncHandler(recordDose));
 apiRouter.get('/api/children/:chin/card.svg', asyncHandler(getCard));
 apiRouter.get('/api/children/:chin/certificate', asyncHandler(getCertificate));
+apiRouter.get('/api/children/:chin/journey', asyncHandler(getJourney));
 apiRouter.post('/api/children/:chin/handoff', asyncHandler(recordHandoff));
 apiRouter.get('/api/children/:chin/reminders', asyncHandler(getChildReminderLog));
 

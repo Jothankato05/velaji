@@ -4,10 +4,11 @@ import { useAuth } from '../lib/auth';
 import './AppShell.css';
 
 const NAV = [
-  { to: '/', label: 'Command Dashboard', roles: ['admin'] },
-  { to: '/children', label: 'Children', roles: ['staff', 'admin'] },
-  { to: '/terminal', label: 'Verify (Terminal)', roles: ['verifier', 'staff', 'admin'] },
-  { to: '/escalations', label: 'Follow-up Queue', roles: ['staff', 'admin'] }
+  { to: '/care', label: 'Point of Care', roles: ['staff', 'admin'] },
+  { to: '/register', label: 'Register a Child', roles: ['staff', 'admin'] },
+  { to: '/terminal', label: 'Verify Card', roles: ['verifier', 'staff', 'admin'] },
+  { to: '/escalations', label: 'Follow-up Queue', roles: ['staff', 'admin'] },
+  { to: '/dashboard', label: 'Command Dashboard', roles: ['admin'] }
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -28,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav className="nav">
           {items.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} className="nav-link">
+            <NavLink key={n.to} to={n.to} className="nav-link">
               {n.label}
             </NavLink>
           ))}

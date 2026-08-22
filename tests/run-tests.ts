@@ -206,6 +206,34 @@ test('recording every dose issues a completion certificate', async () => {
   const cert = await json('GET', `/api/children/${encodeURIComponent(chin)}/certificate`);
   assert(cert.status === 200, `expected certificate to exist, got ${cert.status}`);
   assert(cert.body.nhiaIntegrationStatus === 'not_connected', 'certificate must not silently claim a real NHIA link');
+  // Completion UNLOCKS the NHIA "Healthy Start" coverage window (§12).
+  assert(cert.body.coverageProgramme === 'Healthy Start', 'expected Healthy Start coverage on completion');
+  assert(cert.body.coverageMonths === 12, 'expected 12 months coverage');
+  assert(new Date(cert.body.coverageExpiresAt) > new Date(cert.body.coverageStartsAt), 'coverage window must be forward');
+});
+
+test('the journey endpoint tells the whole story: next dose then coverage', async () => {
+  // The child from the test above is complete → no next dose, coverage active.
+  const done = await json('GET', `/api/children/${encodeURIComponent(chin)}/journey`);
+  assert(done.status === 200, `expected 200, got ${done.status}`);
+  assert(done.body.nextDue === null, 'a completed child has no next dose');
+  assert(done.body.progress.remaining === 0 && done.body.progress.administered === done.body.progress.total, 'progress should be full');
+  assert(done.body.coverage && done.body.coverage.active === true, 'coverage should be unlocked and active');
+  assert(done.body.coverage.programme === 'Healthy Start', 'coverage programme name');
+
+  // A fresh, incomplete child: the journey names the single next vaccine.
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Journey Carer', phone: '+2348012340000' });
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Journey Child', sex: 'male', dateOfBirth: new Date(NOON.getTime() - 20 * DAY).toISOString().slice(0, 10),
+    caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  const j = await json('GET', `/api/children/${encodeURIComponent(reg.body.chin)}/journey`);
+  assert(j.body.nextDue && typeof j.body.nextDue.vaccine === 'string', 'journey must name the next vaccine');
+  assert(j.body.coverage === null, 'no coverage until the schedule is complete');
+  assert(j.body.progress.total > 0, 'journey must know the full schedule size');
+
+  // Don't let this incomplete child leak into the later reminder-engine scans.
+  await ChildModel.updateOne({ chin: reg.body.chin }, { completedAt: NOON });
 });
 
 test('a facility handoff moves the child and is logged with geolocation', async () => {

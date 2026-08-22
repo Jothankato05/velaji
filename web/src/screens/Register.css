@@ -1,0 +1,22 @@
+.reg { display: flex; flex-direction: column; gap: 20px; max-width: 620px; }
+.reg-head h1 { margin-top: 6px; }
+.reg-sub { max-width: 56ch; margin: 8px 0 0; font-size: 14px; }
+
+.reg-form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.reg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.reg-submit { margin-top: 6px; padding: 12px; font-size: 15px; }
+
+.issued-card {
+  border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+  box-shadow: var(--shadow-lg); max-width: 520px;
+}
+.issued-card svg { width: 100%; height: auto; display: block; }
+.issued-actions { display: flex; gap: 10px; }
+
+@media (max-width: 560px) { .reg-row { grid-template-columns: 1fr; } }
+
+@media print {
+  .sidebar, .topbar, .reg-head, .issued-actions { display: none !important; }
+  .content { padding: 0 !important; }
+  .issued-card { border: none; box-shadow: none; }
+}
