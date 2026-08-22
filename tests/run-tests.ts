@@ -679,6 +679,131 @@ test('the audit trail is admin-only', async () => {
   assert(status === 403, `expected 403 for non-admin audit access, got ${status}`);
 });
 
+// --- National Command Dashboard (NCIHAP §11) ---
+
+function dashDose(code: string, name: string, dnum: number, offsetDays: number, administered: boolean) {
+  const due = new Date(NOON.getTime() + offsetDays * DAY);
+  return { vaccineCode: code, displayName: name, doseNumber: dnum, dueDate: due, administeredDate: administered ? due : null };
+}
+async function dashFacility(state: string, lga: string, ward: string, name: string) {
+  return FacilityModel.create({ name, wardName: ward, lgaName: lga, stateName: state, location: { lat: 9, lng: 7 } });
+}
+let dashCgId: any = '';
+async function dashChild(facId: any, doses: ReturnType<typeof dashDose>[]) {
+  return ChildModel.create({
+    chin: generateChin(), fullName: 'Dashboard Child', sex: 'male',
+    dateOfBirth: new Date(NOON.getTime() - 400 * DAY),
+    caregiverId: dashCgId, homeFacilityId: facId, currentFacilityId: facId, doses
+  });
+}
+
+const ST = 'Zamfara-Test'; // unique state so the scoped assertions are isolated
+
+test('dashboard setup: build a controlled state dataset', async () => {
+  const cg = await CaregiverModel.create({ fullName: 'Dash Carer', phone: '+2348060000000' });
+  dashCgId = cg._id;
+  const f1 = await dashFacility(ST, 'LGA-1', 'Ward-A', 'PHC Alpha');
+  const f2 = await dashFacility(ST, 'LGA-1', 'Ward-B', 'PHC Beta');
+  const f3 = await dashFacility(ST, 'LGA-2', 'Ward-C', 'PHC Gamma');
+
+  // A: complete (BLUE) — 2 administered
+  await dashChild(f1, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]);
+  // B: zero-dose, on track (GREEN) — due in 20d
+  await dashChild(f1, [dashDose('PCV', 'PCV', 1, 20, false)]);
+  // C: dropout (started then overdue, RED) — 1 administered + 1 overdue
+  await dashChild(f2, [dashDose('BCG', 'BCG', 1, -40, true), dashDose('PENTA', 'Pentavalent', 1, -10, false)]);
+  // D: due this week (AMBER), zero-dose — due in 3d
+  await dashChild(f3, [dashDose('MEASLES', 'Measles', 1, 3, false)]);
+  // E: overdue (RED), zero-dose — never started
+  await dashChild(f3, [dashDose('OPV', 'OPV', 1, -20, false)]);
+});
+
+test('dashboard is admin-only', async () => {
+  const { status } = await jsonAs(staffToken, 'GET', '/api/dashboard/summary');
+  assert(status === 403, `expected 403 for non-admin, got ${status}`);
+});
+
+test('scoped state summary aggregates exactly, with no individual PII', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', `/api/dashboard/summary?state=${encodeURIComponent(ST)}`);
+  assert(status === 200, `expected 200, got ${status}: ${JSON.stringify(body)}`);
+  const t = body.totals;
+  assert(t.registered === 5, `registered expected 5, got ${t.registered}`);
+  assert(t.dosesAdministered === 3, `dosesAdministered expected 3, got ${t.dosesAdministered}`);
+  assert(t.completed === 1, `completed expected 1, got ${t.completed}`);
+  assert(t.overdue === 2, `overdue expected 2, got ${t.overdue}`);
+  assert(t.zeroDose === 3, `zeroDose expected 3, got ${t.zeroDose}`);
+  assert(t.dueThisWeek === 1, `dueThisWeek expected 1, got ${t.dueThisWeek}`);
+  assert(t.dropout === 1, `dropout expected 1, got ${t.dropout}`);
+  assert(t.completionRate === 0.2, `completionRate expected 0.2, got ${t.completionRate}`);
+  assert(t.dropoutRate === 0.5, `dropoutRate expected 0.5, got ${t.dropoutRate}`);
+
+  // Breakdown one level down = by LGA.
+  assert(body.breakdownBy === 'lga', `expected breakdownBy lga, got ${body.breakdownBy}`);
+  const l1 = body.breakdown.find((b: any) => b.key === 'LGA-1');
+  const l2 = body.breakdown.find((b: any) => b.key === 'LGA-2');
+  assert(l1 && l1.metrics.registered === 3, `LGA-1 expected 3, got ${l1?.metrics.registered}`);
+  assert(l2 && l2.metrics.registered === 2, `LGA-2 expected 2, got ${l2?.metrics.registered}`);
+
+  // Vaccine utilisation (administered): BCG x2 (A,C), OPV x1 (A).
+  const bcg = body.vaccineUtilisation.find((v: any) => v.vaccineCode === 'BCG');
+  assert(bcg && bcg.administered === 2, `BCG utilisation expected 2, got ${bcg?.administered}`);
+
+  // §24 privacy: the payload must not carry any individual identifier.
+  const raw = JSON.stringify(body);
+  assert(!/CHN-/.test(raw), 'dashboard leaked a CHIN');
+  assert(!/Dashboard Child/.test(raw), 'dashboard leaked a child name');
+  assert(!/2348060000000/.test(raw), 'dashboard leaked a phone number');
+});
+
+test('dashboard drills down State → LGA → Ward', async () => {
+  const { body } = await jsonAs(adminTokenT, 'GET', `/api/dashboard/summary?state=${encodeURIComponent(ST)}&lga=LGA-1`);
+  assert(body.breakdownBy === 'ward', `expected breakdownBy ward, got ${body.breakdownBy}`);
+  const wa = body.breakdown.find((b: any) => b.key === 'Ward-A');
+  const wb = body.breakdown.find((b: any) => b.key === 'Ward-B');
+  assert(wa && wa.metrics.registered === 2, `Ward-A expected 2, got ${wa?.metrics.registered}`);
+  assert(wb && wb.metrics.registered === 1, `Ward-B expected 1, got ${wb?.metrics.registered}`);
+});
+
+test('stock forecast counts upcoming demand per vaccine', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', `/api/dashboard/stock-forecast?weeks=4&state=${encodeURIComponent(ST)}`);
+  assert(status === 200, `expected 200, got ${status}`);
+  // Within 4 weeks: B's PCV (+20d) and D's Measles (+3d). Overdue doses excluded.
+  const pcv = body.byVaccine.find((v: any) => v.vaccineCode === 'PCV');
+  const measles = body.byVaccine.find((v: any) => v.vaccineCode === 'MEASLES');
+  assert(pcv && pcv.dueCount === 1, `PCV forecast expected 1, got ${pcv?.dueCount}`);
+  assert(measles && measles.dueCount === 1, `Measles forecast expected 1, got ${measles?.dueCount}`);
+  assert(!body.byVaccine.some((v: any) => v.vaccineCode === 'PENTA'), 'overdue PENTA must not be in the forecast');
+});
+
+test('administration trend returns one point per week', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/trend?weeks=8');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(Array.isArray(body.points) && body.points.length === 8, `expected 8 weekly points, got ${body.points?.length}`);
+  assert(body.points.every((p: any) => p.weekStarting && typeof p.dosesAdministered === 'number'), 'malformed trend point');
+});
+
+test('outlier detection flags a facility with an unusual dropout rate', async () => {
+  // Three facilities of 5 children each, in a separate state: two healthy
+  // (0 dropout), one bad (all dropout). The bad one should be flagged.
+  const good1 = await dashFacility('Outlier-State', 'OL-1', 'W', 'Healthy PHC 1');
+  const good2 = await dashFacility('Outlier-State', 'OL-1', 'W', 'Healthy PHC 2');
+  const bad = await dashFacility('Outlier-State', 'OL-2', 'W', 'Struggling PHC');
+  for (let i = 0; i < 5; i++) {
+    // healthy: started and complete → 0 dropout
+    await dashChild(good1, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]);
+    await dashChild(good2, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]);
+    // bad: started then overdue → dropout
+    await dashChild(bad, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('PENTA', 'Pentavalent', 1, -10, false)]);
+  }
+
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/outliers');
+  assert(status === 200, `expected 200, got ${status}`);
+  const flagged = body.outliers.find((o: any) => o.facility === 'Struggling PHC');
+  assert(flagged, 'the struggling facility should be flagged as an outlier');
+  assert(flagged.dropoutRate === 1, `expected dropoutRate 1, got ${flagged.dropoutRate}`);
+  assert(!body.outliers.some((o: any) => o.facility === 'Healthy PHC 1'), 'a healthy facility must not be flagged');
+});
+
 async function main() {
   await connectDatabase();
   const server = app.listen(0);

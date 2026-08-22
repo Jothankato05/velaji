@@ -4,12 +4,18 @@ import { findNearestFacility } from '../services/handoff.service';
 import { AppError } from '../utils/AppError';
 
 export async function createFacility(req: Request, res: Response) {
-  const { name, lgaName, stateName, lat, lng } = req.body ?? {};
+  const { name, wardName, lgaName, stateName, lat, lng } = req.body ?? {};
   if (!name || !lgaName || !stateName || typeof lat !== 'number' || typeof lng !== 'number') {
     throw new AppError('name, lgaName, stateName, lat, lng are required (lat/lng as numbers)');
   }
 
-  const facility = await FacilityModel.create({ name, lgaName, stateName, location: { lat, lng } });
+  const facility = await FacilityModel.create({
+    name,
+    wardName: wardName ?? '',
+    lgaName,
+    stateName,
+    location: { lat, lng }
+  });
   res.status(201).json(facility);
 }
 

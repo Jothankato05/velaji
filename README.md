@@ -109,6 +109,21 @@ database over real HTTP — not mocked:
    record, when, and how — reviewable by an admin at
    `GET /api/children/:chin/access-log`. Roles are `verifier` < `staff` <
    `admin`.
+10. **National Command Dashboard** — NCIHAP §11, "the intelligence created
+    behind the card." Aggregated, **privacy-protected** (counts and rates
+    only — never individual child data), **admin-only**, and drillable
+    **Nigeria → State → LGA → Ward → PHC**:
+    - `GET /api/dashboard/summary?state=&lga=&ward=` — registered, doses
+      administered, due-this-week, overdue, zero-dose, completion rate,
+      dropout rate, and vaccine utilisation for the scope, plus a breakdown
+      one geographic level down.
+    - `GET /api/dashboard/stock-forecast?weeks=` — upcoming demand per vaccine
+      (§11 stock pressure / §18: "N children will need Vaccine X in N weeks").
+    - `GET /api/dashboard/trend?weeks=` — doses administered per week (§11
+      performance trends).
+    - `GET /api/dashboard/outliers` — facilities with a statistically unusual
+      dropout rate (§11), flagged as mean + 1 s.d. among facilities with
+      enough children.
 
 ## Explicit known gaps (do not treat as production-ready)
 
@@ -164,9 +179,9 @@ src/
   config/       env parsing + startup guards, DB connection
   data/         routine immunization schedule reference data
   models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog, Escalation, AccessLog
-  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations, terminal
+  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations, terminal, dashboard
   providers/    sms/ — pluggable SMS provider seam (stub for now)
-  controllers/  request handlers (incl. auth, reminders, escalations, terminal)
+  controllers/  request handlers (incl. auth, reminders, escalations, terminal, dashboard)
   middleware/   requireAuth, error handling
   jobs/         reminder.job.ts — the background scan-and-dispatch scheduler
   routes/       route wiring — public routes registered before the auth layer

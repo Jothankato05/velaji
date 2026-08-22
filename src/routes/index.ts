@@ -16,6 +16,7 @@ import { verifyChin } from '../controllers/verify.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
+import { getSummary, getStockForecast, getTrend, getOutliers } from '../controllers/dashboard.controller';
 
 export const apiRouter = Router();
 
@@ -63,3 +64,11 @@ apiRouter.post('/api/escalations/:id/resolve', asyncHandler(postResolveEscalatio
 // audit trail (§24) for any child.
 apiRouter.post('/api/terminal/lookup', asyncHandler(postTerminalLookup));
 apiRouter.get('/api/children/:chin/access-log', requireRole('admin'), asyncHandler(getChildAccessLog));
+
+// National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
+// intelligence for authorised decision-makers. Admin-only; no individual
+// child data — only counts and rates.
+apiRouter.get('/api/dashboard/summary', requireRole('admin'), asyncHandler(getSummary));
+apiRouter.get('/api/dashboard/stock-forecast', requireRole('admin'), asyncHandler(getStockForecast));
+apiRouter.get('/api/dashboard/trend', requireRole('admin'), asyncHandler(getTrend));
+apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getOutliers));
