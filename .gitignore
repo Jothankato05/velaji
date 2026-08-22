@@ -3,3 +3,5 @@ dist/
 .env
 *.log
 .mongodb-binaries/
+_mem.cjs
+_*.cjs
