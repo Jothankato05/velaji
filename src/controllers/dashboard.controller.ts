@@ -4,6 +4,7 @@ import {
   stockForecast,
   administrationTrend,
   facilityOutliers,
+  recentActivity,
   type GeoFilter
 } from '../services/dashboard.service';
 import { AppError } from '../utils/AppError';
@@ -37,4 +38,8 @@ export async function getTrend(req: Request, res: Response) {
 export async function getOutliers(_req: Request, res: Response) {
   const outliers = await facilityOutliers();
   res.json({ count: outliers.length, outliers });
+}
+
+export async function getActivity(_req: Request, res: Response) {
+  res.json({ events: await recentActivity(12) });
 }

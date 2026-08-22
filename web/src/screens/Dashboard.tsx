@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useGet } from '../lib/useGet';
 import { Loading, ErrorNote, Empty, fmt, pct } from '../components/ui';
 import './Dashboard.css';
@@ -6,6 +7,7 @@ import './Dashboard.css';
 interface Metrics {
   registered: number;
   dosesAdministered: number;
+  onTrack: number;
   dueThisWeek: number;
   overdue: number;
   zeroDose: number;
@@ -20,22 +22,14 @@ interface Summary {
   totals: Metrics;
   breakdownBy: string;
   breakdown: Array<{ key: string; metrics: Metrics }>;
-  vaccineUtilisation: Array<{ vaccineCode: string; administered: number }>;
   openEscalations: number;
+  healthyStartActive: number;
   generatedAt: string;
 }
-interface Trend {
-  weeks: number;
-  points: Array<{ weekStarting: string; dosesAdministered: number }>;
-}
-interface Stock {
-  weeks: number;
-  byVaccine: Array<{ vaccineCode: string; dueCount: number }>;
-}
-interface Outliers {
-  count: number;
-  outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>;
-}
+interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
+interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
+interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
+interface Activity { events: Array<{ kind: string; label: string; detail: string; at: string }>; }
 
 type Filter = { state?: string; lga?: string; ward?: string };
 
@@ -47,7 +41,6 @@ function qs(f: Filter): string {
   const s = p.toString();
   return s ? `?${s}` : '';
 }
-
 const LEVEL_LABEL: Record<string, string> = { state: 'States', lga: 'LGAs', ward: 'Wards', facility: 'Facilities (PHC)' };
 
 export function Dashboard() {
@@ -56,15 +49,13 @@ export function Dashboard() {
   const trend = useGet<Trend>('/api/dashboard/trend?weeks=8');
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${filter.state ? `&state=${encodeURIComponent(filter.state)}` : ''}`);
   const outliers = useGet<Outliers>('/api/dashboard/outliers');
+  const activity = useGet<Activity>('/api/dashboard/activity');
 
   const canDrill = summary.data?.breakdownBy !== 'facility';
-
   function drillInto(key: string) {
     if (!summary.data || !canDrill) return;
-    const by = summary.data.breakdownBy;
-    setFilter((f) => ({ ...f, [by]: key }));
+    setFilter((f) => ({ ...f, [summary.data!.breakdownBy]: key }));
   }
-
   const crumbs = useMemo(() => {
     const c: Array<{ label: string; f: Filter }> = [{ label: 'Nigeria', f: {} }];
     if (filter.state) c.push({ label: filter.state, f: { state: filter.state } });
@@ -73,7 +64,7 @@ export function Dashboard() {
     return c;
   }, [filter]);
 
-  if (summary.loading && !summary.data) return <Loading label="Loading command dashboard…" />;
+  if (summary.loading && !summary.data) return <Loading label="Loading command centre…" />;
   if (summary.error) return <ErrorNote message={summary.error} />;
   if (!summary.data) return null;
 
@@ -84,38 +75,50 @@ export function Dashboard() {
     <div className="dash">
       <div className="dash-head">
         <div>
-          <div className="eyebrow">National Command Dashboard · NCIHAP §11</div>
-          <h1>Where is every child on their health journey?</h1>
+          <div className="eyebrow">National overview</div>
+          <h1>Command Centre</h1>
+          <p className="muted dash-tagline">Real-time visibility across Nigeria's child immunisation journey.</p>
         </div>
-        <div className="dash-generated mono muted">
-          updated {new Date(summary.data.generatedAt).toLocaleString('en-NG', { hour12: false })}
-        </div>
+        <Link to="/register" className="btn btn-primary">Register child</Link>
       </div>
 
-      {/* scope breadcrumb / drill-up */}
       <nav className="scopebar" aria-label="Geographic scope">
         {crumbs.map((c, i) => (
           <span key={c.label} className="scope-crumb">
-            <button className="scope-link" onClick={() => setFilter(c.f)} disabled={i === crumbs.length - 1}>
-              {c.label}
-            </button>
+            <button className="scope-link" onClick={() => setFilter(c.f)} disabled={i === crumbs.length - 1}>{c.label}</button>
             {i < crumbs.length - 1 && <span className="scope-sep" aria-hidden>›</span>}
           </span>
         ))}
       </nav>
 
-      {/* KPI tiles */}
+      {/* headline KPIs — matched to the reference set */}
       <div className="kpis">
-        <Kpi label="Children registered" value={fmt(t.registered)} />
-        <Kpi label="Overdue" value={fmt(t.overdue)} tone={t.overdue ? 'red' : undefined} />
-        <Kpi label="Due this week" value={fmt(t.dueThisWeek)} tone={t.dueThisWeek ? 'amber' : undefined} />
-        <Kpi label="Zero-dose" value={fmt(t.zeroDose)} tone={t.zeroDose ? 'grey' : undefined} />
-        <Kpi label="Completion rate" value={pct(t.completionRate)} tone="green" />
-        <Kpi label="Dropout rate" value={pct(t.dropoutRate)} tone={t.dropoutRate > 0.2 ? 'red' : undefined} />
+        <Kpi
+          label="Children registered"
+          value={fmt(t.registered)}
+          sub={`${fmt(t.onTrack)} on track · ${fmt(t.dueThisWeek)} due this week`}
+        />
+        <Kpi label="Doses administered" value={fmt(t.dosesAdministered)} sub="recorded in this scope" />
+        <Kpi label="Children overdue" value={fmt(t.overdue)} tone="down" sub={`${fmt(summary.data.openEscalations)} in the follow-up queue`} />
+        <Kpi
+          label="Healthy Start active"
+          value={fmt(summary.data.healthyStartActive)}
+          tone="up"
+          sub="12-month NHIA child coverage"
+          badge="coverage"
+        />
       </div>
 
+      {/* status distribution */}
+      <section className="card panel">
+        <div className="panel-head">
+          <h2>Child status distribution</h2>
+          <span className="eyebrow">{summary.data.scope.label} · {fmt(t.registered)} children</span>
+        </div>
+        <StatusBar t={t} />
+      </section>
+
       <div className="dash-grid">
-        {/* geographic breakdown (drill-down) */}
         <section className="card panel span2">
           <div className="panel-head">
             <h2>{LEVEL_LABEL[summary.data.breakdownBy] ?? summary.data.breakdownBy}</h2>
@@ -129,12 +132,7 @@ export function Dashboard() {
                 <li key={b.key}>
                   <button className="geo-row" onClick={() => drillInto(b.key)} disabled={!canDrill}>
                     <span className="geo-key">{b.key}</span>
-                    <span className="geo-bar-track">
-                      <span
-                        className="geo-bar-fill"
-                        style={{ width: `${(b.metrics.registered / maxBreak) * 100}%` }}
-                      />
-                    </span>
+                    <span className="geo-bar-track"><span className="geo-bar-fill" style={{ width: `${(b.metrics.registered / maxBreak) * 100}%` }} /></span>
                     <span className="geo-nums mono">
                       <b>{fmt(b.metrics.registered)}</b>
                       <span className="geo-overdue">{fmt(b.metrics.overdue)} overdue</span>
@@ -148,86 +146,92 @@ export function Dashboard() {
           )}
         </section>
 
-        {/* trend */}
         <section className="card panel">
-          <div className="panel-head">
-            <h2>Doses administered</h2>
-            <span className="eyebrow">last 8 weeks · national</span>
-          </div>
+          <div className="panel-head"><h2>Doses administered</h2><span className="eyebrow">last 8 weeks</span></div>
           {trend.data ? <TrendChart points={trend.data.points} /> : <Loading />}
         </section>
 
-        {/* stock forecast */}
         <section className="card panel">
-          <div className="panel-head">
-            <h2>Stock pressure</h2>
-            <span className="eyebrow">doses due · next 4 weeks</span>
-          </div>
-          {stock.data ? (
-            stock.data.byVaccine.length === 0 ? (
-              <Empty>No doses fall due in this window.</Empty>
-            ) : (
-              <ForecastBars items={stock.data.byVaccine} />
-            )
-          ) : (
-            <Loading />
-          )}
-        </section>
-
-        {/* outliers */}
-        <section className="card panel">
-          <div className="panel-head">
-            <h2>Dropout outliers</h2>
-            <span className="eyebrow">facilities needing review</span>
-          </div>
-          {outliers.data ? (
-            outliers.data.outliers.length === 0 ? (
-              <Empty>No facilities flagged. Dropout is within normal range.</Empty>
-            ) : (
-              <ul className="outlier-list">
-                {outliers.data.outliers.map((o) => (
-                  <li key={`${o.facility}-${o.lga}`} className="outlier-row">
-                    <div>
-                      <div className="outlier-name">{o.facility}</div>
-                      <div className="muted outlier-loc">{o.lga}, {o.state} · {o.registered} children</div>
-                    </div>
-                    <span className="outlier-rate mono">{pct(o.dropoutRate)}</span>
+          <div className="panel-head"><h2>Live programme activity</h2><span className="eyebrow live">● live</span></div>
+          {activity.data ? (
+            activity.data.events.length === 0 ? <Empty>No recent events.</Empty> : (
+              <ul className="activity">
+                {activity.data.events.slice(0, 6).map((e, i) => (
+                  <li key={i} className="act-row">
+                    <span className={`act-dot ${e.kind}`} aria-hidden />
+                    <span className="act-body">
+                      <span className="act-label">{e.label}</span>
+                      <span className="act-detail mono muted">{e.detail}</span>
+                    </span>
+                    <span className="act-time mono muted">{timeAgo(e.at)}</span>
                   </li>
                 ))}
               </ul>
             )
-          ) : (
-            <Loading />
-          )}
+          ) : <Loading />}
         </section>
 
-        {/* footer strip: escalations + reconciliation */}
-        <section className="card panel span2 strip">
-          <div className="strip-item">
-            <span className="strip-num">{fmt(summary.data.openEscalations)}</span>
-            <span className="muted">open follow-up cases (national)</span>
-          </div>
-          <div className="strip-div" />
-          <div className="strip-item">
-            <span className="strip-num">{fmt(t.needsReconciliation)}</span>
-            <span className="muted">records needing reconciliation (GREY) in scope</span>
-          </div>
-          <div className="strip-div" />
-          <div className="strip-item">
-            <span className="strip-num">{fmt(t.dosesAdministered)}</span>
-            <span className="muted">doses administered in scope</span>
-          </div>
+        <section className="card panel">
+          <div className="panel-head"><h2>Stock pressure</h2><span className="eyebrow">next 4 weeks</span></div>
+          {stock.data ? (stock.data.byVaccine.length === 0 ? <Empty>No doses fall due in this window.</Empty> : <ForecastBars items={stock.data.byVaccine} />) : <Loading />}
+        </section>
+
+        <section className="card panel">
+          <div className="panel-head"><h2>Dropout outliers</h2><span className="eyebrow">facilities to review</span></div>
+          {outliers.data ? (outliers.data.outliers.length === 0 ? <Empty>No facilities flagged.</Empty> : (
+            <ul className="outlier-list">
+              {outliers.data.outliers.map((o) => (
+                <li key={`${o.facility}-${o.lga}`} className="outlier-row">
+                  <div><div className="outlier-name">{o.facility}</div><div className="muted outlier-loc">{o.lga}, {o.state} · {o.registered} children</div></div>
+                  <span className="outlier-rate mono">{pct(o.dropoutRate)}</span>
+                </li>
+              ))}
+            </ul>
+          )) : <Loading />}
         </section>
       </div>
     </div>
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: string; tone?: 'red' | 'amber' | 'green' | 'grey' }) {
+function Kpi({ label, value, sub, tone, badge }: { label: string; value: string; sub?: string; tone?: 'up' | 'down'; badge?: string }) {
   return (
-    <div className={`card kpi${tone ? ` kpi-${tone}` : ''}`}>
-      <div className="kpi-value">{value}</div>
-      <div className="kpi-label">{label}</div>
+    <div className="card kpi">
+      <div className="kpi-top">
+        <span className="kpi-label">{label}</span>
+        {badge && <span className={`kpi-badge ${tone ?? ''}`}>{badge}</span>}
+      </div>
+      <div className={`kpi-value${tone ? ` kpi-${tone}` : ''}`}>{value}</div>
+      {sub && <div className="kpi-sub muted">{sub}</div>}
+    </div>
+  );
+}
+
+function StatusBar({ t }: { t: Metrics }) {
+  const segs = [
+    { key: 'On track', n: t.onTrack, cls: 'GREEN' },
+    { key: 'Due soon', n: t.dueThisWeek, cls: 'AMBER' },
+    { key: 'Overdue', n: t.overdue, cls: 'RED' },
+    { key: 'Completed', n: t.completed, cls: 'BLUE' },
+    { key: 'Needs review', n: t.needsReconciliation, cls: 'GREY' }
+  ].filter((s) => s.n > 0);
+  const total = Math.max(1, segs.reduce((a, s) => a + s.n, 0));
+  return (
+    <div className="statusbar">
+      <div className="statusbar-track">
+        {segs.map((s) => (
+          <span key={s.key} className={`sb-seg ${s.cls}`} style={{ width: `${(s.n / total) * 100}%` }} title={`${s.key}: ${s.n}`} />
+        ))}
+      </div>
+      <div className="statusbar-legend">
+        {segs.map((s) => (
+          <span key={s.key} className="sb-leg">
+            <span className={`sb-swatch ${s.cls}`} />
+            {s.key} <b className="mono">{fmt(s.n)}</b>
+            <span className="muted">· {pct(s.n / total)}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -253,12 +257,18 @@ function ForecastBars({ items }: { items: Array<{ vaccineCode: string; dueCount:
       {items.map((i) => (
         <li key={i.vaccineCode} className="forecast-row">
           <span className="forecast-code mono">{i.vaccineCode}</span>
-          <span className="forecast-track">
-            <span className="forecast-fill" style={{ width: `${(i.dueCount / max) * 100}%` }} />
-          </span>
+          <span className="forecast-track"><span className="forecast-fill" style={{ width: `${(i.dueCount / max) * 100}%` }} /></span>
           <span className="forecast-num mono">{fmt(i.dueCount)}</span>
         </li>
       ))}
     </ul>
   );
+}
+
+function timeAgo(iso: string): string {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
 }

@@ -1,6 +1,7 @@
 import { ChildModel } from '../models/Child';
 import { FacilityModel } from '../models/Facility';
 import { EscalationModel } from '../models/Escalation';
+import { CertificateModel } from '../models/Certificate';
 import { computeChildStatus } from './schedule.service';
 
 /**
@@ -27,6 +28,7 @@ export interface GeoFilter {
 export interface Metrics {
   registered: number;
   dosesAdministered: number;
+  onTrack: number; // status GREEN
   dueThisWeek: number; // upcoming un-administered dose within 7 days
   overdue: number; // status RED
   zeroDose: number; // registered but no dose administered yet
@@ -61,6 +63,7 @@ function blank(): Omit<Metrics, 'completionRate' | 'dropoutRate'> {
   return {
     registered: 0,
     dosesAdministered: 0,
+    onTrack: 0,
     dueThisWeek: 0,
     overdue: 0,
     zeroDose: 0,
@@ -73,6 +76,7 @@ function blank(): Omit<Metrics, 'completionRate' | 'dropoutRate'> {
 function accumulate(m: ReturnType<typeof blank>, c: ChildFacts) {
   m.registered += 1;
   m.dosesAdministered += c.administeredCount;
+  if (c.status === 'GREEN') m.onTrack += 1;
   if (c.dueThisWeek) m.dueThisWeek += 1;
   if (c.overdue) m.overdue += 1;
   if (c.zeroDose) m.zeroDose += 1;
@@ -172,6 +176,7 @@ export interface DashboardSummary {
   breakdown: Array<{ key: string; metrics: Metrics }>;
   vaccineUtilisation: Array<{ vaccineCode: string; administered: number }>;
   openEscalations: number;
+  healthyStartActive: number; // children with active NHIA coverage (national)
   generatedAt: string;
 }
 
@@ -205,6 +210,7 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
   }
 
   const openEscalations = await EscalationModel.countDocuments({ status: 'open' });
+  const healthyStartActive = await CertificateModel.countDocuments({ coverageExpiresAt: { $gt: now } });
 
   const scopeLabel = [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria';
 
@@ -219,8 +225,48 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
       .map(([vaccineCode, administered]) => ({ vaccineCode, administered }))
       .sort((a, b) => b.administered - a.administered),
     openEscalations,
+    healthyStartActive,
     generatedAt: now.toISOString()
   };
+}
+
+export interface ActivityEvent {
+  kind: 'healthy_start' | 'verification' | 'reminder' | 'recovery';
+  label: string;
+  detail: string;
+  at: string;
+}
+
+/**
+ * The Command Centre's live activity feed — recent verified national events,
+ * composed from the real ledgers (coverage grants, terminal verifications,
+ * reminders sent, follow-up assignments). NCIHAP §11 "real-time intervention".
+ */
+export async function recentActivity(limit = 12): Promise<ActivityEvent[]> {
+  const [certs, escalations] = await Promise.all([
+    CertificateModel.find({}).sort({ issuedAt: -1 }).limit(limit),
+    EscalationModel.find({}).sort({ raisedAt: -1 }).limit(limit)
+  ]);
+
+  const events: ActivityEvent[] = [];
+  for (const c of certs) {
+    events.push({
+      kind: 'healthy_start',
+      label: 'Healthy Start activated',
+      detail: `${c.chin} · NHIA coverage: ${c.coverageMonths} months`,
+      at: (c.issuedAt ?? new Date()).toISOString()
+    });
+  }
+  for (const e of escalations) {
+    events.push({
+      kind: 'recovery',
+      label: e.status === 'resolved' ? 'Recovery case resolved' : 'Recovery case assigned',
+      detail: `${e.chin} · ${e.doseKey}`,
+      at: (e.raisedAt ?? new Date()).toISOString()
+    });
+  }
+
+  return events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, limit);
 }
 
 export interface StockForecast {
