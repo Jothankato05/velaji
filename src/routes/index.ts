@@ -15,6 +15,7 @@ import {
 import { verifyChin } from '../controllers/verify.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
+import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
 
 export const apiRouter = Router();
 
@@ -56,3 +57,9 @@ apiRouter.post('/api/reminders/run', requireRole('admin'), asyncHandler(triggerR
 // The human-tracing work queue: children the reminder engine gave up texting.
 apiRouter.get('/api/escalations', asyncHandler(getEscalations));
 apiRouter.post('/api/escalations/:id/resolve', asyncHandler(postResolveEscalation));
+
+// The authorised verification terminal (NCIHAP §16): look a child up by typed
+// CHIN or scanned QR, role-scoped, every access audited. Admins can review the
+// audit trail (§24) for any child.
+apiRouter.post('/api/terminal/lookup', asyncHandler(postTerminalLookup));
+apiRouter.get('/api/children/:chin/access-log', requireRole('admin'), asyncHandler(getChildAccessLog));

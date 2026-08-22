@@ -14,6 +14,8 @@ import { FacilityModel } from '../src/models/Facility';
 import { ReminderLogModel } from '../src/models/ReminderLog';
 import { EscalationModel } from '../src/models/Escalation';
 import { ReminderService } from '../src/services/reminder.service';
+import { issueToken } from '../src/utils/token';
+import { buildVerificationUrl } from '../src/services/card.service';
 import type { SmsMessage, SmsProvider, SmsSendResult } from '../src/providers/sms';
 
 type TestFn = () => Promise<void>;
@@ -577,6 +579,104 @@ test('escalation resolve rejects an invalid outcome', async () => {
 test('escalation resolve rejects a malformed id with 400, not a 500', async () => {
   const { status } = await json('POST', '/api/escalations/not-an-object-id/resolve', { outcome: 'other' });
   assert(status === 400, `expected 400 for a malformed id, got ${status}`);
+});
+
+// --- ATM front door: the authorised verification terminal (NCIHAP §16/§24) ---
+
+async function jsonAs(token: string, method: string, path: string, body?: unknown) {
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(`${baseUrl}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const text = await res.text();
+  let parsed: any = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = text;
+  }
+  return { status: res.status, body: parsed };
+}
+
+let termChin = '';
+const verifierToken = issueToken({ id: 'v1', username: 'gatekeeper', role: 'verifier' });
+const staffToken = issueToken({ id: 's1', username: 'health.worker', role: 'staff' });
+const adminTokenT = issueToken({ id: 'a1', username: 'sys.admin', role: 'admin' });
+
+test('terminal setup: register an overdue child for verification', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Terminal Carer', phone: '+2348090000000' });
+  const dob = new Date(NOON.getTime() - 120 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Terminal Child', sex: 'male', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  assert(reg.status === 201, `expected 201, got ${reg.status}: ${JSON.stringify(reg.body)}`);
+  termChin = reg.body.chin;
+});
+
+test('verifier sees ONLY the status headline, not the medical record (least-privilege)', async () => {
+  const { status, body } = await jsonAs(verifierToken, 'POST', '/api/terminal/lookup', { chin: termChin });
+  assert(status === 200, `expected 200, got ${status}: ${JSON.stringify(body)}`);
+  assert(body.tier === 'verifier', `expected verifier tier, got ${body.tier}`);
+  assert(body.headline === 'ATTENTION REQUIRED', `expected ATTENTION REQUIRED, got ${body.headline}`);
+  assert(body.record.chin === termChin && typeof body.record.childName === 'string', 'missing minimal identity');
+  assert(body.record.status && body.record.statusHeadline, 'missing status');
+  // §24: a verifier must NOT get the full medical record.
+  assert(body.record.doses === undefined, 'verifier must not see the dose history');
+  assert(body.record.dateOfBirth === undefined, 'verifier must not see DOB');
+  assert(body.record.caregiver === undefined, 'verifier must not see caregiver contact');
+});
+
+test('health worker sees the full record needed to continue care', async () => {
+  const { status, body } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { chin: termChin });
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.tier === 'staff', `expected staff tier, got ${body.tier}`);
+  assert(Array.isArray(body.record.doses) && body.record.doses.length > 0, 'staff should see the dose schedule');
+  assert(body.record.caregiver && body.record.caregiver.phone === '+2348090000000', 'staff should see caregiver contact');
+  assert(body.record.dateOfBirth, 'staff should see DOB');
+});
+
+test('lookup by scanned QR works and is marked as a QR access', async () => {
+  const qr = buildVerificationUrl(termChin); // the exact string the card encodes
+  const { status, body } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { qr });
+  assert(status === 200, `expected 200, got ${status}: ${JSON.stringify(body)}`);
+  assert(body.method === 'qr', `expected method qr, got ${body.method}`);
+  assert(body.record.chin === termChin, 'QR lookup resolved the wrong child');
+});
+
+test('a forged QR token is rejected', async () => {
+  const forged = buildVerificationUrl(termChin).replace(/t=.*$/, 't=forgedtoken00');
+  const { status } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { qr: forged });
+  assert(status === 401, `expected 401 for a forged QR, got ${status}`);
+});
+
+test('a mistyped CHIN is caught before it hits the database', async () => {
+  const typo = termChin.slice(0, -1) + (termChin.slice(-1) === '0' ? '1' : '0');
+  const { status } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { chin: typo });
+  assert(status === 400, `expected 400 for a mistyped CHIN, got ${status}`);
+});
+
+test('a valid but unknown CHIN returns 404 and is still audited', async () => {
+  let ghost = generateChin();
+  while (ghost === termChin) ghost = generateChin();
+  const { status } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { chin: ghost });
+  assert(status === 404, `expected 404 for an unknown CHIN, got ${status}`);
+  // The not-found lookup is still recorded (admin can review it).
+  const log = await jsonAs(adminTokenT, 'GET', `/api/children/${encodeURIComponent(ghost)}/access-log`);
+  assert(log.body.count >= 1 && log.body.accesses[0].outcome === 'not_found', 'not-found access was not audited');
+});
+
+test('every terminal access is written to the audit trail (admin can review)', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', `/api/children/${encodeURIComponent(termChin)}/access-log`);
+  assert(status === 200, `expected 200, got ${status}`);
+  // verifier + staff(chin) + staff(qr) = at least 3 successful accesses logged.
+  assert(body.count >= 3, `expected >=3 audited accesses, got ${body.count}`);
+  const roles = body.accesses.map((a: any) => a.accessorRole);
+  assert(roles.includes('verifier') && roles.includes('staff'), 'audit trail missing accessor roles');
+  assert(body.accesses.every((a: any) => a.accessedBy && a.at), 'audit rows must record who and when');
+});
+
+test('the audit trail is admin-only', async () => {
+  const { status } = await jsonAs(staffToken, 'GET', `/api/children/${encodeURIComponent(termChin)}/access-log`);
+  assert(status === 403, `expected 403 for non-admin audit access, got ${status}`);
 });
 
 async function main() {

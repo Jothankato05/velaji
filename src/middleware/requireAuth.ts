@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { verifyToken, type TokenPayload } from '../utils/token';
+import { verifyToken, type TokenPayload, type StaffRole } from '../utils/token';
 import { AppError } from '../utils/AppError';
 
 declare global {
@@ -28,7 +28,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
-export function requireRole(...roles: Array<'staff' | 'admin'>) {
+export function requireRole(...roles: StaffRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) throw new AppError('Not authenticated', 401);
     if (!roles.includes(req.user.role)) throw new AppError('Forbidden', 403);

@@ -6,10 +6,17 @@ import { env } from '../config/env';
  * signature over that payload, using node's crypto only (no jsonwebtoken
  * dependency).
  */
+/**
+ * Roles, least-privilege first (NCIHAP §24). Disclosure at the verification
+ * terminal is scoped to the role — a verifier sees only the §16 status
+ * headline, a health worker sees the record needed to continue care.
+ */
+export type StaffRole = 'verifier' | 'staff' | 'admin';
+
 export interface TokenPayload {
   sub: string;
   username: string;
-  role: 'staff' | 'admin';
+  role: StaffRole;
   iat: number;
   exp: number;
 }
@@ -20,7 +27,7 @@ function sign(payloadB64: string): string {
   return crypto.createHmac('sha256', env.AUTH_TOKEN_SECRET).update(payloadB64).digest('base64url');
 }
 
-export function issueToken(user: { id: string; username: string; role: 'staff' | 'admin' }): string {
+export function issueToken(user: { id: string; username: string; role: StaffRole }): string {
   const now = Math.floor(Date.now() / 1000);
   const payload: TokenPayload = {
     sub: user.id,

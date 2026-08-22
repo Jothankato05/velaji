@@ -6,7 +6,7 @@ const staffUserSchema = new Schema(
     passwordHash: { type: String, required: true, select: false },
     fullName: { type: String, required: true },
     facilityId: { type: Schema.Types.ObjectId, ref: 'Facility', default: null },
-    role: { type: String, enum: ['staff', 'admin'], default: 'staff' }
+    role: { type: String, enum: ['verifier', 'staff', 'admin'], default: 'staff' }
   },
   { timestamps: true }
 );

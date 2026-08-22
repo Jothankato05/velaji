@@ -73,7 +73,7 @@ database over real HTTP — not mocked:
    Passwords are scrypt-hashed, tokens are self-signed HMAC (12h TTL), no
    new dependency. There is no open registration endpoint on purpose:
    accounts are created with
-   `npx tsx src/scripts/createStaffUser.ts <username> <password> "<Full Name>" [staff|admin]`,
+   `npx tsx src/scripts/createStaffUser.ts <username> <password> "<Full Name>" [verifier|staff|admin]`,
    deliberately, by someone with server access — not self-served.
 7. **Reminder engine** — a background job (`REMINDER_ENGINE_ENABLED=true`)
    scans outstanding children each cycle and sends caregivers **one** SMS per
@@ -96,6 +96,19 @@ database over real HTTP — not mocked:
    trace the family. `POST /api/escalations/:id/resolve` closes one with an
    outcome and note; recording the missing dose **auto-resolves** it, so the
    queue never shows stale work. One open item per child+dose, no duplicates.
+9. **Authorised verification terminal ("the ATM front door")** — NCIHAP §16:
+   an authenticated worker looks a child up by **typed CHIN or scanned QR**
+   (`POST /api/terminal/lookup`) and gets back the §16 headline —
+   `CURRENT` or `ATTENTION REQUIRED` — plus **only what their role is
+   authorised to see** (§24 least-privilege). A `verifier` sees status and
+   identity only; a `staff` health worker sees the record needed to continue
+   care (schedule, DOB, caregiver contact). A scanned QR must carry a valid
+   signed token or it's rejected as a possible forgery; a typed CHIN is
+   check-digit-validated before it hits the database. **Every access is
+   written to an append-only audit trail** (§17/§24) — who looked at which
+   record, when, and how — reviewable by an admin at
+   `GET /api/children/:chin/access-log`. Roles are `verifier` < `staff` <
+   `admin`.
 
 ## Explicit known gaps (do not treat as production-ready)
 
@@ -150,10 +163,10 @@ npm test
 src/
   config/       env parsing + startup guards, DB connection
   data/         routine immunization schedule reference data
-  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog, Escalation
-  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations
+  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog, Escalation, AccessLog
+  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations, terminal
   providers/    sms/ — pluggable SMS provider seam (stub for now)
-  controllers/  request handlers (incl. auth, reminders, escalations)
+  controllers/  request handlers (incl. auth, reminders, escalations, terminal)
   middleware/   requireAuth, error handling
   jobs/         reminder.job.ts — the background scan-and-dispatch scheduler
   routes/       route wiring — public routes registered before the auth layer
