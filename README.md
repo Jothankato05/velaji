@@ -138,15 +138,24 @@ database over real HTTP — not mocked:
       **conflict** (two sources recording the same dose differently) keeps the
       earlier vaccination and flags the record **GREY** for reconciliation
       (§10). One bad transaction in a batch doesn't block the good ones.
+12. **Web frontend** (`web/`) — a React + Vite + TypeScript staff/admin app:
+    login, a role-aware shell, the **National Command Dashboard** with live
+    geographic drill-down (Nigeria → State → LGA → Ward → PHC), doses-trend
+    and stock-pressure charts, child lookup/registration/dose-recording with
+    an inline card preview, the verification terminal, and the follow-up
+    queue. Its own design system (deep clinical green, Lora + IBM Plex,
+    full light/dark). Run it with `npm --prefix web run dev` (dev-proxies
+    `/api` to the backend on :4100).
 
 ## Explicit known gaps (do not treat as production-ready)
 
 - **No real SMS gateway yet.** The reminder engine is fully wired but ships
   with a console `stub` provider — it logs what it would send. A real
   gateway plugs into `src/providers/sms` behind the existing seam.
-- **No frontend.** Staff interact via the API only; no UI built yet — the
-  offline-first *client* (local store on the device) is the app that would
-  consume the sync API; the server-side sync protocol is built and tested.
+- **The offline-first _client_** (a local store on the device that queues
+  transactions) isn't built — the web app is online. The server-side sync
+  protocol it would consume is built and tested; a field device app / PWA is
+  the next layer.
 - **Schedule data needs clinical sign-off.** `src/data/routine-immunization-schedule.ts`
   reflects the commonly published NPHCDA routine schedule, but this is a
   software prototype, not a clinical source — verify against current
