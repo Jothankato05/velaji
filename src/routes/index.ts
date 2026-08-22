@@ -14,6 +14,7 @@ import {
   recordHandoff
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
+import { familyJourney } from '../controllers/family.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
@@ -34,6 +35,10 @@ apiRouter.post('/api/auth/login', asyncHandler(login));
 // signed token, not staff auth, because a caregiver or a receiving
 // facility with no account still needs to be able to check status.
 apiRouter.get('/api/verify/:chin', asyncHandler(verifyChin));
+
+// MyChild family app — the parent's own view, reached with their card
+// (CHIN + signed token). Public like verify; the card is the key.
+apiRouter.get('/api/family/:chin', asyncHandler(familyJourney));
 
 // --- Everything below requires a staff bearer token. ---
 apiRouter.use(requireAuth);
