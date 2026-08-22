@@ -139,6 +139,59 @@ export async function getCertificate(req: Request, res: Response) {
   res.json(certificate);
 }
 
+/**
+ * The whole story of one child in a single call, for the card-driven point-of-
+ * care experience: who they are, the ONE vaccine that's next (the system
+ * remembers so the caregiver doesn't), progress toward the finish, and — once
+ * complete — the unlocked NHIA "Healthy Start" coverage. This is what the card
+ * "carries the brain" so the family doesn't have to.
+ */
+export async function getJourney(req: Request, res: Response) {
+  const child = await findChildOr404(req.params.chin);
+  const doses = child.doses.map((d) => ({
+    vaccineCode: d.vaccineCode,
+    displayName: d.displayName,
+    doseNumber: d.doseNumber,
+    dueDate: d.dueDate,
+    administeredDate: d.administeredDate ?? null
+  }));
+
+  const administered = doses.filter((d) => d.administeredDate).length;
+  const next = doses
+    .filter((d) => !d.administeredDate)
+    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
+
+  const facility = await FacilityModel.findById(child.currentFacilityId);
+  const caregiver = await CaregiverModel.findById(child.caregiverId);
+  const certificate = await CertificateModel.findOne({ childId: child._id });
+
+  res.json({
+    chin: child.chin,
+    fullName: child.fullName,
+    sex: child.sex,
+    dateOfBirth: child.dateOfBirth,
+    status: computeChildStatus(doses, { needsReconciliation: child.needsReconciliation }),
+    currentFacility: facility?.name ?? null,
+    caregiver: caregiver ? { fullName: caregiver.fullName, phone: caregiver.phone || null } : null,
+    progress: { administered, total: doses.length, remaining: doses.length - administered },
+    nextDue: next
+      ? { vaccine: next.displayName, vaccineCode: next.vaccineCode, doseNumber: next.doseNumber, dueDate: next.dueDate }
+      : null,
+    completedAt: child.completedAt ?? null,
+    coverage: certificate
+      ? {
+          programme: certificate.coverageProgramme,
+          months: certificate.coverageMonths,
+          startsAt: certificate.coverageStartsAt,
+          expiresAt: certificate.coverageExpiresAt,
+          active: (certificate.coverageExpiresAt?.getTime() ?? 0) > Date.now(),
+          nhiaIntegrationStatus: certificate.nhiaIntegrationStatus
+        }
+      : null,
+    doses
+  });
+}
+
 export async function recordHandoff(req: Request, res: Response) {
   const child = await findChildOr404(req.params.chin);
   const { toFacilityId, lat, lng, reason } = req.body ?? {};
