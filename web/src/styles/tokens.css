@@ -1,0 +1,88 @@
+/* Velaji design tokens.
+   A deliberate institutional-health identity: deep clinical green, a warm
+   paper neutral (never pure white ground), Lora for headings (government
+   gravitas), IBM Plex Sans for UI, IBM Plex Mono for identifiers/data.
+   The five status colours are domain-required (NCIHAP §10), not decoration. */
+
+:root {
+  /* neutrals — warm/cool paper, biased slightly toward the green brand */
+  --bg: #f3f5f1;
+  --surface: #ffffff;
+  --surface-2: #fafbf8;
+  --ink: #16211c;
+  --ink-soft: #33403a;
+  --muted: #5b675f;
+  --faint: #8a958d;
+  --line: #dde3dc;
+  --line-strong: #c7d0c7;
+
+  /* brand */
+  --brand: #0f3d2e;
+  --brand-ink: #0f3d2e;
+  --brand-2: #1c6b4f;
+  --brand-soft: #e5efe9;
+  --gold: #9a6b12;
+  --gold-soft: #f3ead4;
+
+  /* status — the five-colour model */
+  --st-green: #1f8a5b;
+  --st-green-bg: #e6f2ea;
+  --st-amber: #b8790a;
+  --st-amber-bg: #f6ecd6;
+  --st-red: #bd3b2c;
+  --st-red-bg: #f7e4e1;
+  --st-grey: #6f7a72;
+  --st-grey-bg: #eaeeeb;
+  --st-blue: #2b6c98;
+  --st-blue-bg: #e2edf4;
+
+  /* type */
+  --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-head: 'Lora', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* geometry */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --shadow: 0 1px 2px rgba(16, 33, 25, 0.04), 0 8px 22px -14px rgba(16, 33, 25, 0.22);
+  --shadow-lg: 0 2px 4px rgba(16, 33, 25, 0.06), 0 16px 40px -20px rgba(16, 33, 25, 0.3);
+
+  --focus: 0 0 0 3px rgba(28, 107, 79, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0e1512;
+    --surface: #16201b;
+    --surface-2: #131c18;
+    --ink: #e7ece8;
+    --ink-soft: #cbd3cd;
+    --muted: #93a099;
+    --faint: #6b776f;
+    --line: #26312b;
+    --line-strong: #33413a;
+
+    --brand: #2e9f77;
+    --brand-ink: #45c99a;
+    --brand-2: #45c99a;
+    --brand-soft: #13291f;
+    --gold: #d0a24a;
+    --gold-soft: #2a2210;
+
+    --st-green: #45c888;
+    --st-green-bg: #10281c;
+    --st-amber: #d8a548;
+    --st-amber-bg: #2a2110;
+    --st-red: #e0685a;
+    --st-red-bg: #2c1613;
+    --st-grey: #93a099;
+    --st-grey-bg: #1e2622;
+    --st-blue: #5aa0cf;
+    --st-blue-bg: #12222c;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -16px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.4), 0 20px 46px -22px rgba(0, 0, 0, 0.7);
+    --focus: 0 0 0 3px rgba(69, 201, 154, 0.4);
+  }
+}
