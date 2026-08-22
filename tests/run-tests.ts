@@ -804,6 +804,124 @@ test('outlier detection flags a facility with an unusual dropout rate', async ()
   assert(!body.outliers.some((o: any) => o.facility === 'Healthy PHC 1'), 'a healthy facility must not be flagged');
 });
 
+// --- Offline-first sync (NCIHAP §9) ---
+
+let syncFacId = '';
+let syncChin = '';
+
+test('sync setup: a facility with a registered child', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Sync Carer', phone: '+2348065555555' });
+  const fac = await json('POST', '/api/facilities', { name: 'Sync PHC', lgaName: 'AMAC', stateName: 'FCT', lat: 9, lng: 7 });
+  syncFacId = fac.body._id;
+  const dob = new Date(NOON.getTime() - 120 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Sync Child', sex: 'male', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: syncFacId
+  });
+  assert(reg.status === 201, `expected 201, got ${reg.status}`);
+  syncChin = reg.body.chin;
+});
+
+test('pull returns the facility children with doses and a server cursor', async () => {
+  const { status, body } = await json('GET', `/api/sync/pull?facilityId=${syncFacId}`);
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(typeof body.serverTime === 'string', 'pull must return a serverTime cursor');
+  const mine = body.children.find((c: any) => c.chin === syncChin);
+  assert(mine && Array.isArray(mine.doses) && mine.doses.length > 0, 'child snapshot must carry its doses for offline use');
+});
+
+test('an offline record_dose syncs and marks the dose administered', async () => {
+  const body = {
+    deviceId: 'device-1',
+    transactions: [{
+      clientTxId: 'tx-rec-1', type: 'record_dose',
+      recordedAt: new Date(NOON.getTime() - 1 * DAY).toISOString(),
+      payload: { chin: syncChin, vaccineCode: 'BCG', doseNumber: 1, facilityId: syncFacId }
+    }]
+  };
+  const res = await json('POST', '/api/sync/push', body);
+  assert(res.status === 200, `expected 200, got ${res.status}`);
+  assert(res.body.applied === 1 && res.body.results[0].result === 'applied', `expected applied, got ${JSON.stringify(res.body)}`);
+
+  const child = await json('GET', `/api/children/${syncChin}`);
+  const bcg = child.body.doses.find((d: any) => d.vaccineCode === 'BCG' && d.doseNumber === 1);
+  assert(bcg.administeredDate, 'BCG should be administered after the sync');
+});
+
+test('re-pushing the same transaction is idempotent — no double-apply', async () => {
+  const body = {
+    deviceId: 'device-1',
+    transactions: [{
+      clientTxId: 'tx-rec-1', type: 'record_dose', recordedAt: new Date().toISOString(),
+      payload: { chin: syncChin, vaccineCode: 'BCG', doseNumber: 1, facilityId: syncFacId }
+    }]
+  };
+  const res = await json('POST', '/api/sync/push', body);
+  assert(res.body.duplicate === 1, `expected duplicate 1, got ${JSON.stringify(res.body)}`);
+  assert(res.body.applied === 0, 'a replay must not re-apply');
+});
+
+test('a conflicting offline record flags the child for reconciliation (GREY)', async () => {
+  const otherFac = (await json('POST', '/api/facilities', { name: 'Other PHC', lgaName: 'AMAC', stateName: 'FCT', lat: 9, lng: 7 })).body._id;
+  const body = {
+    deviceId: 'device-2',
+    transactions: [{
+      clientTxId: 'tx-conflict-1', type: 'record_dose',
+      recordedAt: new Date(NOON.getTime() - 2 * DAY).toISOString(), // earlier, different facility
+      payload: { chin: syncChin, vaccineCode: 'BCG', doseNumber: 1, facilityId: otherFac }
+    }]
+  };
+  const res = await json('POST', '/api/sync/push', body);
+  assert(res.body.conflict === 1, `expected conflict 1, got ${JSON.stringify(res.body)}`);
+  const child = await json('GET', `/api/children/${syncChin}`);
+  assert(child.body.status === 'GREY', `expected GREY (reconciliation) after conflict, got ${child.body.status}`);
+});
+
+test('an offline home-birth registration creates a child and returns a CHIN', async () => {
+  const dob = new Date(NOON.getTime() - 10 * DAY).toISOString().slice(0, 10);
+  const body = {
+    deviceId: 'device-3',
+    transactions: [{
+      clientTxId: 'tx-reg-1', type: 'register_child', recordedAt: new Date().toISOString(),
+      payload: { fullName: 'Home Birth', sex: 'female', dateOfBirth: dob, homeFacilityId: syncFacId, caregiver: { fullName: 'Home Carer', phone: '+2348066666666' } }
+    }]
+  };
+  const res = await json('POST', '/api/sync/push', body);
+  assert(res.body.applied === 1, `expected applied 1, got ${JSON.stringify(res.body)}`);
+  const newChin = res.body.results[0].chin;
+  assert(newChin && isValidChinFormat(newChin), `expected a valid CHIN assigned, got ${newChin}`);
+  const child = await json('GET', `/api/children/${encodeURIComponent(newChin)}`);
+  assert(child.status === 200 && child.body.fullName === 'Home Birth', 'the registered child was not found');
+});
+
+test('a batch with one bad transaction still applies the good ones', async () => {
+  const body = {
+    deviceId: 'device-4',
+    transactions: [
+      { clientTxId: 'tx-good-1', type: 'record_dose', recordedAt: new Date().toISOString(), payload: { chin: syncChin, vaccineCode: 'OPV', doseNumber: 0, facilityId: syncFacId } },
+      { clientTxId: 'tx-bad-1', type: 'record_dose', recordedAt: new Date().toISOString(), payload: { chin: syncChin } } // missing fields
+    ]
+  };
+  const res = await json('POST', '/api/sync/push', body);
+  assert(res.body.applied === 1 && res.body.error === 1, `expected 1 applied + 1 error, got ${JSON.stringify(res.body)}`);
+});
+
+test('sync requires a staff/admin token — a verifier is refused', async () => {
+  const { status } = await jsonAs(verifierToken, 'GET', `/api/sync/pull?facilityId=${syncFacId}`);
+  assert(status === 403, `expected 403 for a verifier, got ${status}`);
+});
+
+test('incremental pull with a cursor returns only what changed', async () => {
+  const first = await json('GET', `/api/sync/pull?facilityId=${syncFacId}`);
+  const cursor = first.body.serverTime;
+  await new Promise((r) => setTimeout(r, 15));
+  await json('POST', '/api/sync/push', {
+    deviceId: 'device-5',
+    transactions: [{ clientTxId: 'tx-inc-1', type: 'record_dose', recordedAt: new Date().toISOString(), payload: { chin: syncChin, vaccineCode: 'PCV', doseNumber: 1, facilityId: syncFacId } }]
+  });
+  const inc = await json('GET', `/api/sync/pull?facilityId=${syncFacId}&since=${encodeURIComponent(cursor)}`);
+  assert(inc.body.children.some((c: any) => c.chin === syncChin), 'the changed child should appear in the incremental pull');
+});
+
 async function main() {
   await connectDatabase();
   const server = app.listen(0);

@@ -124,16 +124,29 @@ database over real HTTP — not mocked:
     - `GET /api/dashboard/outliers` — facilities with a statistically unusual
       dropout rate (§11), flagged as mean + 1 s.d. among facilities with
       enough children.
+11. **Offline-first sync** — NCIHAP §9, designed for Nigeria's actual
+    connectivity. A health-worker device works offline and syncs when the
+    network returns:
+    - `GET /api/sync/pull?facilityId=&since=` — seed/refresh the device's
+      local store with the facility's children (doses, status, caregiver
+      contact) plus a `serverTime` cursor; pass it back as `since` for an
+      incremental pull of only what changed.
+    - `POST /api/sync/push` — upload a batch of transactions recorded offline
+      (`record_dose`, `register_child` for home births). Each carries a
+      device-generated `clientTxId` so a flaky network's **retries are
+      idempotent** — a replay is recognised and never double-applied. A
+      **conflict** (two sources recording the same dose differently) keeps the
+      earlier vaccination and flags the record **GREY** for reconciliation
+      (§10). One bad transaction in a batch doesn't block the good ones.
 
 ## Explicit known gaps (do not treat as production-ready)
 
 - **No real SMS gateway yet.** The reminder engine is fully wired but ships
   with a console `stub` provider — it logs what it would send. A real
   gateway plugs into `src/providers/sms` behind the existing seam.
-- **No frontend.** Staff interact via the API only; no UI built yet.
-- **No offline-first sync.** Endpoints assume a live connection. A
-  low-connectivity rollout needs a local-first store + sync protocol; not
-  built yet.
+- **No frontend.** Staff interact via the API only; no UI built yet — the
+  offline-first *client* (local store on the device) is the app that would
+  consume the sync API; the server-side sync protocol is built and tested.
 - **Schedule data needs clinical sign-off.** `src/data/routine-immunization-schedule.ts`
   reflects the commonly published NPHCDA routine schedule, but this is a
   software prototype, not a clinical source — verify against current
@@ -178,10 +191,10 @@ npm test
 src/
   config/       env parsing + startup guards, DB connection
   data/         routine immunization schedule reference data
-  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog, Escalation, AccessLog
-  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations, terminal, dashboard
+  models/       Mongoose schemas: Child, Caregiver, Facility, Certificate, FacilityHandoff, StaffUser, ReminderLog, Escalation, AccessLog, SyncTransaction
+  services/     chin, schedule/status, card+QR, verification token, certificate, handoff, reminder engine + content, escalations, terminal, dashboard, sync
   providers/    sms/ — pluggable SMS provider seam (stub for now)
-  controllers/  request handlers (incl. auth, reminders, escalations, terminal, dashboard)
+  controllers/  request handlers (incl. auth, reminders, escalations, terminal, dashboard, sync)
   middleware/   requireAuth, error handling
   jobs/         reminder.job.ts — the background scan-and-dispatch scheduler
   routes/       route wiring — public routes registered before the auth layer

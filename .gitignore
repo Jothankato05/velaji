@@ -5,3 +5,4 @@ dist/
 .mongodb-binaries/
 _mem.cjs
 _*.cjs
+scratch-*

@@ -17,6 +17,7 @@ import { triggerReminderCycle, getChildReminderLog } from '../controllers/remind
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
 import { getSummary, getStockForecast, getTrend, getOutliers } from '../controllers/dashboard.controller';
+import { getPull, postPush } from '../controllers/sync.controller';
 
 export const apiRouter = Router();
 
@@ -72,3 +73,9 @@ apiRouter.get('/api/dashboard/summary', requireRole('admin'), asyncHandler(getSu
 apiRouter.get('/api/dashboard/stock-forecast', requireRole('admin'), asyncHandler(getStockForecast));
 apiRouter.get('/api/dashboard/trend', requireRole('admin'), asyncHandler(getTrend));
 apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getOutliers));
+
+// Offline-first sync (NCIHAP §9): a health-worker device (staff/admin) pulls
+// the children it needs to work offline, and pushes queued transactions —
+// idempotently — when connectivity returns. Verifiers don't sync.
+apiRouter.get('/api/sync/pull', requireRole('staff', 'admin'), asyncHandler(getPull));
+apiRouter.post('/api/sync/push', requireRole('staff', 'admin'), asyncHandler(postPush));
