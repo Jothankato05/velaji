@@ -27,13 +27,13 @@ export function Login() {
     <div className="login">
       <section className="login-brand">
         <div className="login-mark" aria-hidden>◈</div>
-        <h1>Velaji</h1>
+        <h1>NCIHAP</h1>
         <p className="login-tagline">
           One child. One record. Every vaccine. Everywhere.
         </p>
         <p className="login-desc">
-          The platform behind the National Child Immunisation &amp; Health Assurance
-          Programme — a lifelong, verifiable immunisation record for every child.
+          National Child Immunisation &amp; Health Assurance Programme — a
+          lifelong, verifiable immunisation record for every Nigerian child.
         </p>
       </section>
 
