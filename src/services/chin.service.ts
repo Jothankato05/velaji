@@ -3,70 +3,61 @@ import crypto from 'crypto';
 /**
  * Child Health Identification Number (CHIN).
  *
- * This is a system-generated identifier for THIS software only. It is
- * explicitly NOT Nigeria's National Identification Number (NIN) and carries
- * no NIMC/NPC authority — see README "Scope" section. It exists so a child
- * with no birth certificate or NIN can still be tracked reliably across
- * visits and facilities.
+ * Format exactly as written in the NCIHAP concept note (§4):
  *
- * Format: CHN-XXXX-XXXX-Y  (X = payload, Y = check character)
- * Alphabet: Crockford base32 (excludes I, L, O, U — hard to confuse by eye
- * or over a bad phone line, which matters for a system meant to be read
- * aloud or copied by hand at a rural facility).
+ *     CHIN: NG-25-09-18472639
+ *
+ * i.e. NG-<2-digit year>-<2-digit month of registration>-<8-digit serial>.
+ * The final digit of the serial is a Luhn (mod 10) check digit, so a
+ * hand-copied or misheard number is caught before it points at the wrong
+ * child. Numbers are read aloud and copied by hand at rural facilities, so a
+ * self-checking number matters.
+ *
+ * CRITICAL PRINCIPLE (§4): the CHIN identifies the health RECORD; it is NOT
+ * Nigeria's National Identification Number (NIN), which identifies the person.
  */
 
-const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // 32 chars, Crockford-style
-const PAYLOAD_LENGTH = 8;
-
-function randomPayload(): string {
-  const bytes = crypto.randomBytes(PAYLOAD_LENGTH);
-  let out = '';
-  for (let i = 0; i < PAYLOAD_LENGTH; i++) {
-    out += ALPHABET[bytes[i] % ALPHABET.length];
-  }
-  return out;
-}
-
-/**
- * Standard "Luhn mod N" check character algorithm, generalized from the
- * classic Luhn algorithm to an arbitrary alphabet. Catches the errors that
- * actually happen with hand-copied IDs: single mistyped characters and
- * adjacent-character transpositions.
- */
-function luhnModNCheckChar(input: string): string {
-  const n = ALPHABET.length;
-  let factor = 2;
+/** Luhn (mod 10) check digit for a numeric payload string. */
+function luhnCheckDigit(payload: string): string {
   let sum = 0;
-  for (let i = input.length - 1; i >= 0; i--) {
-    const codePoint = ALPHABET.indexOf(input[i]);
-    if (codePoint === -1) throw new Error(`Invalid character in CHIN payload: ${input[i]}`);
-    let addend = factor * codePoint;
-    factor = factor === 2 ? 1 : 2;
-    addend = Math.floor(addend / n) + (addend % n);
-    sum += addend;
+  let double = true; // the rightmost payload digit is doubled (check digit sits to its right)
+  for (let i = payload.length - 1; i >= 0; i--) {
+    let d = payload.charCodeAt(i) - 48;
+    if (d < 0 || d > 9) throw new Error(`Invalid digit in CHIN payload: ${payload[i]}`);
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
   }
-  const remainder = sum % n;
-  const checkCodePoint = (n - remainder) % n;
-  return ALPHABET[checkCodePoint];
+  return String((10 - (sum % 10)) % 10);
 }
 
-export function generateChin(): string {
-  const payload = randomPayload();
-  const check = luhnModNCheckChar(payload);
-  const grouped = `${payload.slice(0, 4)}-${payload.slice(4, 8)}`;
-  return `CHN-${grouped}-${check}`;
+function twoDigit(n: number): string {
+  return String(n).padStart(2, '0');
 }
+
+export function generateChin(now: Date = new Date()): string {
+  const yy = twoDigit(now.getFullYear() % 100);
+  const mm = twoDigit(now.getMonth() + 1);
+  // 7 random digits + 1 Luhn check digit = 8-digit serial.
+  let serial7 = '';
+  const bytes = crypto.randomBytes(7);
+  for (let i = 0; i < 7; i++) serial7 += String(bytes[i] % 10);
+  const check = luhnCheckDigit(serial7);
+  return `NG-${yy}-${mm}-${serial7}${check}`;
+}
+
+const CHIN_RE = /^NG-\d{2}-\d{2}-(\d{7})(\d)$/;
 
 export function isValidChinFormat(chin: string): boolean {
-  const match = /^CHN-([0-9A-HJKMNP-TV-Z]{4})-([0-9A-HJKMNP-TV-Z]{4})-([0-9A-HJKMNP-TV-Z])$/.exec(
-    chin.trim().toUpperCase()
-  );
+  const match = CHIN_RE.exec(normalizeChin(chin));
   if (!match) return false;
-  const payload = match[1] + match[2];
-  const check = match[3];
-  return luhnModNCheckChar(payload) === check;
+  const [, payload, check] = match;
+  return luhnCheckDigit(payload) === check;
 }
 
 export function normalizeChin(chin: string): string {
-  return chin.trim().toUpperCase();
+  return chin.trim().toUpperCase().replace(/\s+/g, '');
 }
