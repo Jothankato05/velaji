@@ -115,13 +115,18 @@ export async function recordDose(req: Request, res: Response) {
 
 export async function getCard(req: Request, res: Response) {
   const child = await findChildOr404(req.params.chin);
-  const facility = await FacilityModel.findById(child.homeFacilityId);
+  const [facility, caregiver] = await Promise.all([
+    FacilityModel.findById(child.homeFacilityId),
+    CaregiverModel.findById(child.caregiverId)
+  ]);
   const svg = await generatePrintableCardSvg({
     chin: child.chin,
     fullName: child.fullName,
     sex: child.sex,
     dateOfBirth: child.dateOfBirth,
-    facilityName: facility?.name ?? 'Unknown facility'
+    facilityName: facility?.name ?? 'Unknown facility',
+    caregiverName: caregiver?.fullName,
+    caregiverPhone: caregiver?.phone || undefined
   });
 
   res.type('image/svg+xml').send(svg);

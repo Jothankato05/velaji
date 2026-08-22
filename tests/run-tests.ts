@@ -173,7 +173,7 @@ test('verify endpoint rejects a missing/forged token', async () => {
   assert(status === 401, `expected 401, got ${status}`);
 });
 
-test('printable card SVG embeds a real QR verification link', async () => {
+test('printable card carries child info AND parent info (per the BSMODEL note)', async () => {
   const res = await fetch(`${baseUrl}/api/children/${encodeURIComponent(chin)}/card.svg`, {
     headers: { Authorization: `Bearer ${authToken}` }
   });
@@ -181,6 +181,11 @@ test('printable card SVG embeds a real QR verification link', async () => {
   const svg = await res.text();
   assert(svg.includes('<svg'), 'response is not SVG');
   assert(svg.includes(chin), 'card does not contain the CHIN');
+  assert(svg.includes('Baby Yusuf'), 'card must show the child name');
+  // The note: "the card will contain the child info and parents info".
+  assert(/Parent \/ Guardian/.test(svg), 'card must have a Parent/Guardian section');
+  assert(svg.includes('Amina Yusuf'), 'card must show the parent/guardian name');
+  assert(svg.includes('+2348010000000'), 'card must show the parent contact');
 });
 
 test('recording every dose issues a completion certificate', async () => {
