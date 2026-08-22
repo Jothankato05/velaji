@@ -55,10 +55,11 @@ database over real HTTP — not mocked:
    Twilio webhook validation), so scanning it can't be forged and doesn't
    require staff login.
 3. **Status + reminder-ready schedule** — registering a child builds their
-   full routine immunization schedule from date of birth and computes a
-   five-color status (`GREEN`/`AMBER`/`RED`/`GREY`/`BLUE`) matching the
-   at-a-glance model from the programme notes. `GREY` means severely
-   overdue — needs active tracing, not just another reminder.
+   full routine immunization schedule from date of birth and computes the
+   five-colour status exactly per NCIHAP §10: `GREEN` on track, `AMBER` due
+   soon, `RED` overdue (however long — overdue does not age into GREY),
+   `GREY` = unverified/incomplete record needing reconciliation (a record
+   property, not a lateness level), `BLUE` schedule complete.
 4. **Geolocation-based facility handoff** — when a family moves or shows up
    at a different facility, `POST /api/children/:chin/handoff` logs the
    transfer with coordinates, and `GET /api/facilities/nearest` finds the
@@ -78,9 +79,10 @@ database over real HTTP — not mocked:
    scans outstanding children each cycle and sends caregivers **one** SMS per
    child, leading with the most-overdue vaccine and noting how many others
    are due (never one text per dose — that's spam and, on a paid gateway,
-   money). It enforces a per-dose cooldown and an attempt cap; a child who
-   ignores the cap, or whose doses go severely overdue (GREY), is **escalated
-   for human tracing** rather than texted forever. Sending is confined to a
+   money). It enforces a per-dose cooldown and an attempt cap; a child whose
+   caregiver ignores the cap, or who is overdue with no reachable phone, is
+   **escalated to the follow-up queue for human tracing** (NCIHAP §7
+   continued-default) rather than chased by SMS forever. Sending is confined to a
    daytime window so nobody is woken at 3am. The SMS provider is a seam
    (`SMS_PROVIDER`, currently a console `stub`) — a real gateway (Twilio,
    Africa's Talking, Termii) drops in without touching the reminder logic.

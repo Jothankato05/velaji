@@ -36,7 +36,8 @@ function toChildView(child: Awaited<ReturnType<typeof findChildOr404>>) {
         doseNumber: d.doseNumber,
         dueDate: d.dueDate,
         administeredDate: d.administeredDate ?? null
-      }))
+      })),
+      { needsReconciliation: child.needsReconciliation }
     ),
     doses: child.doses,
     completedAt: child.completedAt

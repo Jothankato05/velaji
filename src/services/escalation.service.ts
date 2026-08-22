@@ -29,8 +29,8 @@ export interface EscalationView {
 }
 
 const REASON_LABEL: Record<string, string> = {
-  max_attempts: 'Caregiver not responding to reminders',
-  lost_to_followup: 'Severely overdue — lost to follow-up'
+  max_attempts: 'Reminded to the limit — caregiver not responding',
+  lost_to_followup: 'Overdue and unreachable — needs tracing'
 };
 
 /**

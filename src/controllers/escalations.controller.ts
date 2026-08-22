@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { listEscalations, resolveEscalation } from '../services/escalation.service';
 import { AppError } from '../utils/AppError';
 
@@ -16,6 +17,7 @@ export async function getEscalations(req: Request, res: Response) {
 export async function postResolveEscalation(req: Request, res: Response) {
   const idParam = req.params.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
+  if (!mongoose.isValidObjectId(id)) throw new AppError('Invalid escalation id', 400);
 
   const { outcome, note } = req.body ?? {};
   if (outcome !== undefined && outcome !== null && !VALID_OUTCOMES.includes(outcome)) {

@@ -402,25 +402,48 @@ test('reminder engine escalates instead of texting forever past the attempt cap'
   await retireChild(childId);
 });
 
-test('reminder engine does not text a severely overdue (GREY) child, it escalates', async () => {
-  const { childId, chin } = await makeReminderChild(200); // 200 days overdue -> GREY
+test('a severely overdue child stays RED (not GREY) and is still reminded', async () => {
+  // NCIHAP §10: overdue is RED however long it stays overdue — it does NOT age
+  // into GREY. With a reachable caregiver, it must still get a reminder.
+  const { childId, chin } = await makeReminderChild(200); // 200 days overdue
   const fake = new FakeSms();
   const svc = new ReminderService({
-    smsProvider: fake,
-    now: () => NOON,
-    cooldownHours: 48,
-    maxPerDose: 3,
-    sendStartHour: 8,
-    sendEndHour: 20
+    smsProvider: fake, now: () => NOON, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20
+  });
+
+  await svc.runCycle();
+  assert(fake.sent.length === 1, `severely-overdue reachable child should be texted, sent=${fake.sent.length}`);
+
+  const view = await json('GET', `/api/children/${encodeURIComponent(chin)}`);
+  assert(view.body.status === 'RED', `expected RED for a very overdue child, got ${view.body.status}`);
+
+  await retireChild(childId);
+});
+
+test('an overdue child with no phone cannot be reminded, so it escalates', async () => {
+  const { childId, chin } = await makeReminderChild(200, { phone: null }); // overdue + unreachable
+  const fake = new FakeSms();
+  const svc = new ReminderService({
+    smsProvider: fake, now: () => NOON, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20
   });
 
   const summary = await svc.runCycle();
-  assert(fake.sent.length === 0, 'GREY (lost-to-follow-up) child should not be auto-texted');
+  assert(fake.sent.length === 0, 'a child with no phone cannot be texted');
+  assert(summary.skippedNoPhone >= 1, 'expected the no-phone skip to be counted');
   assert(
     summary.escalations.some((e) => e.startsWith(chin)),
-    'GREY dose should be flagged for human tracing'
+    'overdue + unreachable child should be flagged for human tracing'
   );
 
+  await retireChild(childId);
+});
+
+test('a record flagged for reconciliation reports GREY', async () => {
+  // NCIHAP §10: GREY = unverified/incomplete record needing reconciliation.
+  const { childId, chin } = await makeReminderChild(10);
+  await ChildModel.updateOne({ _id: childId }, { needsReconciliation: true });
+  const view = await json('GET', `/api/children/${encodeURIComponent(chin)}`);
+  assert(view.body.status === 'GREY', `expected GREY for a reconciliation-flagged record, got ${view.body.status}`);
   await retireChild(childId);
 });
 
@@ -448,8 +471,8 @@ test('reminder engine stays silent outside the send window', async () => {
 let escChin = '';
 let escId = '';
 
-test('a GREY child is raised as an escalation and appears in the work queue', async () => {
-  const { childId, chin } = await makeReminderChild(200); // 200 days overdue -> GREY
+test('an unreachable overdue child is raised as an escalation and appears in the work queue', async () => {
+  const { childId, chin } = await makeReminderChild(200, { phone: null }); // overdue + unreachable
   escChin = chin;
   const svc = new ReminderService({
     smsProvider: new FakeSms(), now: () => NOON, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20
@@ -459,10 +482,9 @@ test('a GREY child is raised as an escalation and appears in the work queue', as
   const { status, body } = await json('GET', '/api/escalations');
   assert(status === 200, `expected 200, got ${status}`);
   const mine = body.escalations.find((e: any) => e.chin === chin);
-  assert(mine, 'my GREY child should be in the open escalation queue');
+  assert(mine, 'my unreachable child should be in the open escalation queue');
   assert(mine.reason === 'lost_to_followup', `expected lost_to_followup, got ${mine.reason}`);
   assert(typeof mine.reasonLabel === 'string' && mine.reasonLabel.length > 0, 'expected a human reason label');
-  assert(mine.caregiverPhone === '+2348030000000', 'queue row missing caregiver phone for tracing');
   assert(typeof mine.daysOverdue === 'number' && mine.daysOverdue > 90, `expected >90 days overdue, got ${mine.daysOverdue}`);
   escId = mine.id;
 
@@ -506,7 +528,7 @@ test('resolving an already-resolved escalation is rejected', async () => {
 });
 
 test('recording the dose auto-resolves its escalation', async () => {
-  const { childId, chin } = await makeReminderChild(200); // GREY
+  const { childId, chin } = await makeReminderChild(200, { phone: null }); // overdue + unreachable
   const svc = new ReminderService({
     smsProvider: new FakeSms(), now: () => NOON, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20
   });
@@ -526,9 +548,9 @@ test('recording the dose auto-resolves its escalation', async () => {
   assert(resolved?.outcome === 'immunized' && resolved?.resolvedBy === 'system', 'auto-resolution not recorded correctly');
 });
 
-// --- Escalation queue: the human-tracing work list the reminder engine feeds.
-// Reuses makeReminderChild/retireChild; a GREY (200-days-overdue) child raises
-// a 'lost_to_followup' escalation on the first cycle. ---
+// --- Escalation queue: extra edge cases (auth + input validation) beyond the
+// core flows tested above. An overdue + unreachable child raises an escalation
+// on the first cycle. ---
 
 function reminderSvc(now: Date = NOON) {
   return new ReminderService({
@@ -537,98 +559,24 @@ function reminderSvc(now: Date = NOON) {
   });
 }
 
-test('escalation queue: a GREY dose becomes an open escalation staff can work from', async () => {
-  const { childId, chin } = await makeReminderChild(200);
-  await reminderSvc().runCycle();
-
-  const { status, body } = await json('GET', '/api/escalations');
-  assert(status === 200, `expected 200, got ${status}`);
-  const mine = body.escalations.find((e: any) => e.chin === chin);
-  assert(mine, 'child not present in the open escalation queue');
-  assert(mine.reason === 'lost_to_followup', `unexpected reason ${mine.reason}`);
-  assert(typeof mine.reasonLabel === 'string' && mine.reasonLabel.length > 0, 'missing human-readable reason label');
-  assert(mine.caregiverPhone === '+2348030000000', 'queue must carry the caregiver phone to call');
-  assert(mine.daysOverdue >= 190, `expected ~200 days overdue, got ${mine.daysOverdue}`);
-  assert(typeof mine.vaccine === 'string' && mine.vaccine.length > 0, 'missing vaccine name');
-
-  await retireChild(childId);
-});
-
-test('escalation queue: re-running the cycle does not duplicate an open escalation', async () => {
-  const { childId } = await makeReminderChild(200);
-  await reminderSvc().runCycle();
-  await reminderSvc().runCycle();
-  const openCount = await EscalationModel.countDocuments({ childId, status: 'open' });
-  assert(openCount === 1, `expected exactly 1 open escalation, got ${openCount}`);
-  await retireChild(childId);
-});
-
-test('escalation queue: staff resolve an item and it leaves the open list', async () => {
-  const { childId, chin } = await makeReminderChild(200);
-  await reminderSvc().runCycle();
-
-  const { body: openList } = await json('GET', '/api/escalations');
-  const mine = openList.escalations.find((e: any) => e.chin === chin);
-  assert(mine, 'precondition: escalation should be open');
-
-  const resolve = await json('POST', `/api/escalations/${mine.id}/resolve`, {
-    outcome: 'reached', note: 'Visited the home, booked a catch-up visit.'
-  });
-  assert(resolve.status === 200, `expected 200, got ${resolve.status}: ${JSON.stringify(resolve.body)}`);
-  assert(resolve.body.status === 'resolved', 'not marked resolved');
-  assert(resolve.body.resolvedBy === 'nurse.amina', `resolvedBy should be the acting staff, got ${resolve.body.resolvedBy}`);
-
-  const { body: openAfter } = await json('GET', '/api/escalations');
-  assert(!openAfter.escalations.some((e: any) => e.chin === chin), 'resolved item still shows in the open queue');
-
-  const { body: history } = await json('GET', '/api/escalations?status=resolved');
-  assert(history.escalations.some((e: any) => e.chin === chin), 'resolved item missing from history');
-
-  const again = await json('POST', `/api/escalations/${mine.id}/resolve`, { outcome: 'other' });
-  assert(again.status === 409, `resolving twice should 409, got ${again.status}`);
-
-  await retireChild(childId);
-});
-
-test('escalation queue: recording the dose auto-resolves its escalation', async () => {
-  const { childId, chin } = await makeReminderChild(200);
-  await reminderSvc().runCycle();
-  assert(
-    (await EscalationModel.countDocuments({ childId, status: 'open' })) === 1,
-    'precondition: one open escalation'
-  );
-
-  // makeReminderChild's single dose is PENTA#1.
-  const rec = await json('POST', `/api/children/${encodeURIComponent(chin)}/doses`, {
-    vaccineCode: 'PENTA', doseNumber: 1, facilityId: facilityAId
-  });
-  assert(rec.status === 200, `expected 200 recording dose, got ${rec.status}: ${JSON.stringify(rec.body)}`);
-
-  assert(
-    (await EscalationModel.countDocuments({ childId, status: 'open' })) === 0,
-    'recording the dose should auto-resolve its escalation'
-  );
-  const resolved = await EscalationModel.findOne({ childId });
-  assert(
-    resolved?.resolvedBy === 'system' && resolved?.outcome === 'immunized',
-    'auto-resolve should record system/immunized'
-  );
-  // Recording the only dose completes the child; no retire needed.
-});
-
 test('escalation queue requires a staff token', async () => {
   const { status } = await json('GET', '/api/escalations', undefined, { auth: false });
   assert(status === 401, `expected 401 without a token, got ${status}`);
 });
 
 test('escalation resolve rejects an invalid outcome', async () => {
-  const { childId, chin } = await makeReminderChild(200);
+  const { childId, chin } = await makeReminderChild(200, { phone: null });
   await reminderSvc().runCycle();
   const { body } = await json('GET', '/api/escalations');
   const mine = body.escalations.find((e: any) => e.chin === chin);
   const bad = await json('POST', `/api/escalations/${mine.id}/resolve`, { outcome: 'not-a-real-outcome' });
   assert(bad.status === 400, `expected 400 for a bad outcome, got ${bad.status}`);
   await retireChild(childId);
+});
+
+test('escalation resolve rejects a malformed id with 400, not a 500', async () => {
+  const { status } = await json('POST', '/api/escalations/not-an-object-id/resolve', { outcome: 'other' });
+  assert(status === 400, `expected 400 for a malformed id, got ${status}`);
 });
 
 async function main() {

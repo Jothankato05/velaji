@@ -22,7 +22,12 @@ const childSchema = new Schema(
     homeFacilityId: { type: Schema.Types.ObjectId, ref: 'Facility', required: true },
     currentFacilityId: { type: Schema.Types.ObjectId, ref: 'Facility', required: true },
     doses: { type: [doseSchema], default: [] },
-    completedAt: { type: Date, default: null }
+    completedAt: { type: Date, default: null },
+    // NCIHAP §10: record is unverified/incomplete and needs reconciliation
+    // (e.g. an offline record not yet reconciled, or a data conflict). Drives
+    // the GREY status. Defaults false — a normal record is never GREY just for
+    // being overdue.
+    needsReconciliation: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

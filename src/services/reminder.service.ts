@@ -135,17 +135,6 @@ export class ReminderService {
         const status = computeDoseStatus(dose.dueDate, now);
         if (status === 'GREEN') continue; // not due yet
         const doseKey = `${dose.vaccineCode}#${dose.doseNumber}`;
-        if (status === 'GREY') {
-          // Lost to follow-up: stop texting, hand to a human for tracing.
-          const sentSoFar = await this.reminderLogModel.countDocuments({
-            childId: child._id,
-            doseKey,
-            status: 'sent'
-          });
-          await this.recordEscalation(child, doseKey, 'lost_to_followup', sentSoFar, now);
-          summary.escalations.push(`${child.chin} ${doseKey}`);
-          continue;
-        }
         remindable.push({ doseKey, displayName: dose.displayName, dueDate: dose.dueDate, status });
       }
 
@@ -153,21 +142,30 @@ export class ReminderService {
 
       summary.remindableChildren += 1;
 
-      if (!caregiver?.phone) {
-        summary.skippedNoPhone += 1;
-        continue;
-      }
-
       // Most overdue (earliest due date) leads the message.
       remindable.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
       const lead = remindable[0];
+
+      if (!caregiver?.phone) {
+        // No way to reach the caregiver by SMS. An overdue (RED) child in this
+        // state can't be recovered by reminders — it's a continued-default case
+        // for the follow-up queue (NCIHAP §7). A merely due-soon (AMBER) child
+        // isn't overdue yet, so just note we couldn't remind.
+        if (lead.status === 'RED') {
+          await this.recordEscalation(child, lead.doseKey, 'lost_to_followup', 0, now);
+          summary.escalations.push(`${child.chin} ${lead.doseKey}`);
+        }
+        summary.skippedNoPhone += 1;
+        continue;
+      }
 
       const priorSends = await this.reminderLogModel
         .find({ childId: child._id, doseKey: lead.doseKey, status: 'sent' })
         .sort({ sentAt: -1 });
 
       if (priorSends.length >= this.maxPerDose) {
-        // Caregiver isn't responding about the most urgent dose — needs a person.
+        // Reminded to the cap and still due — continued default (NCIHAP §7).
+        // Hand to the follow-up queue for PHC/community-health intervention.
         summary.skippedMaxAttempts += 1;
         await this.recordEscalation(child, lead.doseKey, 'max_attempts', priorSends.length, now);
         summary.escalations.push(`${child.chin} ${lead.doseKey}`);

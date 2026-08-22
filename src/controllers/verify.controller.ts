@@ -34,7 +34,7 @@ export async function verifyChin(req: Request, res: Response) {
     dueDate: d.dueDate,
     administeredDate: d.administeredDate ?? null
   }));
-  const status = computeChildStatus(doses);
+  const status = computeChildStatus(doses, { needsReconciliation: child.needsReconciliation });
 
   const nextDue = doses
     .filter((d) => !d.administeredDate)
