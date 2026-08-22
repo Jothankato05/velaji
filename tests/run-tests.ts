@@ -104,11 +104,14 @@ test('login rejects a wrong password, then succeeds and yields a working token',
   assert(me.body.user.username === 'nurse.amina', 'token did not resolve back to the right user');
 });
 
-test('CHIN check-digit rejects a tampered code', async () => {
-  const good = 'CHN-7K4M-QX9T-A'; // format only — validity depends on the real check digit
-  assert(typeof isValidChinFormat === 'function', 'isValidChinFormat exported');
-  // A random guess should almost always fail the check digit.
-  assert(isValidChinFormat(good) === false || isValidChinFormat(good) === true, 'callable without throwing');
+test('CHIN follows the NCIHAP format (NG-YY-MM-serial) with a working check digit', async () => {
+  const c = generateChin();
+  assert(/^NG-\d{2}-\d{2}-\d{8}$/.test(c), `CHIN should be NG-YY-MM-<8 digits>, got ${c}`);
+  assert(isValidChinFormat(c), `freshly generated CHIN ${c} should validate`);
+  // Flipping the check digit must fail.
+  const last = c.slice(-1);
+  const tampered = c.slice(0, -1) + (last === '0' ? '1' : '0');
+  assert(!isValidChinFormat(tampered), 'a flipped check digit must be rejected');
 });
 
 test('create two facilities', async () => {

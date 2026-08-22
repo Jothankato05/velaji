@@ -1,10 +1,10 @@
 # NATIONAL CHILD IMMUNISATION & HEALTH ASSURANCE PROGRAMME (NCIHAP)
 
-> **Authoritative source spec — verbatim.** Velaji is the software platform;
-> NCIHAP is the government programme it delivers. Everything Velaji builds is
-> drawn strictly from this document. Saved with the code so it never gets lost
-> to a context summary. Do not paraphrase away from this — it is the source of
-> truth.
+> **Authoritative source spec — verbatim, exactly as typed and sent.**
+> Everything the software builds is drawn strictly from this note — including
+> details like the CHIN format (§4: `NG-25-09-18472639`). Saved with the code
+> so it never gets lost to a context summary. Do not paraphrase or drift away
+> from it — it is the source of truth.
 
 ---
 

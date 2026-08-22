@@ -32,7 +32,7 @@ function parseCard(input: string): { chin: string; token: string } | null {
     if (chin && token) return { chin, token };
   } catch {
     // maybe "CHIN t=TOKEN" or "CHIN,TOKEN"
-    const m = v.match(/(CHN-[0-9A-Z-]+)[\s,]+t?=?\s*([A-Za-z0-9_-]+)/i);
+    const m = v.match(/(NG-\d{2}-\d{2}-\d{8})[\s,]+t?=?\s*([A-Za-z0-9_-]+)/i);
     if (m) return { chin: m[1].toUpperCase(), token: m[2] };
   }
   return null;

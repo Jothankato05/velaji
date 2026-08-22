@@ -52,7 +52,7 @@ export function Terminal() {
         <form className="lookup-form" onSubmit={onSubmit}>
           <input
             className="input mono"
-            placeholder="Scan QR or type CHN-XXXX-XXXX-X"
+            placeholder="Scan QR or type NG-YY-MM-XXXXXXXX"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             autoFocus
