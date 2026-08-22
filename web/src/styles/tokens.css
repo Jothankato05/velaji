@@ -1,26 +1,25 @@
-/* Velaji design tokens.
-   A deliberate institutional-health identity: deep clinical green, a warm
-   paper neutral (never pure white ground), Lora for headings (government
-   gravitas), IBM Plex Sans for UI, IBM Plex Mono for identifiers/data.
-   The five status colours are domain-required (NCIHAP §10), not decoration. */
+/* Velaji design tokens — matched to the NCIHAP reference apps:
+   Inter for UI, Georgia serif for headings, a light cool-green neutral ground,
+   deep green brand. The five status colours are domain-required (NCIHAP §10). */
 
 :root {
-  /* neutrals — warm/cool paper, biased slightly toward the green brand */
-  --bg: #f3f5f1;
+  /* neutrals — light cool-green paper (matches the references' #F3F7F5) */
+  --bg: #f3f7f5;
   --surface: #ffffff;
-  --surface-2: #fafbf8;
-  --ink: #16211c;
+  --surface-2: #f7faf8;
+  --ink: #112b28;
   --ink-soft: #33403a;
-  --muted: #5b675f;
-  --faint: #8a958d;
-  --line: #dde3dc;
-  --line-strong: #c7d0c7;
+  --muted: #5b6b66;
+  --faint: #8b9793;
+  --line: #e4eae6;
+  --line-strong: #d3ddd8;
 
   /* brand */
-  --brand: #0f3d2e;
-  --brand-ink: #0f3d2e;
-  --brand-2: #1c6b4f;
-  --brand-soft: #e5efe9;
+  --brand: #0e5c46;
+  --brand-ink: #0e5c46;
+  --brand-2: #12795c;
+  --brand-deep: #073b3a; /* MyChild-style deep teal-green */
+  --brand-soft: #e4f0ea;
   --gold: #9a6b12;
   --gold-soft: #f3ead4;
 
@@ -36,53 +35,27 @@
   --st-blue: #2b6c98;
   --st-blue-bg: #e2edf4;
 
-  /* type */
-  --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-head: 'Lora', Georgia, serif;
+  /* trend badges (up = good, down = attention) */
+  --up: #1f8a5b;
+  --up-bg: #e6f2ea;
+  --down: #c15b3a;
+  --down-bg: #f6e8e1;
+
+  /* type — matched to the references */
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-head: Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  /* geometry */
-  --r-sm: 6px;
-  --r: 10px;
-  --r-lg: 14px;
-  --shadow: 0 1px 2px rgba(16, 33, 25, 0.04), 0 8px 22px -14px rgba(16, 33, 25, 0.22);
-  --shadow-lg: 0 2px 4px rgba(16, 33, 25, 0.06), 0 16px 40px -20px rgba(16, 33, 25, 0.3);
+  /* geometry — softer, rounder cards like the references */
+  --r-sm: 8px;
+  --r: 12px;
+  --r-lg: 16px;
+  --shadow: 0 1px 2px rgba(16, 43, 40, 0.04), 0 6px 20px -12px rgba(16, 43, 40, 0.14);
+  --shadow-lg: 0 2px 5px rgba(16, 43, 40, 0.06), 0 18px 44px -22px rgba(16, 43, 40, 0.24);
 
-  --focus: 0 0 0 3px rgba(28, 107, 79, 0.35);
+  --focus: 0 0 0 3px rgba(18, 121, 92, 0.32);
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #0e1512;
-    --surface: #16201b;
-    --surface-2: #131c18;
-    --ink: #e7ece8;
-    --ink-soft: #cbd3cd;
-    --muted: #93a099;
-    --faint: #6b776f;
-    --line: #26312b;
-    --line-strong: #33413a;
-
-    --brand: #2e9f77;
-    --brand-ink: #45c99a;
-    --brand-2: #45c99a;
-    --brand-soft: #13291f;
-    --gold: #d0a24a;
-    --gold-soft: #2a2210;
-
-    --st-green: #45c888;
-    --st-green-bg: #10281c;
-    --st-amber: #d8a548;
-    --st-amber-bg: #2a2110;
-    --st-red: #e0685a;
-    --st-red-bg: #2c1613;
-    --st-grey: #93a099;
-    --st-grey-bg: #1e2622;
-    --st-blue: #5aa0cf;
-    --st-blue-bg: #12222c;
-
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -16px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.4), 0 20px 46px -22px rgba(0, 0, 0, 0.7);
-    --focus: 0 0 0 3px rgba(69, 201, 154, 0.4);
-  }
-}
+/* The NCIHAP reference apps are a single light identity; velaji matches it
+   regardless of the viewer's OS theme. */

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { StatusPill } from '../components/ui';
 import './PointOfCare.css';
@@ -45,12 +46,24 @@ export function PointOfCare() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [giving, setGiving] = useState(false);
+  const [params, setParams] = useSearchParams();
 
   useEffect(() => {
     api.get<Facility[]>('/api/facilities').then((f) => {
       setFacilities(f);
       if (f[0]) setHereId(f[0]._id);
     }).catch(() => undefined);
+  }, []);
+
+  // A CHIN handed in from the top-bar search loads straight away.
+  useEffect(() => {
+    const chin = params.get('chin');
+    if (chin) {
+      setValue(chin);
+      void load(chin);
+      setParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function load(chin: string) {
