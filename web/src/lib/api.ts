@@ -1,5 +1,5 @@
-const TOKEN_KEY = 'velaji.token';
-const USER_KEY = 'velaji.user';
+const TOKEN_KEY = 'ncihap.token';
+const USER_KEY = 'ncihap.user';
 
 export interface AuthUser {
   id: string;
