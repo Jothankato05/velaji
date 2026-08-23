@@ -4,7 +4,7 @@ import { FacilityModel } from '../models/Facility';
 import { CaregiverModel } from '../models/Caregiver';
 import { CertificateModel } from '../models/Certificate';
 import { normalizeChin } from '../services/chin.service';
-import { computeChildStatus } from '../services/schedule.service';
+import { computeChildStatus, computeDoseStatus } from '../services/schedule.service';
 import { verifyChinToken } from '../services/verification-token.service';
 import { AppError } from '../utils/AppError';
 
@@ -85,6 +85,25 @@ export async function familyJourney(req: Request, res: Response) {
       };
     });
 
+  // A flat, per-dose list for the "My vaccines" view — every dose, in date
+  // order, with a plain-language state a parent understands.
+  const doseList = [...doses]
+    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+    .map((d) => {
+      const band = bandFor((d.dueDate.getTime() - dob.getTime()) / DAY);
+      const state = d.administeredDate
+        ? 'done'
+        : (computeDoseStatus(d.dueDate, now).toLowerCase() as 'green' | 'amber' | 'red');
+      return {
+        vaccine: d.displayName,
+        doseNumber: d.doseNumber,
+        band: band.name,
+        state,
+        administeredDate: d.administeredDate,
+        dueDate: d.dueDate
+      };
+    });
+
   const administered = doses.filter((d) => d.administeredDate).length;
   const pending = doses.filter((d) => !d.administeredDate).sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   const next = pending[0] ?? null;
@@ -116,6 +135,10 @@ export async function familyJourney(req: Request, res: Response) {
               : 'has a record to reconcile. A health worker will help.',
     progress: { administered, total: doses.length, pct: doses.length ? Math.round((administered / doses.length) * 100) : 0 },
     milestones,
+    doses: doseList,
+    facility: facility
+      ? { name: facility.name, ward: facility.wardName, lga: facility.lgaName, state: facility.stateName }
+      : null,
     nextAppointment: next
       ? {
           vaccines: dueTogether.map((d) => d.displayName),

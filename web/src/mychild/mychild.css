@@ -43,7 +43,7 @@
 .mc-help { margin-top: auto; background: rgba(255,255,255,.06); border-radius: 18px; padding: 16px; text-align: center; }
 .mc-help-title { font-weight: 600; color: #fff; font-size: 14px; }
 .mc-help-sub { font-size: 12px; color: #9ec7ba; margin: 4px 0 12px; }
-.mc-help-btn { background: var(--mc-accent); color: #06231c; width: 100%; font-size: 13.5px; padding: 10px; }
+.mc-help-btn { background: var(--mc-accent); color: #06231c; width: 100%; font-size: 13.5px; padding: 10px; display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
 .mc-emergency { margin-top: 12px; background: none; border: none; color: #9ec7ba; font: inherit; font-size: 13px; cursor: pointer; padding: 8px; text-align: left; }
 .mc-emergency:hover { color: #fff; }
 
@@ -65,7 +65,7 @@
 .mc-child-meta b { font-size: 14.5px; } .mc-child-meta span { font-size: 12px; color: var(--mc-muted); }
 
 .mc-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-.mc-action { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: #fff; border: 1px solid var(--mc-line); border-radius: 18px; padding: 16px; cursor: pointer; text-align: left; font: inherit; transition: box-shadow .15s, transform .05s; }
+.mc-action { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: #fff; border: 1px solid var(--mc-line); border-radius: 18px; padding: 16px; cursor: pointer; text-align: left; text-decoration: none; color: var(--mc-ink); font: inherit; transition: box-shadow .15s, transform .05s; }
 .mc-action:hover { box-shadow: 0 10px 24px -16px rgba(0,0,0,.3); }
 .mc-action:active { transform: translateY(1px); }
 .mc-action-icon { font-size: 22px; }
@@ -120,6 +120,72 @@
 .mc-tip-icon { font-size: 24px; }
 .mc-tip-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #a9862f; }
 .mc-tip-body { font-size: 14.5px; margin-top: 3px; }
+
+/* ---------- sub-views (Vaccines / Appointments / Doctor / Emergency / More) ---------- */
+.mc-viewhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.mc-view-title { font-family: var(--font-head); font-size: 28px; color: var(--mc-ink); margin: 0 0 4px; }
+.mc-view-sub { font-size: 14.5px; color: var(--mc-muted); margin: 0; max-width: 46ch; line-height: 1.5; }
+.mc-viewhead .mc-child-chip { margin-bottom: 0; }
+.mc-band-title { font-family: var(--font-head); font-size: 17px; margin: 0 0 14px; }
+.mc-inline-link { color: var(--mc-green); font-weight: 600; }
+
+/* dose list */
+.mc-doselist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mc-dose { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--mc-line); }
+.mc-doselist li:last-child { border-bottom: none; }
+.mc-dose-dot { width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 13px; color: #fff; background: #d7ddda; }
+.mc-dose-dot.done { background: var(--mc-accent); }
+.mc-dose-dot.green { background: #cfe3d8; } .mc-dose-dot.amber { background: #e6b23c; } .mc-dose-dot.red { background: #d1685a; }
+.mc-dose-body { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+.mc-dose-name { font-weight: 600; font-size: 14.5px; }
+.mc-dose-when { font-size: 12.5px; color: var(--mc-muted); }
+.mc-dose-tag { font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.mc-dose-tag.done { background: #e9f6ef; color: var(--mc-green); }
+.mc-dose-tag.green { background: #eef4f0; color: #5a7a6d; }
+.mc-dose-tag.amber { background: #fdf1d6; color: #9a6a12; }
+.mc-dose-tag.red { background: #fbe5e0; color: #b03a2e; }
+
+/* appointment detail */
+.mc-appt-card { display: flex; gap: 22px; align-items: stretch; flex-wrap: wrap; }
+.mc-appt-big { background: var(--mc-green); color: #fff; border-radius: 18px; padding: 22px 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 150px; }
+.mc-appt-big-day { font-family: var(--font-head); font-size: 52px; font-weight: 600; line-height: 1; }
+.mc-appt-big-mon { font-size: 14px; color: #cdeadd; margin-top: 4px; }
+.mc-appt-big-when { font-size: 13px; color: #bfe3d1; margin-top: 10px; background: rgba(255,255,255,.14); padding: 4px 12px; border-radius: 999px; }
+.mc-appt-big-when.overdue { background: rgba(0,0,0,.2); color: #ffd9cf; }
+.mc-appt-detail { flex: 1; min-width: 200px; }
+.mc-appt-detail-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--mc-muted); margin-bottom: 8px; }
+.mc-appt-vax { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.mc-appt-detail-place { font-size: 13.5px; color: var(--mc-muted); }
+.mc-note p { margin: 8px 0 0; font-size: 14px; color: var(--mc-muted); line-height: 1.6; }
+
+/* facility card */
+.mc-facility { display: flex; gap: 16px; align-items: flex-start; }
+.mc-facility-icon { font-size: 26px; flex: none; }
+.mc-facility p { margin: 4px 0 0; font-size: 13.5px; color: var(--mc-muted); }
+.mc-facility-note { margin-top: 8px !important; }
+
+/* FAQ */
+.mc-faq { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.mc-faq-item { padding: 14px 0; border-bottom: 1px solid var(--mc-line); }
+.mc-faq-item:last-child { border-bottom: none; }
+.mc-faq-q { font-weight: 600; font-size: 15px; margin-bottom: 5px; }
+.mc-faq-a { font-size: 14px; color: var(--mc-muted); line-height: 1.6; }
+
+/* emergency */
+.mc-emergency-call { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: #fbe9e5; border-color: #f0c9c0; flex-wrap: wrap; }
+.mc-emergency-call p { margin: 4px 0 0; font-size: 13px; color: #8a4a3d; }
+.mc-emergency-num { font-family: var(--font-head); font-size: 40px; font-weight: 700; color: #b03a2e; line-height: 1.1; }
+.mc-call-btn { background: #b03a2e; text-decoration: none; display: inline-block; }
+.mc-call-btn:hover { background: #922f24; }
+.mc-danger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mc-danger li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.4; }
+
+/* key-value */
+.mc-kv { margin: 0; display: flex; flex-direction: column; gap: 0; }
+.mc-kv > div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--mc-line); }
+.mc-kv > div:last-child { border-bottom: none; }
+.mc-kv dt { color: var(--mc-muted); font-size: 13.5px; margin: 0; }
+.mc-kv dd { margin: 0; font-weight: 600; font-size: 14px; text-align: right; }
 
 @media (max-width: 760px) {
   .mc { grid-template-columns: 1fr; }
