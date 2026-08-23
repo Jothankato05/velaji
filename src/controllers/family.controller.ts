@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { ChildModel } from '../models/Child';
 import { FacilityModel } from '../models/Facility';
+import { CaregiverModel } from '../models/Caregiver';
 import { CertificateModel } from '../models/Certificate';
 import { normalizeChin } from '../services/chin.service';
 import { computeChildStatus } from '../services/schedule.service';
@@ -88,6 +89,7 @@ export async function familyJourney(req: Request, res: Response) {
   const pending = doses.filter((d) => !d.administeredDate).sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   const next = pending[0] ?? null;
   const facility = await FacilityModel.findById(child.currentFacilityId);
+  const caregiver = await CaregiverModel.findById(child.caregiverId);
   const certificate = await CertificateModel.findOne({ childId: child._id });
   const status = computeChildStatus(doses, { needsReconciliation: child.needsReconciliation });
 
@@ -99,6 +101,7 @@ export async function familyJourney(req: Request, res: Response) {
     chin: child.chin,
     firstName: child.fullName.split(' ')[0],
     fullName: child.fullName,
+    parentName: caregiver?.fullName ?? null,
     age: ageLabel(dob, now),
     status,
     reassurance:

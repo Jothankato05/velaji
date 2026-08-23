@@ -6,6 +6,7 @@ interface Family {
   chin: string;
   firstName: string;
   fullName: string;
+  parentName: string | null;
   age: string;
   status: string;
   reassurance: string;
@@ -132,11 +133,24 @@ function Home({ card, onSignOut }: { card: { chin: string; token: string }; onSi
           <>
             <div className="mc-top">
               <span className="mc-date">{new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-              <span className="mc-lang">◎ English</span>
+              <div className="mc-top-right">
+                <span className="mc-lang">◎ English</span>
+                {data.parentName && (
+                  <span className="mc-parent">
+                    <span className="mc-parent-av">{data.parentName.split(' ').map((p) => p[0]).slice(0, 2).join('')}</span>
+                    <span className="mc-parent-meta"><b>{data.parentName}</b><span>Parent account</span></span>
+                  </span>
+                )}
+              </div>
             </div>
 
-            <p className="mc-greet">{greet} 👋</p>
+            <p className="mc-greet">{greet}{data.parentName ? `, ${data.parentName.split(' ')[0]}` : ''} 👋</p>
             <h1 className="mc-hello">Let’s keep {data.firstName} healthy.</h1>
+
+            <div className="mc-child-chip">
+              <span className="mc-child-av">{data.firstName[0]}</span>
+              <span className="mc-child-meta"><b>{data.fullName}</b><span>{data.age} · CHIN …{data.chin.slice(-4)}</span></span>
+            </div>
 
             <section className={`mc-hero ${data.status}`}>
               <div className="mc-hero-left">
@@ -156,6 +170,21 @@ function Home({ card, onSignOut }: { card: { chin: string; token: string }; onSi
                 </div>
               )}
             </section>
+
+            <div className="mc-actions">
+              {[
+                { icon: '💉', title: 'My vaccines', sub: 'See every dose' },
+                { icon: '📅', title: 'Appointments', sub: 'View & reschedule' },
+                { icon: '💬', title: 'Ask a doctor', sub: 'Health worker online' },
+                { icon: '🚑', title: 'Emergency', sub: 'Get urgent help' }
+              ].map((a) => (
+                <button key={a.title} className="mc-action">
+                  <span className="mc-action-icon" aria-hidden>{a.icon}</span>
+                  <span className="mc-action-title">{a.title}</span>
+                  <span className="mc-action-sub">{a.sub}</span>
+                </button>
+              ))}
+            </div>
 
             <section className="mc-card mc-journey">
               <div className="mc-journey-head">
