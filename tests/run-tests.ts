@@ -16,6 +16,7 @@ import { EscalationModel } from '../src/models/Escalation';
 import { ReminderService } from '../src/services/reminder.service';
 import { issueToken } from '../src/utils/token';
 import { buildVerificationUrl } from '../src/services/card.service';
+import { signChin } from '../src/services/verification-token.service';
 import type { SmsMessage, SmsProvider, SmsSendResult } from '../src/providers/sms';
 
 type TestFn = () => Promise<void>;
@@ -956,6 +957,117 @@ test('incremental pull with a cursor returns only what changed', async () => {
   });
   const inc = await json('GET', `/api/sync/pull?facilityId=${syncFacId}&since=${encodeURIComponent(cursor)}`);
   assert(inc.body.children.some((c: any) => c.chin === syncChin), 'the changed child should appear in the incremental pull');
+});
+
+// --- Authorization: a child's record is care data, scoped to staff/admin and
+// audited (NCIHAP §24). A verifier is refused the direct record and must use
+// the role-scoped terminal instead. ---
+
+let authzChin = '';
+
+test('authz setup: register a child for the record-access checks', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Authz Carer', phone: '+2348070000000' });
+  const dob = new Date(NOON.getTime() - 90 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Authz Child', sex: 'female', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  assert(reg.status === 201, `expected 201, got ${reg.status}: ${JSON.stringify(reg.body)}`);
+  authzChin = reg.body.chin;
+});
+
+test('a verifier is DENIED the direct child record (must use the terminal)', async () => {
+  const journey = await jsonAs(verifierToken, 'GET', `/api/children/${encodeURIComponent(authzChin)}/journey`);
+  assert(journey.status === 403, `expected 403 for a verifier on /journey, got ${journey.status}`);
+  const detail = await jsonAs(verifierToken, 'GET', `/api/children/${encodeURIComponent(authzChin)}`);
+  assert(detail.status === 403, `expected 403 for a verifier on the record, got ${detail.status}`);
+  const card = await jsonAs(verifierToken, 'GET', `/api/children/${encodeURIComponent(authzChin)}/card.svg`);
+  assert(card.status === 403, `expected 403 for a verifier on the card, got ${card.status}`);
+});
+
+test('registration is staff/admin only — a verifier cannot register a child', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'X', phone: '+2348070000001' });
+  const reg = await jsonAs(verifierToken, 'POST', '/api/children', {
+    fullName: 'Nope', sex: 'male', dateOfBirth: '2026-06-01', caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  assert(reg.status === 403, `expected 403 for a verifier registering, got ${reg.status}`);
+});
+
+test('staff and admin may read the record', async () => {
+  const s = await jsonAs(staffToken, 'GET', `/api/children/${encodeURIComponent(authzChin)}/journey`);
+  assert(s.status === 200, `expected 200 for staff, got ${s.status}`);
+  const a = await jsonAs(adminTokenT, 'GET', `/api/children/${encodeURIComponent(authzChin)}/journey`);
+  assert(a.status === 200, `expected 200 for admin, got ${a.status}`);
+});
+
+test('every direct record access is audited — including the refused ones (§24)', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', `/api/children/${encodeURIComponent(authzChin)}/access-log`);
+  assert(status === 200, `expected 200, got ${status}`);
+  const apiRows = body.accesses.filter((r: any) => r.method === 'api');
+  assert(apiRows.some((r: any) => r.accessorRole === 'verifier' && r.outcome === 'denied'), 'a denied verifier access must be on the audit trail');
+  assert(apiRows.some((r: any) => r.accessorRole === 'staff' && r.outcome === 'ok'), 'a successful staff access must be on the audit trail');
+});
+
+// --- MyChild family endpoint: card-gated, returns the parent name, the flat
+// per-dose list, and the assigned facility that the app's sub-views render. ---
+
+test('the family endpoint returns the parent, the dose list, and the facility', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Fatima Sani', phone: '+2348071112222' });
+  const dob = new Date(NOON.getTime() - 200 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Family Child', sex: 'female', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  const famChin = reg.body.chin;
+
+  const bad = await json('GET', `/api/family/${encodeURIComponent(famChin)}?t=wrongtoken`, undefined, { auth: false });
+  assert(bad.status === 401, `family view must reject a bad card token, got ${bad.status}`);
+
+  const token = signChin(famChin);
+  const ok = await json('GET', `/api/family/${encodeURIComponent(famChin)}?t=${encodeURIComponent(token)}`, undefined, { auth: false });
+  assert(ok.status === 200, `expected 200 with a valid card token, got ${ok.status}: ${JSON.stringify(ok.body)}`);
+  assert(ok.body.parentName === 'Fatima Sani', `family view must carry the parent name, got ${ok.body.parentName}`);
+  assert(Array.isArray(ok.body.doses) && ok.body.doses.length > 0, 'family view must carry the per-dose list');
+  assert(ok.body.doses[0].state && ok.body.doses[0].vaccine, 'each dose needs a state and a vaccine name');
+  assert(ok.body.facility && typeof ok.body.facility.name === 'string', 'family view must carry the assigned facility');
+
+  await ChildModel.updateOne({ chin: famChin }, { completedAt: NOON }); // keep out of later scans
+});
+
+// --- Pre-launch hardening: security headers, body cap, login rate limit ---
+
+test('every response carries the baseline security headers', async () => {
+  const res = await fetch(`${baseUrl}/health`);
+  assert(res.headers.get('content-security-policy')?.includes("default-src 'none'"), 'missing or weak CSP');
+  assert(res.headers.get('x-content-type-options') === 'nosniff', 'missing nosniff');
+  assert(res.headers.get('x-frame-options') === 'DENY', 'missing X-Frame-Options DENY');
+  assert(res.headers.get('referrer-policy') === 'no-referrer', 'missing Referrer-Policy');
+  assert(!res.headers.get('x-powered-by'), 'X-Powered-By must be removed');
+});
+
+test('an oversized JSON body is rejected with 413, not a 500', async () => {
+  const big = JSON.stringify({ x: 'A'.repeat(70 * 1024) });
+  const res = await fetch(`${baseUrl}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: big });
+  assert(res.status === 413, `expected 413 for an oversized body, got ${res.status}`);
+});
+
+test('malformed JSON is rejected with 400, not a 500', async () => {
+  const res = await fetch(`${baseUrl}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{not valid json' });
+  assert(res.status === 400, `expected 400 for malformed JSON, got ${res.status}`);
+});
+
+test('login is rate limited — repeated attempts eventually get 429 with Retry-After', async () => {
+  let saw429 = false;
+  let retryAfter: string | null = null;
+  // The window is per-IP and shared with earlier login tests; 20 rapid tries
+  // is comfortably past the limit of 10.
+  for (let i = 0; i < 20; i++) {
+    const res = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'nobody', password: 'nope' })
+    });
+    if (res.status === 429) { saw429 = true; retryAfter = res.headers.get('retry-after'); break; }
+  }
+  assert(saw429, 'expected login to start returning 429 under repeated attempts');
+  assert(retryAfter && Number(retryAfter) > 0, `429 must carry a positive Retry-After, got ${retryAfter}`);
 });
 
 async function main() {

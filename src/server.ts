@@ -10,7 +10,7 @@ async function bootstrap() {
 
   const server = app.listen(env.PORT, () => {
     // eslint-disable-next-line no-console
-    console.log(`Velaji API listening on port ${env.PORT}`);
+    console.log(`NCIHAP API listening on port ${env.PORT}`);
     // eslint-disable-next-line no-console
     console.log(`[config] APP_BASE_URL=${env.APP_BASE_URL}`);
   });

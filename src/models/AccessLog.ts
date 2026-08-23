@@ -13,7 +13,7 @@ const accessLogSchema = new Schema(
     childId: { type: Schema.Types.ObjectId, ref: 'Child', default: null },
     accessedBy: { type: String, required: true }, // staff username
     accessorRole: { type: String, enum: ['verifier', 'staff', 'admin'], required: true },
-    method: { type: String, enum: ['chin', 'qr'], required: true },
+    method: { type: String, enum: ['chin', 'qr', 'api'], required: true },
     tier: { type: String, enum: ['verifier', 'staff', 'admin'], required: true },
     outcome: { type: String, enum: ['ok', 'not_found', 'denied'], required: true },
     at: { type: Date, required: true }

@@ -43,7 +43,7 @@ export async function generatePrintableCardSvg(input: {
   <rect width="640" height="410" rx="16" fill="#0f3d2e"/>
   <rect x="8" y="8" width="624" height="394" rx="12" fill="#ffffff"/>
   <text x="32" y="52" font-family="Georgia, serif" font-size="22" font-weight="bold" fill="#0f3d2e">Child Health Assurance Card</text>
-  <text x="32" y="76" font-family="Georgia, serif" font-size="13" fill="#4a5a52">Velaji prototype — not a national ID document</text>
+  <text x="32" y="76" font-family="Georgia, serif" font-size="13" fill="#4a5a52">NCIHAP prototype — not a national ID document</text>
 
   <text x="32" y="126" font-family="Georgia, serif" font-size="14" fill="#333">Child</text>
   <text x="32" y="150" font-family="Georgia, serif" font-size="20" font-weight="bold" fill="#0f3d2e">${escapeXml(input.fullName)}</text>
