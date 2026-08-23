@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireAuth, requireRole } from '../middleware/requireAuth';
+import { rateLimit } from '../middleware/rateLimit';
 import { login, me } from '../controllers/auth.controller';
 import { createFacility, listFacilities, nearestFacility } from '../controllers/facilities.controller';
 import { createCaregiver } from '../controllers/caregivers.controller';
@@ -29,16 +30,25 @@ export const apiRouter = Router();
 // path that comes after it in the stack, public or not. Getting this order
 // wrong silently 401s every webhook/public endpoint mounted after it. ---
 apiRouter.get('/health', (_req, res) => res.json({ ok: true, service: 'velaji' }));
-apiRouter.post('/api/auth/login', asyncHandler(login));
+
+// Throttle login to blunt credential stuffing / brute force: 10 tries per IP
+// per 15 minutes. A legitimate health worker never trips this; an attacker
+// spraying passwords does.
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
+apiRouter.post('/api/auth/login', loginLimiter, asyncHandler(login));
+
+// The public, card-gated endpoints guess-proof their CHIN+token pair, but a
+// throttle stops anyone trying to enumerate tokens at scale.
+const cardLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
 
 // Reached by scanning a printed card's QR code — gated by the card's own
 // signed token, not staff auth, because a caregiver or a receiving
 // facility with no account still needs to be able to check status.
-apiRouter.get('/api/verify/:chin', asyncHandler(verifyChin));
+apiRouter.get('/api/verify/:chin', cardLimiter, asyncHandler(verifyChin));
 
 // MyChild family app — the parent's own view, reached with their card
 // (CHIN + signed token). Public like verify; the card is the key.
-apiRouter.get('/api/family/:chin', asyncHandler(familyJourney));
+apiRouter.get('/api/family/:chin', cardLimiter, asyncHandler(familyJourney));
 
 // --- Everything below requires a staff bearer token. ---
 apiRouter.use(requireAuth);
