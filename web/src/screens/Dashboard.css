@@ -116,3 +116,11 @@
 .cbs-pill.red { background: var(--st-red-bg); color: var(--st-red); }
 .cbs-pill.amber { background: var(--st-amber-bg); color: var(--st-amber); }
 .cbs-pill.green { background: var(--st-green-bg); color: var(--st-green); }
+
+/* ---- Drill-down triage: sort control + per-row priority flag ---- */
+.geo-sort { display: inline-flex; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.geo-sort-btn { border: none; background: none; font: inherit; font-size: 12px; color: var(--muted); padding: 4px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.geo-sort-btn:hover { color: var(--ink); }
+.geo-sort-btn.active { background: var(--card, #fff); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.geo-flag { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.geo-flag.red { background: var(--st-red); } .geo-flag.amber { background: var(--st-amber); } .geo-flag.green { background: var(--st-green); }

@@ -98,6 +98,21 @@ function round(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
 
+export type PriorityLevel = 'red' | 'amber' | 'green';
+
+/**
+ * The single classification used everywhere a geographic unit is flagged
+ * (states in the priority table, and LGAs/wards/facilities as you drill in): a
+ * fifth of children overdue or completion under a third is red (needs
+ * intervention now); the amber band is the early warning tier.
+ */
+export function classifyPriority(m: Metrics): PriorityLevel {
+  const overdueRate = m.registered ? m.overdue / m.registered : 0;
+  if (overdueRate >= 0.2 || m.completionRate < 0.35) return 'red';
+  if (overdueRate >= 0.1 || m.completionRate < 0.6) return 'amber';
+  return 'green';
+}
+
 async function loadFacts(now: Date): Promise<ChildFacts[]> {
   const facilities = await FacilityModel.find({});
   const byId = new Map<string, FacilityGeo>();
@@ -173,7 +188,7 @@ export interface DashboardSummary {
   scope: { level: string; state?: string; lga?: string; ward?: string; label: string };
   totals: Metrics;
   breakdownBy: string;
-  breakdown: Array<{ key: string; metrics: Metrics }>;
+  breakdown: Array<{ key: string; metrics: Metrics; priority: PriorityLevel }>;
   vaccineUtilisation: Array<{ vaccineCode: string; administered: number }>;
   openEscalations: number;
   healthyStartActive: number; // children with active NHIA coverage (national)
@@ -219,7 +234,10 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
     totals: withRates(totals),
     breakdownBy: level,
     breakdown: [...groups.entries()]
-      .map(([key, m]) => ({ key, metrics: withRates(m) }))
+      .map(([key, m]) => {
+        const metrics = withRates(m);
+        return { key, metrics, priority: classifyPriority(metrics) };
+      })
       .sort((a, b) => b.metrics.registered - a.metrics.registered),
     vaccineUtilisation: [...vaccineUtil.entries()]
       .map(([vaccineCode, administered]) => ({ vaccineCode, administered }))
@@ -229,8 +247,6 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
     generatedAt: now.toISOString()
   };
 }
-
-export type StatePriorityLevel = 'red' | 'amber' | 'green';
 
 export interface StatePriority {
   state: string;
@@ -243,7 +259,7 @@ export interface StatePriority {
   completed: number;
   completionRate: number;
   overdueRate: number;
-  priority: StatePriorityLevel;
+  priority: PriorityLevel;
 }
 
 export interface CoverageByState {
@@ -264,16 +280,6 @@ export async function coverageByState(now: Date = new Date()): Promise<CoverageB
 
   const states: StatePriority[] = summary.breakdown.map((b) => {
     const m = b.metrics;
-    const overdueRate = m.registered ? round(m.overdue / m.registered) : 0;
-    // A fifth of children overdue, or completion under a third, is a state that
-    // needs intervention now; the amber band is the early-warning tier.
-    const priority: StatePriorityLevel =
-      overdueRate >= 0.2 || m.completionRate < 0.35
-        ? 'red'
-        : overdueRate >= 0.1 || m.completionRate < 0.6
-          ? 'amber'
-          : 'green';
-
     return {
       state: b.key,
       registered: m.registered,
@@ -284,8 +290,8 @@ export async function coverageByState(now: Date = new Date()): Promise<CoverageB
       zeroDose: m.zeroDose,
       completed: m.completed,
       completionRate: m.completionRate,
-      overdueRate,
-      priority
+      overdueRate: m.registered ? round(m.overdue / m.registered) : 0,
+      priority: b.priority
     };
   });
 

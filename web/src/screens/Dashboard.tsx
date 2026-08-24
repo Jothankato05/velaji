@@ -21,7 +21,7 @@ interface Summary {
   scope: { level: string; state?: string; lga?: string; ward?: string; label: string };
   totals: Metrics;
   breakdownBy: string;
-  breakdown: Array<{ key: string; metrics: Metrics }>;
+  breakdown: Array<{ key: string; metrics: Metrics; priority: 'red' | 'amber' | 'green' }>;
   openEscalations: number;
   healthyStartActive: number;
   generatedAt: string;
@@ -55,8 +55,16 @@ function qs(f: Filter): string {
 const LEVEL_LABEL: Record<string, string> = { state: 'States', lga: 'LGAs', ward: 'Wards', facility: 'Facilities (PHC)' };
 const PRIORITY_LABEL: Record<string, string> = { red: 'Priority', amber: 'Watch', green: 'On track' };
 
+type GeoSort = 'overdue' | 'registered' | 'completion';
+const GEO_SORTS: Array<{ key: GeoSort; label: string }> = [
+  { key: 'overdue', label: 'Most overdue' },
+  { key: 'registered', label: 'Most children' },
+  { key: 'completion', label: 'Lowest completion' }
+];
+
 export function Dashboard() {
   const [filter, setFilter] = useState<Filter>({});
+  const [geoSort, setGeoSort] = useState<GeoSort>('overdue');
   const summary = useGet<Summary>(`/api/dashboard/summary${qs(filter)}`);
   const trend = useGet<Trend>('/api/dashboard/trend?weeks=8');
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${filter.state ? `&state=${encodeURIComponent(filter.state)}` : ''}`);
@@ -83,6 +91,12 @@ export function Dashboard() {
 
   const t = summary.data.totals;
   const maxBreak = Math.max(1, ...summary.data.breakdown.map((b) => b.metrics.registered));
+  const sortedBreakdown = [...summary.data.breakdown].sort((a, b) => {
+    if (geoSort === 'registered') return b.metrics.registered - a.metrics.registered;
+    if (geoSort === 'completion') return a.metrics.completionRate - b.metrics.completionRate;
+    // 'overdue' (default triage order): most overdue children first.
+    return b.metrics.overdue - a.metrics.overdue || a.metrics.completionRate - b.metrics.completionRate;
+  });
 
   return (
     <div className="dash">
@@ -180,15 +194,20 @@ export function Dashboard() {
         <section className="card panel span2">
           <div className="panel-head">
             <h2>{LEVEL_LABEL[summary.data.breakdownBy] ?? summary.data.breakdownBy}</h2>
-            <span className="eyebrow">registered · overdue · completion</span>
+            <div className="geo-sort" role="group" aria-label="Sort areas by">
+              {GEO_SORTS.map((s) => (
+                <button key={s.key} className={`geo-sort-btn${geoSort === s.key ? ' active' : ''}`} onClick={() => setGeoSort(s.key)}>{s.label}</button>
+              ))}
+            </div>
           </div>
-          {summary.data.breakdown.length === 0 ? (
+          {sortedBreakdown.length === 0 ? (
             <Empty>No children registered in this scope yet.</Empty>
           ) : (
             <ul className="geo-list">
-              {summary.data.breakdown.map((b) => (
+              {sortedBreakdown.map((b) => (
                 <li key={b.key}>
                   <button className="geo-row" onClick={() => drillInto(b.key)} disabled={!canDrill}>
+                    <span className={`geo-flag ${b.priority}`} aria-hidden title={b.priority} />
                     <span className="geo-key">{b.key}</span>
                     <span className="geo-bar-track"><span className="geo-bar-fill" style={{ width: `${(b.metrics.registered / maxBreak) * 100}%` }} /></span>
                     <span className="geo-nums mono">

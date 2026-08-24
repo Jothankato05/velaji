@@ -719,7 +719,10 @@ test('the audit trail is admin-only', async () => {
 // --- National Command Dashboard (NCIHAP §11) ---
 
 function dashDose(code: string, name: string, dnum: number, offsetDays: number, administered: boolean) {
-  const due = new Date(NOON.getTime() + offsetDays * DAY);
+  // The dashboard endpoints evaluate status against the real clock, so base the
+  // fixture's due dates on real "now" too — otherwise a dose meant to be "due in
+  // 3 days" silently becomes overdue once the wall clock passes NOON+3.
+  const due = new Date(Date.now() + offsetDays * DAY);
   return { vaccineCode: code, displayName: name, doseNumber: dnum, dueDate: due, administeredDate: administered ? due : null };
 }
 async function dashFacility(state: string, lga: string, ward: string, name: string) {
@@ -871,6 +874,18 @@ test('coverage by priority state ranks worst-first and flags each state', async 
 test('coverage by priority state is admin-only', async () => {
   const { status } = await jsonAs(staffToken, 'GET', '/api/dashboard/coverage-by-state');
   assert(status === 403, `expected 403 for a non-admin, got ${status}`);
+});
+
+test('geographic breakdown carries a priority flag per area (drill-down triage)', async () => {
+  // National summary → breakdown by state; the same flag the priority table
+  // uses must appear on every drill-down row so worst areas surface at any level.
+  const { body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/summary');
+  assert(Array.isArray(body.breakdown) && body.breakdown.length > 0, 'expected a national breakdown');
+  assert(body.breakdown.every((b: any) => ['red', 'amber', 'green'].includes(b.priority)), 'every area must carry a priority flag');
+  const zeta = body.breakdown.find((b: any) => b.key === 'Zeta-CBS');
+  const alpha = body.breakdown.find((b: any) => b.key === 'Alpha-CBS');
+  assert(zeta && zeta.priority === 'red', `the all-overdue state should flag red, got ${zeta?.priority}`);
+  assert(alpha && alpha.priority === 'green', `the all-complete state should flag green, got ${alpha?.priority}`);
 });
 
 // --- Offline-first sync (NCIHAP §9) ---
