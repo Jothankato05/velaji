@@ -124,3 +124,19 @@
 .geo-sort-btn.active { background: var(--card, #fff); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
 .geo-flag { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .geo-flag.red { background: var(--st-red); } .geo-flag.amber { background: var(--st-amber); } .geo-flag.green { background: var(--st-green); }
+
+/* ---- Recovery call list ---- */
+.rec-scroll { overflow-x: auto; }
+.rec { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rec thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; padding: 0 12px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rec th.num, .rec td.num { text-align: right; }
+.rec tbody td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rec tbody tr:last-child td { border-bottom: none; }
+.rec-row:hover { background: var(--bg); }
+.rec-name { font-weight: 600; color: var(--ink); }
+.rec-sub { font-size: 12px; }
+.rec-vax { color: var(--ink-soft); max-width: 22ch; }
+.rec-late { color: var(--st-red); font-weight: 600; }
+.rec-phone { display: inline-block; font-size: 12.5px; color: var(--brand, var(--st-green)); text-decoration: none; }
+.rec-phone:hover { text-decoration: underline; }
+.btn-sm { padding: 5px 13px; font-size: 12.5px; border-radius: 8px; }
