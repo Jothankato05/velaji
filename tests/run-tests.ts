@@ -841,6 +841,38 @@ test('outlier detection flags a facility with an unusual dropout rate', async ()
   assert(!body.outliers.some((o: any) => o.facility === 'Healthy PHC 1'), 'a healthy facility must not be flagged');
 });
 
+test('coverage by priority state ranks worst-first and flags each state', async () => {
+  // A healthy state (all children complete) and a priority state (all overdue),
+  // in freshly-named states so the assertions are isolated from other tests.
+  const healthy = await dashFacility('Alpha-CBS', 'AL-1', 'W', 'Alpha PHC');
+  const priority = await dashFacility('Zeta-CBS', 'ZE-1', 'W', 'Zeta PHC');
+  for (let i = 0; i < 5; i++) {
+    await dashChild(healthy, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]); // BLUE, complete
+    await dashChild(priority, [dashDose('PENTA', 'Pentavalent', 1, -10, false)]); // RED, overdue, 0% complete
+  }
+
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/coverage-by-state');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(Array.isArray(body.states), 'coverage payload must carry a states array');
+
+  const idx = (name: string) => body.states.findIndex((s: any) => s.state === name);
+  const alpha = body.states.find((s: any) => s.state === 'Alpha-CBS');
+  const zeta = body.states.find((s: any) => s.state === 'Zeta-CBS');
+  assert(alpha && zeta, 'both test states must appear');
+
+  assert(zeta.priority === 'red', `an all-overdue state should be red, got ${zeta.priority}`);
+  assert(alpha.priority === 'green', `an all-complete state should be green, got ${alpha.priority}`);
+  assert(zeta.overdueRate === 1 && zeta.completionRate === 0, `priority state metrics wrong: ${JSON.stringify(zeta)}`);
+  assert(alpha.completionRate === 1 && alpha.overdue === 0, `healthy state metrics wrong: ${JSON.stringify(alpha)}`);
+  // Worst-first: the priority state ranks above the healthy one.
+  assert(idx('Zeta-CBS') < idx('Alpha-CBS'), 'the priority state must rank before the healthy one');
+});
+
+test('coverage by priority state is admin-only', async () => {
+  const { status } = await jsonAs(staffToken, 'GET', '/api/dashboard/coverage-by-state');
+  assert(status === 403, `expected 403 for a non-admin, got ${status}`);
+});
+
 // --- Offline-first sync (NCIHAP §9) ---
 
 let syncFacId = '';

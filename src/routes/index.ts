@@ -20,7 +20,7 @@ import { familyJourney } from '../controllers/family.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
-import { getSummary, getStockForecast, getTrend, getOutliers, getActivity } from '../controllers/dashboard.controller';
+import { getSummary, getStockForecast, getTrend, getOutliers, getActivity, getCoverageByState } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
 
 export const apiRouter = Router();
@@ -100,6 +100,7 @@ apiRouter.get('/api/dashboard/stock-forecast', requireRole('admin'), asyncHandle
 apiRouter.get('/api/dashboard/trend', requireRole('admin'), asyncHandler(getTrend));
 apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getOutliers));
 apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getActivity));
+apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHandler(getCoverageByState));
 
 // Offline-first sync (NCIHAP §9): a health-worker device (staff/admin) pulls
 // the children it needs to work offline, and pushes queued transactions —

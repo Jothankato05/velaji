@@ -230,6 +230,72 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
   };
 }
 
+export type StatePriorityLevel = 'red' | 'amber' | 'green';
+
+export interface StatePriority {
+  state: string;
+  registered: number;
+  dosesAdministered: number;
+  onTrack: number;
+  overdue: number;
+  dueThisWeek: number;
+  zeroDose: number;
+  completed: number;
+  completionRate: number;
+  overdueRate: number;
+  priority: StatePriorityLevel;
+}
+
+export interface CoverageByState {
+  states: StatePriority[];
+  generatedAt: string;
+}
+
+/**
+ * Coverage by priority state (NCIHAP §11): the national triage view a
+ * decision-maker opens first — every state ranked worst-first by the pressure
+ * it's under (overdue children and how far its schedule completion has fallen),
+ * each carrying a red / amber / green flag. Unlike the drill-down list this is
+ * always national and priority-ordered, so the states that need intervention
+ * surface at the top regardless of where the user has drilled.
+ */
+export async function coverageByState(now: Date = new Date()): Promise<CoverageByState> {
+  const summary = await geographicSummary({}, now);
+
+  const states: StatePriority[] = summary.breakdown.map((b) => {
+    const m = b.metrics;
+    const overdueRate = m.registered ? round(m.overdue / m.registered) : 0;
+    // A fifth of children overdue, or completion under a third, is a state that
+    // needs intervention now; the amber band is the early-warning tier.
+    const priority: StatePriorityLevel =
+      overdueRate >= 0.2 || m.completionRate < 0.35
+        ? 'red'
+        : overdueRate >= 0.1 || m.completionRate < 0.6
+          ? 'amber'
+          : 'green';
+
+    return {
+      state: b.key,
+      registered: m.registered,
+      dosesAdministered: m.dosesAdministered,
+      onTrack: m.onTrack,
+      overdue: m.overdue,
+      dueThisWeek: m.dueThisWeek,
+      zeroDose: m.zeroDose,
+      completed: m.completed,
+      completionRate: m.completionRate,
+      overdueRate,
+      priority
+    };
+  });
+
+  // Worst-first: weight overdue pressure and the shortfall from full completion.
+  const score = (s: StatePriority) => s.overdueRate * 2 + (1 - s.completionRate);
+  states.sort((a, b) => score(b) - score(a));
+
+  return { states, generatedAt: now.toISOString() };
+}
+
 export interface ActivityEvent {
   kind: 'healthy_start' | 'verification' | 'reminder' | 'recovery';
   label: string;

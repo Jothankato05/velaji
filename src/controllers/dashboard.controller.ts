@@ -5,6 +5,7 @@ import {
   administrationTrend,
   facilityOutliers,
   recentActivity,
+  coverageByState,
   type GeoFilter
 } from '../services/dashboard.service';
 import { AppError } from '../utils/AppError';
@@ -42,4 +43,9 @@ export async function getOutliers(_req: Request, res: Response) {
 
 export async function getActivity(_req: Request, res: Response) {
   res.json({ events: await recentActivity(12) });
+}
+
+/** Coverage by priority state: every state ranked worst-first with a flag. */
+export async function getCoverageByState(_req: Request, res: Response) {
+  res.json(await coverageByState());
 }
