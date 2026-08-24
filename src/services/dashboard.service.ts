@@ -1,5 +1,6 @@
 import { ChildModel } from '../models/Child';
 import { FacilityModel } from '../models/Facility';
+import { CaregiverModel } from '../models/Caregiver';
 import { EscalationModel } from '../models/Escalation';
 import { CertificateModel } from '../models/Certificate';
 import { computeChildStatus } from './schedule.service';
@@ -300,6 +301,64 @@ export async function coverageByState(now: Date = new Date()): Promise<CoverageB
   states.sort((a, b) => score(b) - score(a));
 
   return { states, generatedAt: now.toISOString() };
+}
+
+export interface RecoveryChild {
+  chin: string;
+  fullName: string;
+  ageMonths: number;
+  overdueVaccines: string[];
+  mostOverdueDays: number;
+  caregiverName: string | null;
+  caregiverPhone: string | null;
+  facility: string;
+}
+
+/**
+ * The recovery call list that closes the loop from the drill-down: the actual
+ * overdue (RED) children in a scope — who they are, what they're overdue for,
+ * how late, and how to reach them — so a worker at the worst facility can act,
+ * not just see a number. Individual data, so it's staff/admin only (not part of
+ * the aggregate, no-PII dashboard contract). Worst-overdue first.
+ */
+export async function overdueChildren(filter: GeoFilter, now: Date = new Date()): Promise<RecoveryChild[]> {
+  const facilities = await FacilityModel.find({});
+  const geoById = new Map(
+    facilities.map((f) => [String(f._id), { state: f.stateName || UNKNOWN, lga: f.lgaName || UNKNOWN, ward: f.wardName || UNSPECIFIED_WARD, name: f.name || UNKNOWN }])
+  );
+
+  const children = await ChildModel.find({});
+  const out: RecoveryChild[] = [];
+  for (const child of children) {
+    const g = geoById.get(String(child.currentFacilityId));
+    const geo = { state: g?.state ?? UNKNOWN, lga: g?.lga ?? UNKNOWN, ward: g?.ward ?? UNSPECIFIED_WARD, facility: '', facilityId: '' };
+    if (!inScope(geo, filter)) continue;
+
+    const doses = child.doses.map((d) => ({ displayName: d.displayName, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }));
+    const status = computeChildStatus(
+      child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null })),
+      { now, needsReconciliation: child.needsReconciliation }
+    );
+    if (status !== 'RED') continue;
+
+    const overdue = doses
+      .filter((d) => !d.administeredDate && d.dueDate.getTime() < now.getTime())
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+    const caregiver = await CaregiverModel.findById(child.caregiverId);
+
+    out.push({
+      chin: child.chin,
+      fullName: child.fullName,
+      ageMonths: Math.floor((now.getTime() - child.dateOfBirth.getTime()) / (30.44 * DAY)),
+      overdueVaccines: overdue.map((d) => d.displayName),
+      mostOverdueDays: overdue.length ? Math.round((now.getTime() - overdue[0].dueDate.getTime()) / DAY) : 0,
+      caregiverName: caregiver?.fullName ?? null,
+      caregiverPhone: caregiver?.phone || null,
+      facility: g?.name ?? UNKNOWN
+    });
+  }
+
+  return out.sort((a, b) => b.mostOverdueDays - a.mostOverdueDays);
 }
 
 export interface ActivityEvent {

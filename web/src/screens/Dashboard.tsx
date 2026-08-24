@@ -41,6 +41,8 @@ interface Trend { points: Array<{ weekStarting: string; dosesAdministered: numbe
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
 interface Activity { events: Array<{ kind: string; label: string; detail: string; at: string }>; }
+interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
+interface Recovery { count: number; children: RecoveryChild[]; }
 
 type Filter = { state?: string; lga?: string; ward?: string };
 
@@ -71,6 +73,9 @@ export function Dashboard() {
   const outliers = useGet<Outliers>('/api/dashboard/outliers');
   const activity = useGet<Activity>('/api/dashboard/activity');
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
+  // Only fetched once drilled to a facility (ward scope) — this carries names
+  // and phone numbers, so we don't pull it at the national/state level.
+  const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
 
   const canDrill = summary.data?.breakdownBy !== 'facility';
   function drillInto(key: string) {
@@ -267,6 +272,46 @@ export function Dashboard() {
           )) : <Loading />}
         </section>
       </div>
+
+      {/* Recovery call list — closes the loop from the worst facility to action */}
+      {filter.ward && (
+        <section className="card panel">
+          <div className="panel-head">
+            <h2>Overdue children — recovery list</h2>
+            <span className="eyebrow">{summary.data.scope.label} · {recovery.data ? `${recovery.data.count} to reach` : '…'}</span>
+          </div>
+          {!recovery.data ? (
+            <Loading />
+          ) : recovery.data.children.length === 0 ? (
+            <Empty>No overdue children here — nothing to recover.</Empty>
+          ) : (
+            <div className="rec-scroll">
+              <table className="rec">
+                <thead>
+                  <tr><th>Child</th><th>Overdue for</th><th className="num">Days late</th><th>Caregiver</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {recovery.data.children.map((c) => (
+                    <tr key={c.chin} className="rec-row">
+                      <td>
+                        <div className="rec-name">{c.fullName}</div>
+                        <div className="muted rec-sub mono">{c.chin} · {c.ageMonths}mo</div>
+                      </td>
+                      <td className="rec-vax">{c.overdueVaccines.slice(0, 3).join(', ')}{c.overdueVaccines.length > 3 ? ` +${c.overdueVaccines.length - 3}` : ''}</td>
+                      <td className="num mono rec-late">{c.mostOverdueDays}d</td>
+                      <td>
+                        <div>{c.caregiverName ?? '—'}</div>
+                        {c.caregiverPhone && <a className="rec-phone mono" href={`tel:${c.caregiverPhone}`}>{c.caregiverPhone}</a>}
+                      </td>
+                      <td className="num"><Link to={`/care?chin=${encodeURIComponent(c.chin)}`} className="btn btn-sm">Open</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

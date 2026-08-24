@@ -22,6 +22,7 @@ import { getEscalations, postResolveEscalation } from '../controllers/escalation
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
 import { getSummary, getStockForecast, getTrend, getOutliers, getActivity, getCoverageByState } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
+import { getRecovery } from '../controllers/recovery.controller';
 
 export const apiRouter = Router();
 
@@ -101,6 +102,11 @@ apiRouter.get('/api/dashboard/trend', requireRole('admin'), asyncHandler(getTren
 apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getOutliers));
 apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getActivity));
 apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHandler(getCoverageByState));
+
+// The recovery call list behind the drill-down — individual overdue children in
+// a scope, for the worker who will act on them. Staff/admin only (it carries
+// names and contact numbers, unlike the aggregate dashboard).
+apiRouter.get('/api/recovery', requireRole('staff', 'admin'), asyncHandler(getRecovery));
 
 // Offline-first sync (NCIHAP §9): a health-worker device (staff/admin) pulls
 // the children it needs to work offline, and pushes queued transactions —

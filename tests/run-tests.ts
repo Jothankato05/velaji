@@ -888,6 +888,24 @@ test('geographic breakdown carries a priority flag per area (drill-down triage)'
   assert(alpha && alpha.priority === 'green', `the all-complete state should flag green, got ${alpha?.priority}`);
 });
 
+test('recovery list returns the overdue children in scope, worst-first, staff/admin only', async () => {
+  const fac = await dashFacility('Rec-State', 'RC-1', 'W', 'Recovery PHC');
+  await dashChild(fac, [dashDose('OPV', 'OPV', 1, -25, false)]); // overdue ~25d
+  await dashChild(fac, [dashDose('PENTA', 'Pentavalent', 1, -5, false)]); // overdue ~5d
+  await dashChild(fac, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]); // complete → excluded
+
+  const adminRes = await jsonAs(adminTokenT, 'GET', '/api/recovery?state=Rec-State');
+  assert(adminRes.status === 200, `expected 200, got ${adminRes.status}`);
+  assert(adminRes.body.count === 2, `expected 2 overdue children, got ${adminRes.body.count}`);
+  assert(adminRes.body.children[0].mostOverdueDays >= adminRes.body.children[1].mostOverdueDays, 'recovery list must be worst-first');
+  assert(adminRes.body.children[0].chin && adminRes.body.children[0].overdueVaccines.length > 0, 'each row carries a CHIN and overdue vaccines');
+
+  const staffRes = await jsonAs(staffToken, 'GET', '/api/recovery?state=Rec-State');
+  assert(staffRes.status === 200, 'staff may view the recovery list');
+  const verifierRes = await jsonAs(verifierToken, 'GET', '/api/recovery?state=Rec-State');
+  assert(verifierRes.status === 403, `a verifier must not see the recovery list, got ${verifierRes.status}`);
+});
+
 // --- Offline-first sync (NCIHAP §9) ---
 
 let syncFacId = '';
