@@ -127,7 +127,8 @@ const NAV: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/mychild/vaccines', label: 'Vaccines' },
   { to: '/mychild/appointments', label: 'Appointments' },
   { to: '/mychild/doctor', label: 'Doctor' },
-  { to: '/mychild/emergency', label: 'Emergency' }
+  { to: '/mychild/emergency', label: 'Emergency' },
+  { to: '/mychild/more', label: 'More' }
 ];
 
 type Ctx = { data: Family; listen: () => void };

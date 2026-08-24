@@ -26,6 +26,17 @@ interface Summary {
   healthyStartActive: number;
   generatedAt: string;
 }
+interface StatePriority {
+  state: string;
+  registered: number;
+  onTrack: number;
+  overdue: number;
+  dueThisWeek: number;
+  completionRate: number;
+  overdueRate: number;
+  priority: 'red' | 'amber' | 'green';
+}
+interface Coverage { states: StatePriority[]; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
@@ -42,6 +53,7 @@ function qs(f: Filter): string {
   return s ? `?${s}` : '';
 }
 const LEVEL_LABEL: Record<string, string> = { state: 'States', lga: 'LGAs', ward: 'Wards', facility: 'Facilities (PHC)' };
+const PRIORITY_LABEL: Record<string, string> = { red: 'Priority', amber: 'Watch', green: 'On track' };
 
 export function Dashboard() {
   const [filter, setFilter] = useState<Filter>({});
@@ -50,6 +62,7 @@ export function Dashboard() {
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${filter.state ? `&state=${encodeURIComponent(filter.state)}` : ''}`);
   const outliers = useGet<Outliers>('/api/dashboard/outliers');
   const activity = useGet<Activity>('/api/dashboard/activity');
+  const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
 
   const canDrill = summary.data?.breakdownBy !== 'facility';
   function drillInto(key: string) {
@@ -116,6 +129,51 @@ export function Dashboard() {
           <span className="eyebrow">{summary.data.scope.label} · {fmt(t.registered)} children</span>
         </div>
         <StatusBar t={t} />
+      </section>
+
+      {/* Coverage by priority state — national triage, worst-first */}
+      <section className="card panel">
+        <div className="panel-head">
+          <h2>Coverage by priority state</h2>
+          <span className="eyebrow">ranked by children needing action</span>
+        </div>
+        {!coverage.data ? (
+          <Loading />
+        ) : coverage.data.states.length === 0 ? (
+          <Empty>No states registered yet.</Empty>
+        ) : (
+          <div className="cbs-scroll">
+            <table className="cbs">
+              <thead>
+                <tr>
+                  <th>State</th>
+                  <th className="num">Children</th>
+                  <th className="num">Immunised</th>
+                  <th className="num">Overdue</th>
+                  <th className="num">Due this week</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {coverage.data.states.map((s) => (
+                  <tr key={s.state} className="cbs-row" onClick={() => setFilter({ state: s.state })} title={`Drill into ${s.state}`}>
+                    <td className="cbs-state">{s.state}</td>
+                    <td className="num mono">{fmt(s.registered)}</td>
+                    <td className="num">
+                      <span className="cbs-comp">
+                        <span className="cbs-comp-track"><span className="cbs-comp-fill" style={{ width: `${Math.round(s.completionRate * 100)}%` }} /></span>
+                        <b className="mono">{pct(s.completionRate)}</b>
+                      </span>
+                    </td>
+                    <td className="num mono cbs-overdue">{fmt(s.overdue)}</td>
+                    <td className="num mono">{fmt(s.dueThisWeek)}</td>
+                    <td><span className={`cbs-pill ${s.priority}`}>{PRIORITY_LABEL[s.priority]}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <div className="dash-grid">
