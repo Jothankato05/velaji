@@ -1,10 +1,12 @@
 /**
  * Dev-only: boot the real API on PORT with a small, hand-picked seed so the
  * MyChild and Command Centre UIs can be driven in a browser against real data.
- * Seeds an admin login, three states with distinct green / amber / red coverage
- * profiles, and one MyChild card. Prints the admin creds and the card link.
- * Not used in production.
+ * Seeds an admin login, several facilities across three states with distinct
+ * green / amber / red coverage profiles (so the priority table and the
+ * drill-down triage both have real data), and one MyChild card. Prints the
+ * admin creds and the card link. Not used in production.
  */
+import type { Types } from 'mongoose';
 import { app } from '../app';
 import { env } from '../config/env';
 import { connectDatabase } from '../config/db';
@@ -20,9 +22,10 @@ import { hashPassword } from '../utils/password';
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = Date.now();
+type Id = Types.ObjectId;
 type Profile = 'complete' | 'ontrack' | 'overdue' | 'zero';
 
-async function makeChild(facilityId: unknown, caregiverId: unknown, profile: Profile, name: string) {
+async function makeChild(facilityId: Id, caregiverId: Id, profile: Profile, name: string) {
   const ageMonths = profile === 'complete' ? 30 : profile === 'ontrack' ? 6 : profile === 'overdue' ? 13 : 1.5;
   const dob = new Date(now - ageMonths * 30.44 * DAY);
   const doses = buildDosesForChild(dob);
@@ -41,16 +44,16 @@ async function makeChild(facilityId: unknown, caregiverId: unknown, profile: Pro
   return child;
 }
 
-async function seedState(state: string, lga: string, ward: string, facName: string, mix: Record<Profile, number>) {
+async function seedFacility(state: string, lga: string, ward: string, facName: string, mix: Partial<Record<Profile, number>>) {
   const facility = await FacilityModel.create({ name: facName, wardName: ward, lgaName: lga, stateName: state, location: { lat: 9, lng: 7 } });
   const caregiver = await CaregiverModel.create({ fullName: `${ward} Caregiver`, phone: '+2348030000000' });
-  const created: any[] = [];
+  const children: Awaited<ReturnType<typeof makeChild>>[] = [];
   for (const profile of Object.keys(mix) as Profile[]) {
-    for (let i = 0; i < mix[profile]; i++) {
-      created.push(await makeChild(facility._id, caregiver._id, profile, `${ward} Child ${i + 1}`));
+    for (let i = 0; i < (mix[profile] ?? 0); i++) {
+      children.push(await makeChild(facility._id, caregiver._id, profile, `${ward} Child ${i + 1}`));
     }
   }
-  return { facility, caregiver, children: created };
+  return children;
 }
 
 async function main() {
@@ -60,13 +63,22 @@ async function main() {
     username: 'admin', passwordHash: await hashPassword('admin-demo-pass'), fullName: 'Command Admin', role: 'admin'
   });
 
-  // Three states with deliberately different coverage health.
-  const fct = await seedState('FCT', 'AMAC', 'Wuse', 'Wuse PHC', { complete: 14, ontrack: 6, overdue: 0, zero: 0 }); // green
-  await seedState('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 7, ontrack: 5, overdue: 2, zero: 0 }); // amber
-  await seedState('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 2, ontrack: 0, overdue: 8, zero: 3 }); // red
+  // FCT — healthy (green): two facilities, both strong.
+  const fctChildren = [
+    ...await seedFacility('FCT', 'AMAC', 'Wuse', 'Wuse PHC', { complete: 10, ontrack: 5 }),
+    ...await seedFacility('FCT', 'Bwari', 'Kubwa', 'Kubwa PHC', { complete: 6, ontrack: 4 })
+  ];
+
+  // Lagos — watch (amber): one solid, one slipping.
+  await seedFacility('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 7, ontrack: 4 });
+  await seedFacility('Lagos', 'Eti-Osa', 'Lekki', 'Lekki PHC', { complete: 3, ontrack: 2, overdue: 3 });
+
+  // Kano — priority (red): the worst LGA (Dala) should surface first when drilling.
+  await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3 });
+  await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5 });
 
   // One named MyChild card (in FCT), reusing an on-track child.
-  const cardChild = fct.children.find((c) => c.doses.some((d: any) => !d.administeredDate)) ?? fct.children[0];
+  const cardChild = fctChildren.find((c) => c.doses.some((d) => !d.administeredDate)) ?? fctChildren[0];
   await ChildModel.updateOne({ _id: cardChild._id }, { fullName: 'Zara Bello' });
   const token = signChin(cardChild.chin);
 
