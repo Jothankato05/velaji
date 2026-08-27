@@ -193,3 +193,23 @@
   .mc-nav { flex-direction: row; flex-wrap: wrap; } .mc-help, .mc-logo-sub { display: none; }
   .mc-main { padding: 20px; } .mc-hero { flex-direction: column; }
 }
+
+/* ---- staged rewards (§14) ---- */
+.mc-rewards-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.mc-next-reward { font-size: 12.5px; color: var(--mc-green); font-weight: 600; background: #e9f6ef; border: 1px solid #bfe3d1; border-radius: 999px; padding: 4px 12px; }
+.mc-reward-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.mc-reward { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--mc-line); border-radius: 16px; padding: 14px; background: #fff; }
+.mc-reward-badge { font-size: 22px; line-height: 1; }
+.mc-reward-title { font-weight: 600; font-size: 14.5px; color: var(--mc-ink); }
+.mc-reward-what { font-size: 12.5px; color: var(--mc-muted); line-height: 1.35; flex: 1; }
+.mc-reward-state { font-size: 12px; font-weight: 600; margin-top: 4px; }
+.mc-reward.earned { background: #e9f6ef; border-color: #bfe3d1; }
+.mc-reward.earned .mc-reward-badge { color: #e0a51e; }
+.mc-reward.earned .mc-reward-state { color: var(--mc-green); }
+.mc-reward.active { border-color: var(--mc-accent); box-shadow: 0 0 0 3px rgba(47,174,130,.12); }
+.mc-reward.active .mc-reward-badge { color: var(--mc-accent); }
+.mc-reward.active .mc-reward-state { color: var(--mc-accent); }
+.mc-reward.locked { opacity: .6; }
+.mc-reward.locked .mc-reward-badge { color: var(--mc-muted); }
+.mc-reward.locked .mc-reward-state { color: var(--mc-muted); }
+@media (max-width: 640px) { .mc-reward-grid { grid-template-columns: 1fr; } }

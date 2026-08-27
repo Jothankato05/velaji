@@ -5,6 +5,7 @@ import { CaregiverModel } from '../models/Caregiver';
 import { CertificateModel } from '../models/Certificate';
 import { normalizeChin } from '../services/chin.service';
 import { computeChildStatus, computeDoseStatus } from '../services/schedule.service';
+import { computeMilestones, nextMilestone } from '../services/milestone.service';
 import { verifyChinToken } from '../services/verification-token.service';
 import { AppError } from '../utils/AppError';
 
@@ -155,6 +156,8 @@ export async function familyJourney(req: Request, res: Response) {
           active: (certificate.coverageExpiresAt?.getTime() ?? 0) > now.getTime()
         }
       : null,
+    rewards: computeMilestones(doses, dob),
+    nextReward: nextMilestone(computeMilestones(doses, dob)),
     tip: TIPS[now.getDate() % TIPS.length]
   });
 }

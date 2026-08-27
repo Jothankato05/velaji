@@ -4,6 +4,7 @@ import { CaregiverModel } from '../models/Caregiver';
 import { EscalationModel } from '../models/Escalation';
 import { CertificateModel } from '../models/Certificate';
 import { computeChildStatus } from './schedule.service';
+import { computeMilestones } from './milestone.service';
 
 /**
  * The National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
@@ -301,6 +302,38 @@ export async function coverageByState(now: Date = new Date()): Promise<CoverageB
   states.sort((a, b) => score(b) - score(a));
 
   return { states, generatedAt: now.toISOString() };
+}
+
+export interface MilestoneAttainment {
+  registered: number;
+  birth: number;
+  foundation: number;
+  healthyStart: number;
+  generatedAt: string;
+}
+
+/**
+ * How far the country has moved along the staged incentive journey (NCIHAP §14):
+ * how many children have reached each reward milestone. A funnel — birth badge →
+ * foundation benefit → Healthy Start coverage — that shows where engagement is
+ * being kept and where it drops off. Counts only, no individual data (§24).
+ */
+export async function milestoneAttainment(now: Date = new Date()): Promise<MilestoneAttainment> {
+  const children = await ChildModel.find({});
+  let birth = 0;
+  let foundation = 0;
+  let healthyStart = 0;
+  for (const child of children) {
+    const doses = child.doses.map((d) => ({
+      vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+      dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+    }));
+    const byKey = Object.fromEntries(computeMilestones(doses, child.dateOfBirth).map((m) => [m.key, m]));
+    if (byKey.birth?.attained) birth += 1;
+    if (byKey.foundation?.attained) foundation += 1;
+    if (byKey.healthy_start?.attained) healthyStart += 1;
+  }
+  return { registered: children.length, birth, foundation, healthyStart, generatedAt: now.toISOString() };
 }
 
 export interface RecoveryChild {

@@ -18,8 +18,11 @@ interface Family {
   facility: { name: string; ward: string; lga: string; state: string } | null;
   nextAppointment: { vaccines: string[]; date: string; dueInDays: number; facility: string } | null;
   coverage: { programme: string; months: number; expiresAt: string; active: boolean } | null;
+  rewards: MilestoneReward[];
+  nextReward: { key: string; reward: string; dosesToGo: number } | null;
   tip: string;
 }
+interface MilestoneReward { key: string; title: string; reward: string; blurb: string; total: number; administered: number; attained: boolean; attainedAt: string | null; }
 
 type Card = { chin: string; token: string };
 const CARD_KEY = 'ncihap.card'; // { chin, token }
@@ -273,6 +276,33 @@ function HomeView() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="mc-card mc-rewards">
+        <div className="mc-rewards-head">
+          <h3>Rewards along the way</h3>
+          {data.nextReward && (
+            <span className="mc-next-reward">Next: {data.nextReward.reward} · {data.nextReward.dosesToGo} to go</span>
+          )}
+        </div>
+        <div className="mc-reward-grid">
+          {data.rewards.map((r) => {
+            const isNext = data.nextReward?.key === r.key;
+            const cls = r.attained ? 'earned' : isNext ? 'active' : 'locked';
+            return (
+              <div key={r.key} className={`mc-reward ${cls}`}>
+                <span className="mc-reward-badge" aria-hidden>{r.attained ? '★' : isNext ? '◔' : '○'}</span>
+                <span className="mc-reward-title">{r.title}</span>
+                <span className="mc-reward-what">{r.reward}</span>
+                <span className="mc-reward-state">
+                  {r.attained
+                    ? `Earned${r.attainedAt ? ' ' + fmtDate(r.attainedAt) : ''}`
+                    : `${r.administered} of ${r.total} done${isNext ? ` · ${r.total - r.administered} to go` : ''}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {data.coverage && (
