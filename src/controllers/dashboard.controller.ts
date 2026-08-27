@@ -6,6 +6,7 @@ import {
   facilityOutliers,
   recentActivity,
   coverageByState,
+  milestoneAttainment,
   type GeoFilter
 } from '../services/dashboard.service';
 import { AppError } from '../utils/AppError';
@@ -48,4 +49,9 @@ export async function getActivity(_req: Request, res: Response) {
 /** Coverage by priority state: every state ranked worst-first with a flag. */
 export async function getCoverageByState(_req: Request, res: Response) {
   res.json(await coverageByState());
+}
+
+/** Staged-incentive attainment funnel (§14): children reaching each milestone. */
+export async function getMilestones(_req: Request, res: Response) {
+  res.json(await milestoneAttainment());
 }

@@ -37,6 +37,7 @@ interface StatePriority {
   priority: 'red' | 'amber' | 'green';
 }
 interface Coverage { states: StatePriority[]; }
+interface Milestones { registered: number; birth: number; foundation: number; healthyStart: number; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
@@ -73,6 +74,7 @@ export function Dashboard() {
   const outliers = useGet<Outliers>('/api/dashboard/outliers');
   const activity = useGet<Activity>('/api/dashboard/activity');
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
+  const milestones = useGet<Milestones>('/api/dashboard/milestones');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
   const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
@@ -234,6 +236,11 @@ export function Dashboard() {
         </section>
 
         <section className="card panel">
+          <div className="panel-head"><h2>Reward milestones</h2><span className="eyebrow">staged incentive funnel</span></div>
+          {milestones.data ? <MilestoneFunnel m={milestones.data} /> : <Loading />}
+        </section>
+
+        <section className="card panel">
           <div className="panel-head"><h2>Live programme activity</h2><span className="eyebrow live">● live</span></div>
           {activity.data ? (
             activity.data.events.length === 0 ? <Empty>No recent events.</Empty> : (
@@ -355,6 +362,26 @@ function StatusBar({ t }: { t: Metrics }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function MilestoneFunnel({ m }: { m: Milestones }) {
+  const base = Math.max(1, m.registered);
+  const stages = [
+    { key: 'birth', label: 'Birth Start', reward: 'Digital badge', n: m.birth },
+    { key: 'foundation', label: 'Foundation', reward: 'Wellness benefit', n: m.foundation },
+    { key: 'healthy', label: 'Healthy Start', reward: 'NHIA coverage', n: m.healthyStart }
+  ];
+  return (
+    <ul className="funnel">
+      {stages.map((s) => (
+        <li key={s.key} className="funnel-row">
+          <span className="funnel-label">{s.label}<span className="funnel-reward muted">{s.reward}</span></span>
+          <span className="funnel-track"><span className={`funnel-fill ${s.key}`} style={{ width: `${(s.n / base) * 100}%` }} /></span>
+          <span className="funnel-num mono"><b>{fmt(s.n)}</b><span className="muted">{pct(s.n / base)}</span></span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

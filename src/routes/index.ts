@@ -20,7 +20,7 @@ import { familyJourney } from '../controllers/family.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
-import { getSummary, getStockForecast, getTrend, getOutliers, getActivity, getCoverageByState } from '../controllers/dashboard.controller';
+import { getSummary, getStockForecast, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
 import { getRecovery } from '../controllers/recovery.controller';
 
@@ -102,6 +102,7 @@ apiRouter.get('/api/dashboard/trend', requireRole('admin'), asyncHandler(getTren
 apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getOutliers));
 apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getActivity));
 apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHandler(getCoverageByState));
+apiRouter.get('/api/dashboard/milestones', requireRole('admin'), asyncHandler(getMilestones));
 
 // The recovery call list behind the drill-down — individual overdue children in
 // a scope, for the worker who will act on them. Staff/admin only (it carries

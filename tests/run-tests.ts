@@ -17,6 +17,7 @@ import { ReminderService } from '../src/services/reminder.service';
 import { issueToken } from '../src/utils/token';
 import { buildVerificationUrl } from '../src/services/card.service';
 import { signChin } from '../src/services/verification-token.service';
+import { computeMilestones, nextMilestone } from '../src/services/milestone.service';
 import type { SmsMessage, SmsProvider, SmsSendResult } from '../src/providers/sms';
 
 type TestFn = () => Promise<void>;
@@ -886,6 +887,61 @@ test('geographic breakdown carries a priority flag per area (drill-down triage)'
   const alpha = body.breakdown.find((b: any) => b.key === 'Alpha-CBS');
   assert(zeta && zeta.priority === 'red', `the all-overdue state should flag red, got ${zeta?.priority}`);
   assert(alpha && alpha.priority === 'green', `the all-complete state should flag green, got ${alpha?.priority}`);
+});
+
+test('milestone attainment funnel: counts within registered, admin-only', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/milestones');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(typeof body.registered === 'number' && body.registered > 0, 'a registered count is present');
+  for (const k of ['birth', 'foundation', 'healthyStart'] as const) {
+    assert(typeof body[k] === 'number' && body[k] >= 0 && body[k] <= body.registered, `${k} must be a count within registered`);
+  }
+  const denied = await jsonAs(staffToken, 'GET', '/api/dashboard/milestones');
+  assert(denied.status === 403, `milestone attainment must be admin-only, got ${denied.status}`);
+});
+
+test('staged milestones (§14): birth badge earned, foundation is the next reward', async () => {
+  const dob = new Date('2026-01-01T00:00:00');
+  const mk = (offsetDays: number, administered: boolean) => ({
+    vaccineCode: 'X', displayName: 'X', doseNumber: 1,
+    dueDate: new Date(dob.getTime() + offsetDays * DAY),
+    administeredDate: administered ? new Date(dob.getTime() + (offsetDays + 2) * DAY) : null
+  });
+  // 2 birth doses (given), then infant-series doses (one still pending), then a later dose.
+  const doses = [mk(0, true), mk(0, true), mk(42, true), mk(98, false), mk(270, false)];
+  const ms = computeMilestones(doses, dob);
+  const byKey = Object.fromEntries(ms.map((m) => [m.key, m]));
+
+  assert(ms.length === 3, `expected 3 milestones, got ${ms.length}`);
+  assert(byKey.birth.attained === true, 'birth milestone should be earned (both birth doses given)');
+  assert(typeof byKey.birth.attainedAt === 'string', 'an earned milestone records when it was earned');
+  assert(byKey.foundation.attained === false, 'foundation not earned while a <200d dose is pending');
+  assert(byKey.healthy_start.attained === false, 'healthy start not earned until the whole schedule is done');
+
+  const nx = nextMilestone(ms);
+  assert(nx && nx.key === 'foundation', `next reward should be foundation, got ${nx?.key}`);
+  assert(nx!.dosesToGo === 1, `foundation should be 1 dose away, got ${nx?.dosesToGo}`);
+
+  // A fully-immunised child has earned everything and has no next reward.
+  const allDone = computeMilestones(doses.map((d) => ({ ...d, administeredDate: d.dueDate })), dob);
+  assert(allDone.every((m) => m.attained), 'a complete schedule earns every milestone');
+  assert(nextMilestone(allDone) === null, 'a complete schedule has no next reward');
+});
+
+test('the family view carries the staged rewards and the next reward', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Reward Carer', phone: '+2348079998888' });
+  const dob = new Date(NOON.getTime() - 40 * DAY).toISOString().slice(0, 10); // ~40-day-old
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Reward Child', sex: 'male', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  const chinR = reg.body.chin;
+  const token = signChin(chinR);
+  const fam = await json('GET', `/api/family/${encodeURIComponent(chinR)}?t=${encodeURIComponent(token)}`, undefined, { auth: false });
+  assert(fam.status === 200, `expected 200, got ${fam.status}`);
+  assert(Array.isArray(fam.body.rewards) && fam.body.rewards.length === 3, 'family view must carry the 3 staged rewards');
+  assert(fam.body.rewards.every((r: any) => r.title && r.reward && typeof r.attained === 'boolean'), 'each reward needs a title, reward and attained flag');
+  assert('nextReward' in fam.body, 'family view must include the next reward (or null)');
+  await ChildModel.updateOne({ chin: chinR }, { completedAt: NOON }); // keep out of later scans
 });
 
 test('recovery list returns the overdue children in scope, worst-first, staff/admin only', async () => {
