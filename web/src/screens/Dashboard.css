@@ -172,3 +172,19 @@
 .plan-tile.down .plan-tile-v { color: var(--st-red); }
 .plan-note { font-size: 11.5px; margin-top: 12px; }
 @media (max-width: 780px) { .plan-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---- Registration & mobility (§19/§20) ---- */
+.regmob { display: flex; flex-direction: column; gap: 12px; }
+.regmob-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.regmob-key { font-size: 13px; color: var(--muted); }
+.regmob-val { display: flex; align-items: baseline; gap: 6px; font-size: 15px; }
+.regmob-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.regmob-row { display: grid; grid-template-columns: 1.3fr 2fr auto; align-items: center; gap: 10px; }
+.regmob-label { font-size: 12.5px; color: var(--ink-soft); }
+.regmob-track { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.regmob-fill { display: block; height: 100%; background: var(--st-green); border-radius: 999px; }
+.regmob-num { font-size: 12.5px; min-width: 30px; text-align: right; }
+.regmob-mobility { border-top: 1px solid var(--line); padding-top: 12px; }
+.regmob-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.regmob-chip { font-size: 11.5px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
+.regmob-chip b { color: var(--ink); }

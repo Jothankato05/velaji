@@ -17,6 +17,14 @@ const facilityHandoffSchema = new Schema(
       lng: { type: Number, required: true }
     },
     reason: { type: String, default: '' },
+    // NCIHAP §20: why the child moved — so mobility across the country (displaced,
+    // nomadic, migrant, relocating families) is visible, and continuity is seen
+    // to survive it.
+    reasonCategory: {
+      type: String,
+      enum: ['relocation', 'displacement', 'nomadic', 'migration', 'outreach', 'other'],
+      default: 'relocation'
+    },
     handoffAt: { type: Date, required: true }
   },
   { timestamps: true }

@@ -23,7 +23,7 @@ import { handleUssdWebhook } from '../controllers/ussd.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
-import { getSummary, getStockForecast, getSupplyPlan, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones } from '../controllers/dashboard.controller';
+import { getSummary, getStockForecast, getSupplyPlan, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones, getRegistrationMobility } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
 import { getRecovery } from '../controllers/recovery.controller';
 import { getIntegrityAlerts } from '../controllers/fraud.controller';
@@ -115,6 +115,7 @@ apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getO
 apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getActivity));
 apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHandler(getCoverageByState));
 apiRouter.get('/api/dashboard/milestones', requireRole('admin'), asyncHandler(getMilestones));
+apiRouter.get('/api/dashboard/registration-mobility', requireRole('admin'), asyncHandler(getRegistrationMobility));
 
 // Fraud/data-integrity monitoring (NCIHAP §17): abnormal recording patterns
 // flagged for human review. Admin-only.
