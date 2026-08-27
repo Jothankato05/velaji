@@ -5,10 +5,10 @@
 > **Velaji is the platform. NCIHAP is the programme.**
 > **Velaji** is the software platform — the product built, owned, and
 > maintained here. The **National Child Immunisation & Health Assurance
-> Programme (NCIHAP)** is the government-facing initiative Velaji is designed
-> to deliver. The two are deliberately kept separate: a health authority owns
-> and names the *programme*; Velaji is the *technology* that runs it. This
-> repository is Velaji.
+> Programme (NCIHAP)** is the programme concept Velaji is designed to deliver.
+> The two are deliberately kept separate: a programme is owned and named by
+> whoever runs it; Velaji is the *technology* underneath. This repository is
+> Velaji.
 
 A coined name, chosen deliberately over a real local-language compound:
 every short, meaningful Yoruba/Igbo/Hausa word tried for this (toju, dagba,
@@ -28,18 +28,18 @@ open research can confirm.
 
 ## What this is NOT
 
-The source concept is a national policy proposal: 36-month rollout across all
-774 LGAs, real NIMC/NPC identity interoperability, and a live NHIA financial
-settlement integration. None of that is something a codebase can produce —
-it requires government authority, inter-agency agreements, and money this
-repo has no access to. This prototype does not pretend to have solved that
-layer. Where it would need to plug in, it stops at an explicit, visible seam
-(see `nhiaIntegrationStatus: 'not_connected'` on every certificate) instead
-of faking a connection.
+The source concept describes national-scale ambitions — a multi-year rollout,
+interoperability with national identity systems, and integration with a
+health-insurance settlement layer. None of that is something a codebase can
+produce: it requires authority, inter-organisation agreements, and funding
+this repo has no access to. This prototype does not pretend to have solved
+that layer. Where it would need to plug into an external system, it stops at
+an explicit, visible seam (e.g. `nhiaIntegrationStatus: 'not_connected'` on
+every certificate) instead of faking a connection.
 
-**CHIN is explicitly not Nigeria's NIN.** It's a system-generated ID scoped
+**CHIN is not a national identity number.** It's a system-generated ID scoped
 to this software only, for tracking a child across visits and facilities
-when they have no birth certificate or NIN yet. See `src/services/chin.service.ts`.
+when they have no birth certificate or national ID yet. See `src/services/chin.service.ts`.
 
 ## What this is
 
@@ -157,8 +157,8 @@ database over real HTTP — not mocked:
   protocol it would consume is built and tested; a field device app / PWA is
   the next layer.
 - **Schedule data needs clinical sign-off.** `src/data/routine-immunization-schedule.ts`
-  reflects the commonly published NPHCDA routine schedule, but this is a
-  software prototype, not a clinical source — verify against current
+  reflects a commonly published national routine immunization schedule, but
+  this is a software prototype, not a clinical source — verify against current
   guidance before any real child's care depends on it.
 
 ## Running it locally
