@@ -7,3 +7,6 @@ _mem.cjs
 _*.cjs
 scratch-*
 velaji-card-sample.svg
+
+# Local Claude Code project settings — not for the repo
+.claude/
