@@ -1,0 +1,14 @@
+node_modules
+dist
+web
+.git
+.env
+.env.*
+*.log
+coverage
+tests
+.mongodb-binaries
+_*.cjs
+scratch-*
+docs
+README.md

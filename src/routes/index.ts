@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireAuth, requireRole } from '../middleware/requireAuth';
 import { rateLimit } from '../middleware/rateLimit';
@@ -35,7 +36,16 @@ export const apiRouter = Router();
 // unscoped `.use(requireAuth)` registered earlier would intercept every
 // path that comes after it in the stack, public or not. Getting this order
 // wrong silently 401s every webhook/public endpoint mounted after it. ---
+// Liveness: the process is up and serving. Cheap, always 200.
 apiRouter.get('/health', (_req, res) => res.json({ ok: true, service: 'ncihap' }));
+
+// Readiness: the process can actually serve traffic (database connected). Load
+// balancers / orchestrators should route only when this is 200; a 503 keeps a
+// booting or DB-disconnected instance out of rotation.
+apiRouter.get('/ready', (_req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  res.status(dbReady ? 200 : 503).json({ ready: dbReady, db: dbReady ? 'connected' : 'unavailable' });
+});
 
 // Throttle login to blunt credential stuffing / brute force: 10 tries per IP
 // per 15 minutes. A legitimate health worker never trips this; an attacker

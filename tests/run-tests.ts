@@ -67,6 +67,12 @@ test('health check responds', async () => {
   assert(body.ok === true, 'expected ok:true');
 });
 
+test('readiness reports the database is connected', async () => {
+  const { status, body } = await json('GET', '/ready');
+  assert(status === 200, `expected 200 when the DB is up, got ${status}`);
+  assert(body.ready === true && body.db === 'connected', `expected ready:true, got ${JSON.stringify(body)}`);
+});
+
 test('a staff endpoint rejects a request with no token', async () => {
   const { status } = await json('POST', '/api/facilities', { name: 'x', lgaName: 'x', stateName: 'x', lat: 0, lng: 0 }, { auth: false });
   assert(status === 401, `expected 401 with no token, got ${status}`);
