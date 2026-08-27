@@ -27,6 +27,16 @@ const escalationSchema = new Schema(
       enum: ['immunized', 'reached', 'moved_away', 'unreachable', 'other', null],
       default: null
     },
+    // The barrier a health worker recorded on tracing the family — the real
+    // reason the child defaulted. Categories match the documented Nigerian
+    // drivers (vaccine hesitancy/distrust, distance/access, insecurity,
+    // financial, unaware, and no-session/stockout). Turns the recovery queue
+    // into evidence on WHY children are missed, not just that they were.
+    barrier: {
+      type: String,
+      enum: ['hesitancy', 'distance', 'insecurity', 'financial', 'unaware', 'no_session', 'other', null],
+      default: null
+    },
     resolutionNote: { type: String, default: '' }
   },
   { timestamps: true }

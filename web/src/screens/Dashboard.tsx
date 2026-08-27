@@ -45,6 +45,7 @@ interface RegMobility {
   byChannel: Array<{ channel: string; label: string; count: number }>;
   mobility: { childrenMoved: number; totalMoves: number; crossStateMoves: number; byReason: Array<{ reason: string; label: string; count: number }> };
 }
+interface DefaultingReasons { total: number; reasons: Array<{ barrier: string; label: string; count: number }>; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
 interface SupplyPlan {
@@ -93,6 +94,7 @@ export function Dashboard() {
   const milestones = useGet<Milestones>('/api/dashboard/milestones');
   const integrity = useGet<FraudAlerts>('/api/fraud/alerts');
   const regMob = useGet<RegMobility>('/api/dashboard/registration-mobility');
+  const barriers = useGet<DefaultingReasons>('/api/dashboard/defaulting-reasons');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
   const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
@@ -320,6 +322,23 @@ export function Dashboard() {
         <section className="card panel">
           <div className="panel-head"><h2>Registration &amp; mobility</h2><span className="eyebrow">inclusion &amp; continuity</span></div>
           {!regMob.data ? <Loading /> : <RegMobilityPanel m={regMob.data} />}
+        </section>
+
+        <section className="card panel">
+          <div className="panel-head"><h2>Why children default</h2><span className="eyebrow">barriers from traced cases</span></div>
+          {!barriers.data ? <Loading /> : barriers.data.total === 0 ? (
+            <Empty>No barriers recorded yet — they're captured when a traced case is resolved.</Empty>
+          ) : (
+            <ul className="regmob-bars">
+              {barriers.data.reasons.map((r) => (
+                <li key={r.barrier} className="regmob-row">
+                  <span className="regmob-label">{r.label}</span>
+                  <span className="regmob-track"><span className="regmob-fill barrier" style={{ width: `${(r.count / Math.max(1, barriers.data!.total)) * 100}%` }} /></span>
+                  <span className="regmob-num mono">{fmt(r.count)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 

@@ -1031,6 +1031,31 @@ test('§19/§20 registration is not facility-only, and mobility is tracked', asy
   await ChildModel.updateOne({ chin: home.body.chin }, { completedAt: NOON });
 });
 
+test('§11 defaulting barriers: a traced case records why, and it rolls up (admin-only)', async () => {
+  const { childId, chin } = await makeReminderChild(200, { phone: null }); // overdue + unreachable -> escalates
+  await reminderSvc().runCycle();
+  const list = await json('GET', '/api/escalations');
+  const mine = list.body.escalations.find((e: any) => e.chin === chin);
+  assert(mine, 'the case should be on the follow-up queue');
+
+  // An unrecognised barrier is rejected (the escalation stays open).
+  const bad = await json('POST', `/api/escalations/${mine.id}/resolve`, { outcome: 'reached', barrier: 'astrology' });
+  assert(bad.status === 400, `an unknown barrier must be rejected, got ${bad.status}`);
+
+  // Resolve with a real barrier (the documented top driver).
+  const ok = await json('POST', `/api/escalations/${mine.id}/resolve`, { outcome: 'reached', barrier: 'hesitancy', note: 'Family declined — belief' });
+  assert(ok.status === 200 && ok.body.barrier === 'hesitancy', `resolve must record the barrier: ${JSON.stringify(ok.body)}`);
+
+  // It rolls up in the national "why children default" view (admin-only).
+  const dr = await jsonAs(adminTokenT, 'GET', '/api/dashboard/defaulting-reasons');
+  assert(dr.status === 200, `expected 200, got ${dr.status}`);
+  assert(dr.body.reasons.some((r: any) => r.barrier === 'hesitancy' && r.count >= 1), `hesitancy must be counted: ${JSON.stringify(dr.body)}`);
+  const denied = await jsonAs(staffToken, 'GET', '/api/dashboard/defaulting-reasons');
+  assert(denied.status === 403, `defaulting-reasons must be admin-only, got ${denied.status}`);
+
+  await retireChild(childId);
+});
+
 test('§21 Child Health Wallet: staff add records beyond immunisation; parent sees them; verifier denied', async () => {
   const cg = await json('POST', '/api/caregivers', { fullName: 'Wallet Carer', phone: '+2348013335555' });
   const dob = new Date(NOON.getTime() - 60 * DAY).toISOString().slice(0, 10);

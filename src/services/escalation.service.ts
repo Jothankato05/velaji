@@ -25,6 +25,8 @@ export interface EscalationView {
   resolvedAt: Date | null;
   resolvedBy: string | null;
   outcome: string | null;
+  barrier: string | null;
+  barrierLabel: string | null;
   resolutionNote: string;
 }
 
@@ -32,6 +34,19 @@ const REASON_LABEL: Record<string, string> = {
   max_attempts: 'Reminded to the limit — caregiver not responding',
   lost_to_followup: 'Overdue and unreachable — needs tracing'
 };
+
+/** The documented Nigerian drivers of defaulting / zero-dose (WHO, NPHCDA,
+ *  peer-reviewed surveys) — the categories a worker records on tracing. */
+export const BARRIER_LABELS: Record<string, string> = {
+  hesitancy: 'Vaccine hesitancy / refusal',
+  distance: 'Distance / access',
+  insecurity: 'Insecurity',
+  financial: 'Financial / poverty',
+  unaware: 'Unaware / forgot',
+  no_session: 'No session / stockout',
+  other: 'Other'
+};
+export const BARRIERS = Object.keys(BARRIER_LABELS);
 
 /**
  * The queue a health worker actually works from: each open escalation enriched
@@ -73,6 +88,8 @@ export async function listEscalations(status: 'open' | 'resolved' = 'open'): Pro
       resolvedAt: esc.resolvedAt ?? null,
       resolvedBy: esc.resolvedBy ?? null,
       outcome: esc.outcome ?? null,
+      barrier: esc.barrier ?? null,
+      barrierLabel: esc.barrier ? BARRIER_LABELS[esc.barrier] ?? esc.barrier : null,
       resolutionNote: esc.resolutionNote ?? ''
     });
   }
@@ -84,7 +101,8 @@ export async function resolveEscalation(
   id: string,
   resolvedBy: string,
   outcome: string | null,
-  note: string
+  note: string,
+  barrier: string | null = null
 ) {
   const escalation = await EscalationModel.findById(id);
   if (!escalation) throw new AppError('Escalation not found', 404);
@@ -94,10 +112,33 @@ export async function resolveEscalation(
   escalation.resolvedAt = new Date();
   escalation.resolvedBy = resolvedBy;
   escalation.outcome = (outcome as typeof escalation.outcome) ?? 'other';
+  escalation.barrier = (barrier as typeof escalation.barrier) ?? null;
   escalation.resolutionNote = note ?? '';
   await escalation.save();
 
   return escalation;
+}
+
+/**
+ * Why children are being missed, in aggregate (NCIHAP §11 intelligence): the
+ * barriers recorded on resolved escalations, most common first. Grounds the
+ * national picture in the real drivers — so intervention (demand-generation for
+ * hesitancy, outreach for distance, security-window planning for insecurity)
+ * can be matched to the reason, not guessed.
+ */
+export async function defaultingReasons(): Promise<{ total: number; reasons: Array<{ barrier: string; label: string; count: number }> }> {
+  const resolved = await EscalationModel.find({ status: 'resolved', barrier: { $ne: null } });
+  const counts = new Map<string, number>();
+  for (const e of resolved) {
+    if (!e.barrier) continue;
+    counts.set(e.barrier, (counts.get(e.barrier) ?? 0) + 1);
+  }
+  return {
+    total: [...counts.values()].reduce((a, b) => a + b, 0),
+    reasons: [...counts.entries()]
+      .map(([barrier, count]) => ({ barrier, label: BARRIER_LABELS[barrier] ?? barrier, count }))
+      .sort((a, b) => b.count - a.count)
+  };
 }
 
 /**

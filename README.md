@@ -51,8 +51,29 @@ hypothetical one:
   largest", targeting 100M+ children — alongside nOPV2, malaria (R21) and HPV
   ([WHO Afro](https://www.afro.who.int/countries/nigeria/news/nigeria-intensifies-fight-against-vaccine-preventable-diseases-nationwide-measles-rubella-and-polio), [NPHCDA](https://nphcda.gov.ng/measles-rubella-vaccine/)). The bundled schedule tracks that (`src/data/routine-immunization-schedule.ts`).
 
+Two more findings shape the design:
+
+- **Reminders work, and multi-channel matters.** SMS reminder + defaulter-tracing
+  programmes in northern Nigeria (e.g. IRISS in Kebbi) raised demand and cut
+  health-worker workload at **under a quarter of the cost of home visits**, with
+  defaulter tracing done by a **repeat message ~7 days after a missed
+  appointment** — but **low phone ownership and low literacy** meant the message
+  had to reach people by **voice or a relay contact**, not text alone
+  ([BMC Public Health](https://bmcpublichealth.biomedcentral.com/articles/10.1186/s12889-022-14822-1)).
+  That is why the reminder engine is channel-agnostic and why **USSD** is
+  first-class here.
+- **The incentive rides real machinery.** The **NHIA Act 2022** made health
+  insurance mandatory, and the **Basic Health Care Provision Fund (BHCPF)** —
+  funded by ≥1% of the Consolidated Revenue Fund (₦125.7b in 2024 → ₦282.7b in
+  2025) — names **reducing zero-dose children and raising 0–12-month full
+  immunisation among its explicit outcomes**, delivered through NHIA and State
+  Social Health Insurance Agencies ([NHIA](https://www.nhia.gov.ng/), [Nigeria Health Watch](https://nigeriahealthwatch.com/articles/thought-leadership/nigerias-state-health-insurance-schemes-are-expanding-enrolment-must-now-lead-to-care/)).
+  The "Healthy Start" reward is modelled on exactly this — a completion incentive
+  positioned as health coverage, not payment for vaccination.
+
 This is why the system leads with **zero-dose and defaulter recovery**,
-**geographic priority triage** (worst states/LGAs/facilities first), and
+**geographic priority triage** (worst states/LGAs/facilities first), **capturing
+the real barrier** on each traced case (hesitancy, distance, insecurity, …), and
 **reaching caregivers who have no smartphone** (USSD) — the north-west/north-east
 reality, not an idealised one.
 
