@@ -60,7 +60,15 @@ interface SupplyPlan {
     access: { accessible: number; hardToReach: number; securityCompromised: number };
   };
   demandByVaccine: Array<{ vaccineCode: string; dueCount: number; cm3PerDose: number; totalCm3: number }>;
+  expectedBirths: { births: number; birthDoses: number; coldChainCm3: number; coldChainLitres: number };
   assumptions: { perAntigenVolumes: boolean; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
+}
+interface Antenatal {
+  active: number; linked: number; closed: number;
+  expectedBirths: number; horizonWeeks: number;
+  byRisk: { atRisk: number; onTrack: number; recommended: number };
+  awaitingBirth: number; conversionRate: number;
+  byArea: Array<{ area: string; expectedBirths: number; atRisk: number }>;
 }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
 interface Activity { events: Array<{ kind: string; label: string; detail: string; at: string }>; }
@@ -101,6 +109,7 @@ export function Dashboard() {
   const integrity = useGet<FraudAlerts>('/api/fraud/alerts');
   const regMob = useGet<RegMobility>('/api/dashboard/registration-mobility');
   const barriers = useGet<DefaultingReasons>('/api/dashboard/defaulting-reasons');
+  const antenatal = useGet<Antenatal>('/api/dashboard/antenatal?weeks=12');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
   const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
@@ -348,6 +357,50 @@ export function Dashboard() {
         </section>
       </div>
 
+      {/* Antenatal pipeline — children not yet born. Antenatal contact is the
+          strongest early predictor of whether a child is ever vaccinated, so
+          this is the only view that can flag a likely zero-dose child BEFORE
+          the child exists. */}
+      <section className="card panel">
+        <div className="panel-head">
+          <h2>Antenatal pipeline</h2>
+          <span className="eyebrow">children not yet born · next {antenatal.data?.horizonWeeks ?? 12} weeks</span>
+        </div>
+        {!antenatal.data ? <Loading /> : antenatal.data.active + antenatal.data.linked === 0 ? (
+          <Empty>No antenatal registrations yet — pregnancies registered at ANC appear here.</Empty>
+        ) : (
+          <>
+            <div className="plan-tiles">
+              <div className="plan-tile"><span className="plan-tile-v mono">{fmt(antenatal.data.active)}</span><span className="plan-tile-l">Active pregnancies</span></div>
+              <div className="plan-tile"><span className="plan-tile-v mono">{fmt(antenatal.data.expectedBirths)}</span><span className="plan-tile-l">Births expected in window</span></div>
+              <div className="plan-tile down"><span className="plan-tile-v mono">{fmt(antenatal.data.byRisk.atRisk)}</span><span className="plan-tile-l">Under 4 contacts · double zero-dose risk</span></div>
+              <div className="plan-tile down"><span className="plan-tile-v mono">{fmt(antenatal.data.awaitingBirth)}</span><span className="plan-tile-l">Past due date, birth not reported</span></div>
+            </div>
+            {antenatal.data.byArea.length > 0 && (
+              <div className="cbs-scroll">
+                <table className="cbs">
+                  <thead><tr><th>State</th><th className="num">Births expected</th><th className="num">Under 4 contacts</th></tr></thead>
+                  <tbody>
+                    {antenatal.data.byArea.map((a) => (
+                      <tr key={a.area}>
+                        <td className="cbs-state">{a.area}</td>
+                        <td className="num mono">{fmt(a.expectedBirths)}</td>
+                        <td className="num mono">{fmt(a.atRisk)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="plan-note muted">
+              {fmt(antenatal.data.linked)} pregnancies have converted to child records ({Math.round(antenatal.data.conversionRate * 100)}% of those resolved).
+              Fewer than four antenatal contacts is associated with roughly double the zero-dose rate (35.0% vs 17.1%, six Nigerian states) — a service-contact signal, not a clinical judgement.
+              Antenatal is an additional channel: around 37% of women attend no ANC at all, so it never replaces the CHW, home-birth and outreach routes.
+            </div>
+          </>
+        )}
+      </section>
+
       {/* Supply & deployment plan — turns forecast demand into cold-chain, staffing, deployment */}
       <section className="card panel">
         <div className="panel-head">
@@ -364,6 +417,14 @@ export function Dashboard() {
               <div className="plan-tile"><span className="plan-tile-v mono">{fmt(supply.data.staffing.vaccinatorsNeeded)}</span><span className="plan-tile-l">Vaccinators · {fmt(supply.data.staffing.vaccinatorDays)} vaccinator-days</span></div>
               <div className="plan-tile down"><span className="plan-tile-v mono">{fmt(supply.data.outreach.overdue + supply.data.outreach.zeroDose)}</span><span className="plan-tile-l">Need outreach · {fmt(supply.data.outreach.overdue)} overdue, {fmt(supply.data.outreach.zeroDose)} zero-dose</span></div>
             </div>
+            {supply.data.expectedBirths.births > 0 && (
+              <div className="plan-infra">
+                <span className="plan-infra-item">
+                  Plus <b className="mono">{fmt(supply.data.expectedBirths.birthDoses)}</b> birth doses for <b className="mono">{fmt(supply.data.expectedBirths.births)}</b> expected births
+                  (BCG, OPV0, HepB0 · <b className="mono">{supply.data.expectedBirths.coldChainLitres >= 0.1 ? `${supply.data.expectedBirths.coldChainLitres} L` : `${supply.data.expectedBirths.coldChainCm3} cm³`}</b>) — demand the child register alone cannot see.
+                </span>
+              </div>
+            )}
             <div className="cbs-scroll">
               <table className="cbs">
                 <thead><tr><th>Deploy to · {LEVEL_LABEL[supply.data.breakdownBy] ?? supply.data.breakdownBy}</th><th className="num">Doses</th><th className="num">Cold-chain (L)</th><th className="num">Vaccinators</th></tr></thead>

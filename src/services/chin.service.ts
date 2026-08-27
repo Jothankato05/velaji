@@ -49,6 +49,44 @@ export function generateChin(now: Date = new Date()): string {
   return `NG-${yy}-${mm}-${serial7}${check}`;
 }
 
+/**
+ * Antenatal Registration Identifier (ANC ID) — the record opened when a woman
+ * is registered at antenatal care, before the child exists.
+ *
+ *     ANC: NG-ANC-18472639
+ *
+ * Deliberately a SEPARATE namespace from the CHIN, for two reasons:
+ *
+ *  1. A pregnancy is not a child. §4's critical principle is that the CHIN
+ *     identifies a child's health record; issuing one before birth would make
+ *     the registry assert a child exists when it does not, and would have to be
+ *     unwound in the case of a loss. The ANC ID converts to a CHIN at birth.
+ *  2. The CHIN encodes the year and month of registration. An expected delivery
+ *     date moves; an identifier must not.
+ *
+ * Same Luhn check digit as the CHIN, for the same reason — these numbers are
+ * read aloud and copied by hand.
+ *
+ * Modelled on the mother/child identifier split used by India's RCH portal,
+ * where a pregnancy is registered against its own ID and the newborn's record
+ * is linked to it at delivery.
+ */
+export function generateAncId(): string {
+  let serial7 = '';
+  const bytes = crypto.randomBytes(7);
+  for (let i = 0; i < 7; i++) serial7 += String(bytes[i] % 10);
+  return `NG-ANC-${serial7}${luhnCheckDigit(serial7)}`;
+}
+
+const ANC_RE = /^NG-ANC-(\d{7})(\d)$/;
+
+export function isValidAncIdFormat(ancId: string): boolean {
+  const match = ANC_RE.exec(normalizeChin(ancId));
+  if (!match) return false;
+  const [, payload, check] = match;
+  return luhnCheckDigit(payload) === check;
+}
+
 const CHIN_RE = /^NG-\d{2}-\d{2}-(\d{7})(\d)$/;
 
 export function isValidChinFormat(chin: string): boolean {

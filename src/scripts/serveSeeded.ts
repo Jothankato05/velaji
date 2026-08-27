@@ -18,7 +18,8 @@ import { DoseAdministrationModel } from '../models/DoseAdministration';
 import { HealthRecordModel } from '../models/HealthRecord';
 import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { EscalationModel } from '../models/Escalation';
-import { generateChin } from '../services/chin.service';
+import { PregnancyModel } from '../models/Pregnancy';
+import { generateChin, generateAncId } from '../services/chin.service';
 import { buildDosesForChild } from '../services/schedule.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
 import { signChin } from '../services/verification-token.service';
@@ -171,6 +172,51 @@ async function main() {
       resolvedAt: new Date(now - (i + 1) * DAY), resolvedBy: 'nurse.amina', outcome: i % 3 === 0 ? 'immunized' : 'reached',
       barrier: barrierMix[i]
     });
+  }
+
+  // §19 extended: the antenatal register — children not yet born. The contact
+  // mix is deliberately skewed to mirror reality: NDHS 2023-24 puts ANC at 63%
+  // but only 52% reaching four visits, and WHO's recommended eight contacts sits
+  // near 13% across LMICs. So most active pregnancies here sit below four.
+  const ancFacilities = await FacilityModel.find({}).limit(8);
+  const ancCarers = await CaregiverModel.find({}).limit(10);
+  if (ancFacilities.length && ancCarers.length) {
+    // visitCounts below 4 are the at-risk band; a few reach 4-7 and one reaches 8.
+    const visitCounts = [0, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 6, 8, 2, 1, 0, 3, 2];
+    for (let i = 0; i < visitCounts.length; i++) {
+      const fac = ancFacilities[i % ancFacilities.length];
+      const carer = ancCarers[i % ancCarers.length];
+      // Spread due dates: mostly ahead, a few already past so the follow-up
+      // list has the "birth never reported" cases that matter most.
+      const offsetDays = i < 3 ? -(20 + i * 8) : (i - 2) * 9;
+      const visits = [];
+      for (let v = 0; v < visitCounts[i]; v++) {
+        visits.push({ visitNumber: v + 1, date: new Date(now - (visitCounts[i] - v) * 21 * DAY), facilityId: fac._id });
+      }
+      await PregnancyModel.create({
+        ancId: generateAncId(),
+        caregiverId: carer._id,
+        facilityId: fac._id,
+        expectedDeliveryDate: new Date(now + offsetDays * DAY),
+        visits,
+        status: 'active'
+      });
+    }
+    // A handful that already converted to child records, so the funnel shows a
+    // real conversion rate rather than 0%.
+    const linkedChildren = await ChildModel.find({ registrationChannel: 'phc' }).limit(5);
+    for (let i = 0; i < linkedChildren.length; i++) {
+      const c = linkedChildren[i];
+      await ChildModel.updateOne({ _id: c._id }, { registrationChannel: 'antenatal' });
+      await PregnancyModel.create({
+        ancId: generateAncId(),
+        caregiverId: c.caregiverId,
+        facilityId: c.homeFacilityId,
+        expectedDeliveryDate: new Date(c.dateOfBirth.getTime() - 4 * DAY),
+        visits: [1, 2, 3, 4].map((v) => ({ visitNumber: v, date: new Date(c.dateOfBirth.getTime() - (5 - v) * 28 * DAY), facilityId: c.homeFacilityId })),
+        status: 'linked', linkedChildId: c._id, linkedChin: c.chin, linkedAt: c.dateOfBirth
+      });
+    }
   }
 
   const token = signChin(cardChild.chin);

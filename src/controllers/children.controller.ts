@@ -47,7 +47,7 @@ function toChildView(child: Awaited<ReturnType<typeof findChildOr404>>) {
 }
 
 const BIRTH_SETTINGS = ['facility', 'home', 'other'];
-const REGISTRATION_CHANNELS = ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc'];
+const REGISTRATION_CHANNELS = ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc', 'antenatal'];
 
 export async function registerChild(req: Request, res: Response) {
   const { fullName, sex, dateOfBirth, caregiverId, homeFacilityId, birthSetting, registrationChannel } = req.body ?? {};

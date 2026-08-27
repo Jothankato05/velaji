@@ -27,9 +27,12 @@ const childSchema = new Schema(
     // through which channel they entered the registry — a mobile team or CHW in
     // the field is as valid an entry point as a PHC.
     birthSetting: { type: String, enum: ['facility', 'home', 'other'], default: 'facility' },
+    // 'antenatal' means the record was opened during pregnancy and converted at
+    // birth (see models/Pregnancy.ts) — the child arrived already known, rather
+    // than being registered for the first time after the fact.
     registrationChannel: {
       type: String,
-      enum: ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc'],
+      enum: ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc', 'antenatal'],
       default: 'phc'
     },
     // NCIHAP §10: record is unverified/incomplete and needs reconciliation

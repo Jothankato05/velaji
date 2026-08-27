@@ -28,6 +28,14 @@ import { getSummary, getStockForecast, getSupplyPlan, getTrend, getOutliers, get
 import { getPull, postPush } from '../controllers/sync.controller';
 import { getRecovery } from '../controllers/recovery.controller';
 import { getIntegrityAlerts } from '../controllers/fraud.controller';
+import {
+  postPregnancy,
+  postAncVisit,
+  postLinkBirth,
+  postClosePregnancy,
+  getAntenatalPipeline,
+  getAntenatalFollowUp
+} from '../controllers/antenatal.controller';
 
 export const apiRouter = Router();
 
@@ -101,6 +109,19 @@ apiRouter.post('/api/children/:chin/wallet', ...childRecord, asyncHandler(addWal
 apiRouter.post('/api/children/:chin/handoff', ...childRecord, asyncHandler(recordHandoff));
 apiRouter.get('/api/children/:chin/reminders', ...childRecord, asyncHandler(getChildReminderLog));
 
+// Antenatal registration (NCIHAP §19, extended): open the record during
+// pregnancy, so the child arrives already known and the caregiver's phone is
+// captured before the gap in which children become zero-dose. These carry
+// names and contact numbers, so they are staff/admin — not verifiers.
+apiRouter.post('/api/pregnancies', requireRole('staff', 'admin'), asyncHandler(postPregnancy));
+apiRouter.post('/api/pregnancies/:ancId/visits', requireRole('staff', 'admin'), asyncHandler(postAncVisit));
+apiRouter.post('/api/pregnancies/:ancId/link-birth', requireRole('staff', 'admin'), asyncHandler(postLinkBirth));
+apiRouter.post('/api/pregnancies/:ancId/close', requireRole('staff', 'admin'), asyncHandler(postClosePregnancy));
+
+// The antenatal follow-up list — pregnancies past their due date the system has
+// heard nothing about, and those approaching delivery below four contacts.
+apiRouter.get('/api/antenatal/follow-up', requireRole('staff', 'admin'), asyncHandler(getAntenatalFollowUp));
+
 // Admin-only: manually kick a reminder cycle (useful for testing / on-demand runs).
 apiRouter.post('/api/reminders/run', requireRole('admin'), asyncHandler(triggerReminderCycle));
 
@@ -127,6 +148,9 @@ apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHan
 apiRouter.get('/api/dashboard/milestones', requireRole('admin'), asyncHandler(getMilestones));
 apiRouter.get('/api/dashboard/registration-mobility', requireRole('admin'), asyncHandler(getRegistrationMobility));
 apiRouter.get('/api/dashboard/defaulting-reasons', requireRole('admin'), asyncHandler(getDefaultingReasons));
+// The antenatal pipeline: children not yet born — how many are coming, where,
+// and which are already predicted to be missed. Aggregate only (§24).
+apiRouter.get('/api/dashboard/antenatal', requireRole('admin'), asyncHandler(getAntenatalPipeline));
 
 // Fraud/data-integrity monitoring (NCIHAP §17): abnormal recording patterns
 // flagged for human review. Admin-only.

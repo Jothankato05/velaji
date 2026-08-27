@@ -7,6 +7,7 @@ import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { computeChildStatus } from './schedule.service';
 import { computeMilestones } from './milestone.service';
 import { coldChainCm3 } from '../data/routine-immunization-schedule';
+import { expectedBirths } from './antenatal.service';
 
 /**
  * The National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
@@ -577,6 +578,13 @@ export interface SupplyPlan {
   staffing: { vaccinatorDays: number; vaccinatorsNeeded: number };
   deployment: SupplyPlanArea[];
   outreach: { overdue: number; zeroDose: number };
+  /**
+   * Demand from children not yet born, taken from the antenatal register. The
+   * forecast above can only see children already registered, so without this
+   * the plan is structurally blind to birth-dose demand — every expected birth
+   * needs BCG, OPV0 and HepB0 within days of delivery.
+   */
+  expectedBirths: { births: number; birthDoses: number; coldChainCm3: number; coldChainLitres: number };
   infrastructure: {
     facilities: number;
     coldChain: { functional: number; atRisk: number; down: number };
@@ -649,6 +657,13 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
     if (ac[as] !== undefined) ac[as] += 1;
   }
 
+  // Birth-dose demand from the antenatal register (§19 extended). Every
+  // expected birth needs BCG + OPV0 + HepB0 within days of delivery — demand the
+  // child-based forecast above cannot see, because those children do not exist
+  // in the registry yet.
+  const births = await expectedBirths(weeks, now);
+  const birthDoseCm3 = coldChainCm3('BCG') + coldChainCm3('OPV') + coldChainCm3('HEPB');
+
   return {
     scope: [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria',
     breakdownBy: level,
@@ -665,6 +680,14 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
       .map(([area, dueCount]) => ({ area, dueCount, coldChainLitres: litresFromDoses(dueCount), vaccinatorsNeeded: vaccinators(dueCount) }))
       .sort((a, b) => b.dueCount - a.dueCount),
     outreach: { overdue, zeroDose },
+    expectedBirths: {
+      births,
+      birthDoses: births * 3,
+      // Both units: a pilot-scale cohort is a few tens of cm³, which rounds to
+      // 0.0 L and reads as a bug. The caller picks the unit that carries signal.
+      coldChainCm3: Math.round(births * birthDoseCm3 * 10) / 10,
+      coldChainLitres: litresFromCm3(births * birthDoseCm3)
+    },
     infrastructure: {
       facilities: facilitiesInScope,
       coldChain: { functional: cc.functional, atRisk: cc.at_risk, down: cc.down },
