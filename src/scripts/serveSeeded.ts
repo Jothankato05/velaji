@@ -128,7 +128,7 @@ async function main() {
   const facs = await FacilityModel.find({});
   const dests = ['Kano', 'FCT', 'Lagos'].map((s) => facs.find((f) => f.stateName === s)!).filter(Boolean);
   const movers = await ChildModel.find({}).limit(7);
-  const reasons = ['relocation', 'displacement', 'nomadic', 'migration', 'relocation', 'displacement', 'nomadic'];
+  const reasons = ['relocation', 'displacement', 'nomadic', 'migration', 'relocation', 'displacement', 'nomadic'] as const;
   for (let i = 0; i < movers.length; i++) {
     const to = dests[i % dests.length];
     if (String(to._id) === String(movers[i].currentFacilityId)) continue;
