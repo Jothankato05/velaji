@@ -190,3 +190,10 @@
 .regmob-chip b { color: var(--ink); }
 
 .regmob-fill.barrier { background: var(--st-red); }
+
+/* ---- Supply plan infrastructure readiness ---- */
+.plan-infra { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 12px; }
+.plan-infra-item { font-size: 12.5px; color: var(--ink-soft); }
+.plan-infra-item.warn { color: var(--st-red); }
+.plan-infra-item b { color: var(--ink); }
+.plan-infra-item.warn b { color: var(--st-red); }

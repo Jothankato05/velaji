@@ -54,6 +54,11 @@ interface SupplyPlan {
   staffing: { vaccinatorDays: number; vaccinatorsNeeded: number };
   deployment: Array<{ area: string; dueCount: number; coldChainLitres: number; vaccinatorsNeeded: number }>;
   outreach: { overdue: number; zeroDose: number };
+  infrastructure: {
+    facilities: number;
+    coldChain: { functional: number; atRisk: number; down: number };
+    access: { accessible: number; hardToReach: number; securityCompromised: number };
+  };
   assumptions: { coldChainCm3PerDose: number; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
 }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
@@ -368,8 +373,20 @@ export function Dashboard() {
                 </tbody>
               </table>
             </div>
+            {supply.data.infrastructure.facilities > 0 && (
+              <div className="plan-infra">
+                <span className="plan-infra-item">
+                  <b className="mono">{supply.data.infrastructure.coldChain.atRisk + supply.data.infrastructure.coldChain.down}</b> of {supply.data.infrastructure.facilities} facilities have <b>cold-chain at risk / down</b>
+                </span>
+                {(supply.data.infrastructure.access.securityCompromised + supply.data.infrastructure.access.hardToReach) > 0 && (
+                  <span className="plan-infra-item warn">
+                    <b className="mono">{supply.data.infrastructure.access.securityCompromised + supply.data.infrastructure.access.hardToReach}</b> need <b>dedicated outreach</b> (hard-to-reach / security-compromised)
+                  </span>
+                )}
+              </div>
+            )}
             <div className="plan-note muted">
-              Planning estimate — {supply.data.assumptions.coldChainCm3PerDose} cm³/dose cold-chain · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Not a clinical figure.
+              Planning estimate — {supply.data.assumptions.coldChainCm3PerDose} cm³/dose cold-chain · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Cold-chain / access reflect recorded facility status. Not clinical figures.
             </div>
           </>
         )}

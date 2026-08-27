@@ -50,8 +50,14 @@ async function makeChild(facilityId: Id, caregiverId: Id, profile: Profile, name
   return child;
 }
 
-async function seedFacility(state: string, lga: string, ward: string, facName: string, mix: Partial<Record<Profile, number>>) {
-  const facility = await FacilityModel.create({ name: facName, wardName: ward, lgaName: lga, stateName: state, location: { lat: 9, lng: 7 } });
+async function seedFacility(
+  state: string, lga: string, ward: string, facName: string, mix: Partial<Record<Profile, number>>,
+  infra: { cold?: 'functional' | 'at_risk' | 'down'; access?: 'accessible' | 'hard_to_reach' | 'security_compromised' } = {}
+) {
+  const facility = await FacilityModel.create({
+    name: facName, wardName: ward, lgaName: lga, stateName: state, location: { lat: 9, lng: 7 },
+    coldChainStatus: infra.cold ?? 'functional', accessibility: infra.access ?? 'accessible'
+  });
   const caregiver = await CaregiverModel.create({ fullName: `${ward} Caregiver`, phone: '+2348030000000' });
   const children: Awaited<ReturnType<typeof makeChild>>[] = [];
   for (const profile of Object.keys(mix) as Profile[]) {
@@ -85,14 +91,15 @@ async function main() {
 
   // North-west — the lowest-coverage states (Katsina/Sokoto/Zamfara < 40%; Kano
   // the outbreak epicentre) → priority (red).
-  await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3, nearterm: 7 });
+  await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3, nearterm: 7 }, { cold: 'at_risk' });
   await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5, nearterm: 5 });
-  await seedFacility('Katsina', 'Katsina', 'Kofar Sauri', 'Kofar Sauri PHC', { complete: 1, overdue: 8, zero: 5, nearterm: 4 });
-  await seedFacility('Sokoto', 'Sokoto North', 'Runjin Sambo', 'Runjin Sambo PHC', { complete: 1, overdue: 7, zero: 6, nearterm: 4 });
-  await seedFacility('Zamfara', 'Gusau', 'Sabon Gari', 'Sabon Gari PHC', { complete: 0, overdue: 9, zero: 5, nearterm: 3 });
+  await seedFacility('Katsina', 'Katsina', 'Kofar Sauri', 'Kofar Sauri PHC', { complete: 1, overdue: 8, zero: 5, nearterm: 4 }, { cold: 'down' });
+  await seedFacility('Sokoto', 'Sokoto North', 'Runjin Sambo', 'Runjin Sambo PHC', { complete: 1, overdue: 7, zero: 6, nearterm: 4 }, { cold: 'at_risk', access: 'hard_to_reach' });
+  await seedFacility('Zamfara', 'Gusau', 'Sabon Gari', 'Sabon Gari PHC', { complete: 0, overdue: 9, zero: 5, nearterm: 3 }, { access: 'hard_to_reach' });
 
-  // North-east — insecurity-affected, low coverage → priority (red).
-  await seedFacility('Borno', 'Maiduguri', 'Bolori', 'Bolori PHC', { complete: 2, overdue: 6, zero: 4, nearterm: 4 });
+  // North-east — insecurity-affected, low coverage → priority (red); dedicated
+  // outreach needed (Reaching Every Settlement model).
+  await seedFacility('Borno', 'Maiduguri', 'Bolori', 'Bolori PHC', { complete: 2, overdue: 6, zero: 4, nearterm: 4 }, { cold: 'down', access: 'security_compromised' });
 
   // A suspicious recording burst so the §17 Integrity panel has a live example:
   // one worker "recording" ~30 doses within a few minutes (impossible throughput).
