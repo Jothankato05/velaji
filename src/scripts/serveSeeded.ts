@@ -68,19 +68,30 @@ async function main() {
     username: 'admin', passwordHash: await hashPassword('admin-demo-pass'), fullName: 'Command Admin', role: 'admin'
   });
 
-  // FCT — healthy (green): two facilities, both strong. nearterm = upcoming demand.
+  // The geographic picture mirrors the real Nigerian coverage map (WHO/UNICEF,
+  // NPHCDA): the South and FCT do better; the north-west and north-east carry
+  // the zero-dose / defaulter burden and low coverage (<40% in the worst NW
+  // states), and Kano — the epicentre of the 2022–25 diphtheria outbreak — is
+  // the priority state that should surface first.
+
+  // South / FCT — higher coverage (green).
   const fctChildren = [
     ...await seedFacility('FCT', 'AMAC', 'Wuse', 'Wuse PHC', { complete: 10, ontrack: 5, nearterm: 12 }),
     ...await seedFacility('FCT', 'Bwari', 'Kubwa', 'Kubwa PHC', { complete: 6, ontrack: 4, nearterm: 8 })
   ];
+  await seedFacility('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 8, ontrack: 4, nearterm: 8 });
+  await seedFacility('Enugu', 'Enugu North', 'Ogui', 'Ogui PHC', { complete: 11, ontrack: 4, nearterm: 6 });
 
-  // Lagos — watch (amber): one solid, one slipping.
-  await seedFacility('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 7, ontrack: 4, nearterm: 10 });
-  await seedFacility('Lagos', 'Eti-Osa', 'Lekki', 'Lekki PHC', { complete: 3, ontrack: 2, overdue: 3, nearterm: 6 });
-
-  // Kano — priority (red): the worst LGA (Dala) should surface first when drilling.
+  // North-west — the lowest-coverage states (Katsina/Sokoto/Zamfara < 40%; Kano
+  // the outbreak epicentre) → priority (red).
   await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3, nearterm: 7 });
   await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5, nearterm: 5 });
+  await seedFacility('Katsina', 'Katsina', 'Kofar Sauri', 'Kofar Sauri PHC', { complete: 1, overdue: 8, zero: 5, nearterm: 4 });
+  await seedFacility('Sokoto', 'Sokoto North', 'Runjin Sambo', 'Runjin Sambo PHC', { complete: 1, overdue: 7, zero: 6, nearterm: 4 });
+  await seedFacility('Zamfara', 'Gusau', 'Sabon Gari', 'Sabon Gari PHC', { complete: 0, overdue: 9, zero: 5, nearterm: 3 });
+
+  // North-east — insecurity-affected, low coverage → priority (red).
+  await seedFacility('Borno', 'Maiduguri', 'Bolori', 'Bolori PHC', { complete: 2, overdue: 6, zero: 4, nearterm: 4 });
 
   // A suspicious recording burst so the §17 Integrity panel has a live example:
   // one worker "recording" ~30 doses within a few minutes (impossible throughput).
