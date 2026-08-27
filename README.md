@@ -26,6 +26,36 @@ person, or package with this name. That's not a substitute for a real
 trademark/CAC search before any formal launch, but it's clean as far as
 open research can confirm.
 
+## The problem this targets (real numbers)
+
+The design choices here are aimed at a real, documented situation, not a
+hypothetical one:
+
+- **~2.3 million zero-dose children** — children who have received no routine
+  vaccine — live in Nigeria, the second-highest burden in the world, with more
+  than two million added each year ([Gavi ZDLH](https://zdlh.gavi.org/sites/default/files/2023-12/ZDLH_Nigeria_Situation_Analysis_2023.pdf), [UNICEF DATA](https://data.unicef.org/topic/child-health/immunization/)).
+- National coverage is low and drops across the schedule: **DTP1 ≈ 71%, DTP3 ≈
+  67%, MCV1 ≈ 57%** (WHO/UNICEF 2024) — the fall from first contact to
+  completion is exactly the "defaulting" this system is built to catch.
+- The burden is **geographically concentrated** in the north-west and
+  north-east: **Katsina, Sokoto and Zamfara record coverage below 40%** — among
+  the lowest anywhere for a high-burden country ([spatiotemporal analysis](https://www.medrxiv.org/content/10.64898/2026.01.19.26344414v1.full)).
+- Low routine coverage has real consequences: the **2022–2025 diphtheria
+  outbreak** reached ~43,700 suspected cases across 37 states, with **Kano alone
+  accounting for over half** ([ReliefWeb](https://reliefweb.int/report/nigeria/nigeria-diphtheria-outbreak-operation-update-mdrng037)).
+- NPHCDA's own targets — a **30% cut in zero-dose children by 2025, 50% by
+  2028**, with **100 priority LGAs** — are what a national command view and a
+  facility-level recovery workflow are meant to serve.
+- The routine schedule is itself moving: NPHCDA **introduced the
+  Measles–Rubella (MR) vaccine in the 2025/26 integrated campaign** — "Africa's
+  largest", targeting 100M+ children — alongside nOPV2, malaria (R21) and HPV
+  ([WHO Afro](https://www.afro.who.int/countries/nigeria/news/nigeria-intensifies-fight-against-vaccine-preventable-diseases-nationwide-measles-rubella-and-polio), [NPHCDA](https://nphcda.gov.ng/measles-rubella-vaccine/)). The bundled schedule tracks that (`src/data/routine-immunization-schedule.ts`).
+
+This is why the system leads with **zero-dose and defaulter recovery**,
+**geographic priority triage** (worst states/LGAs/facilities first), and
+**reaching caregivers who have no smartphone** (USSD) — the north-west/north-east
+reality, not an idealised one.
+
 ## What this is NOT
 
 The source concept describes national-scale ambitions — a multi-year rollout,
