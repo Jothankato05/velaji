@@ -59,7 +59,8 @@ interface SupplyPlan {
     coldChain: { functional: number; atRisk: number; down: number };
     access: { accessible: number; hardToReach: number; securityCompromised: number };
   };
-  assumptions: { coldChainCm3PerDose: number; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
+  demandByVaccine: Array<{ vaccineCode: string; dueCount: number; cm3PerDose: number; totalCm3: number }>;
+  assumptions: { perAntigenVolumes: boolean; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
 }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
 interface Activity { events: Array<{ kind: string; label: string; detail: string; at: string }>; }
@@ -385,8 +386,25 @@ export function Dashboard() {
                 )}
               </div>
             )}
+            {supply.data.demandByVaccine.length > 0 && (
+              <div className="cbs-scroll">
+                <table className="cbs">
+                  <thead><tr><th>Antigen</th><th className="num">Doses due</th><th className="num">cm³/dose</th><th className="num">Volume (L)</th></tr></thead>
+                  <tbody>
+                    {supply.data.demandByVaccine.map((v) => (
+                      <tr key={v.vaccineCode}>
+                        <td className="cbs-state">{v.vaccineCode}</td>
+                        <td className="num mono">{fmt(v.dueCount)}</td>
+                        <td className="num mono">{v.cm3PerDose}</td>
+                        <td className="num mono">{Math.round(v.totalCm3 / 100) / 10}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className="plan-note muted">
-              Planning estimate — {supply.data.assumptions.coldChainCm3PerDose} cm³/dose cold-chain · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Cold-chain / access reflect recorded facility status. Not clinical figures.
+              Planning estimate — cold-chain volume uses per-antigen WHO EPI packed volumes (BCG ~0.9, Penta ~3.1, MR ~5.2 cm³/dose incl. diluent) · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Cold-chain / access reflect recorded facility status. Not clinical figures.
             </div>
           </>
         )}

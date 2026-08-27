@@ -847,6 +847,27 @@ test('§18 supply plan turns demand into cold-chain, staffing and deployment', a
   assert(denied.status === 403, `supply plan must be admin-only, got ${denied.status}`);
 });
 
+test('§18 cold-chain volume uses per-antigen WHO figures, not a flat constant', async () => {
+  // Two facilities, same dose count, different antigens: BCG (~0.9 cm³/dose) is
+  // far more compact than MR (~5.2 cm³/dose incl. diluent). A flat per-dose
+  // constant would give both the same volume — which is what misled planners.
+  const fb = await dashFacility('ColdChain-State', 'CC-BCG', 'W', 'BCG PHC');
+  const fm = await dashFacility('ColdChain-State', 'CC-MR', 'W', 'MR PHC');
+  for (let i = 0; i < 10; i++) await dashChild(fb, [dashDose('BCG', 'BCG', 1, 5, false)]);
+  for (let i = 0; i < 10; i++) await dashChild(fm, [dashDose('MR', 'Measles–Rubella', 1, 5, false)]);
+
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/supply-plan?weeks=4&state=ColdChain-State');
+  assert(status === 200, `expected 200, got ${status}`);
+
+  const bcg = body.demandByVaccine.find((v: any) => v.vaccineCode === 'BCG');
+  const mr = body.demandByVaccine.find((v: any) => v.vaccineCode === 'MR');
+  assert(bcg && mr, `expected BCG and MR rows, got ${JSON.stringify(body.demandByVaccine)}`);
+  assert(bcg.dueCount === 10 && mr.dueCount === 10, 'both antigens should have 10 doses due');
+  assert(bcg.cm3PerDose < mr.cm3PerDose, `BCG (${bcg.cm3PerDose}) must be more compact than MR (${mr.cm3PerDose})`);
+  assert(mr.totalCm3 > bcg.totalCm3 * 2, 'MR total volume must dominate BCG for the same dose count');
+  assert(body.assumptions.perAntigenVolumes === true, 'plan must declare it uses per-antigen volumes');
+});
+
 test('administration trend returns one point per week', async () => {
   const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/trend?weeks=8');
   assert(status === 200, `expected 200, got ${status}`);
