@@ -17,6 +17,8 @@ export function Register() {
   const [caregiverName, setCaregiverName] = useState('');
   const [caregiverPhone, setCaregiverPhone] = useState('');
   const [facilityId, setFacilityId] = useState('');
+  const [birthSetting, setBirthSetting] = useState('facility');
+  const [channel, setChannel] = useState('phc');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [issued, setIssued] = useState<{ chin: string; card: string } | null>(null);
@@ -39,7 +41,9 @@ export function Register() {
         sex,
         dateOfBirth: dob,
         caregiverId: cg._id,
-        homeFacilityId: facilityId
+        homeFacilityId: facilityId,
+        birthSetting,
+        registrationChannel: channel
       });
       // The output of registration IS the card — fetch and show it at once.
       const card = await api.getText(`/api/children/${encodeURIComponent(child.chin)}/card.svg`);
@@ -118,6 +122,27 @@ export function Register() {
               <option key={f._id} value={f._id}>{f.name} — {f.lgaName}, {f.stateName}</option>
             ))}
           </select>
+        </div>
+        <div className="reg-row">
+          <div className="field">
+            <label>Where was the child born?</label>
+            <select className="input" value={birthSetting} onChange={(e) => setBirthSetting(e.target.value)}>
+              <option value="facility">In a health facility</option>
+              <option value="home">At home</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Registration channel</label>
+            <select className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
+              <option value="phc">PHC</option>
+              <option value="hospital">Hospital</option>
+              <option value="chw">Community health worker</option>
+              <option value="mobile_team">Mobile registration team</option>
+              <option value="outreach">Outreach programme</option>
+              <option value="npc">NPC registration point</option>
+            </select>
+          </div>
         </div>
         <div className="reg-row">
           <div className="field">

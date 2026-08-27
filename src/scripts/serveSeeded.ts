@@ -16,6 +16,7 @@ import { ChildModel } from '../models/Child';
 import { StaffUserModel } from '../models/StaffUser';
 import { DoseAdministrationModel } from '../models/DoseAdministration';
 import { HealthRecordModel } from '../models/HealthRecord';
+import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { generateChin } from '../services/chin.service';
 import { buildDosesForChild } from '../services/schedule.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
@@ -114,6 +115,29 @@ async function main() {
     rec('nutrition', 'Feeding', 'Exclusive breastfeeding', 40),
     rec('development', 'Milestones', 'Sitting, babbling — age-appropriate', 12)
   ]);
+
+  // §19: a share of children are home births via non-PHC channels — inclusion.
+  const sample = await ChildModel.find({}).limit(40);
+  for (let i = 0; i < sample.length; i++) {
+    if (i % 4 === 0) await ChildModel.updateOne({ _id: sample[i]._id }, { birthSetting: 'home', registrationChannel: i % 8 === 0 ? 'chw' : 'mobile_team' });
+    else if (i % 5 === 0) await ChildModel.updateOne({ _id: sample[i]._id }, { registrationChannel: 'outreach' });
+    else if (i % 7 === 0) await ChildModel.updateOne({ _id: sample[i]._id }, { registrationChannel: 'hospital' });
+  }
+
+  // §20: a few relocations, most cross-state — continuity survives the move.
+  const facs = await FacilityModel.find({});
+  const dests = ['Kano', 'FCT', 'Lagos'].map((s) => facs.find((f) => f.stateName === s)!).filter(Boolean);
+  const movers = await ChildModel.find({}).limit(7);
+  const reasons = ['relocation', 'displacement', 'nomadic', 'migration', 'relocation', 'displacement', 'nomadic'];
+  for (let i = 0; i < movers.length; i++) {
+    const to = dests[i % dests.length];
+    if (String(to._id) === String(movers[i].currentFacilityId)) continue;
+    await FacilityHandoffModel.create({
+      childId: movers[i]._id, fromFacilityId: movers[i].currentFacilityId, toFacilityId: to._id,
+      reportedLocation: { lat: 9, lng: 7 }, reason: '', reasonCategory: reasons[i], handoffAt: new Date(now - (i + 1) * 3 * DAY)
+    });
+    await ChildModel.updateOne({ _id: movers[i]._id }, { currentFacilityId: to._id });
+  }
 
   const token = signChin(cardChild.chin);
 

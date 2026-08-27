@@ -8,6 +8,7 @@ import {
   recentActivity,
   coverageByState,
   milestoneAttainment,
+  registrationMobility,
   type GeoFilter
 } from '../services/dashboard.service';
 import { AppError } from '../utils/AppError';
@@ -63,4 +64,9 @@ export async function getCoverageByState(_req: Request, res: Response) {
 /** Staged-incentive attainment funnel (§14): children reaching each milestone. */
 export async function getMilestones(_req: Request, res: Response) {
   res.json(await milestoneAttainment());
+}
+
+/** Registration channels (§19) + population mobility (§20). */
+export async function getRegistrationMobility(_req: Request, res: Response) {
+  res.json(await registrationMobility());
 }

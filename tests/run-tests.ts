@@ -994,6 +994,37 @@ test('staged milestones (§14): birth badge earned, foundation is the next rewar
   assert(nextMilestone(allDone) === null, 'a complete schedule has no next reward');
 });
 
+test('§19/§20 registration is not facility-only, and mobility is tracked', async () => {
+  // §19: a home birth registered by a community health worker is first-class.
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Home Carer', phone: '+2348014447777' });
+  const dob = new Date(NOON.getTime() - 15 * DAY).toISOString().slice(0, 10);
+  const home = await json('POST', '/api/children', {
+    fullName: 'Home Birth Two', sex: 'male', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId,
+    birthSetting: 'home', registrationChannel: 'chw'
+  });
+  assert(home.status === 201, `a home birth must register, got ${home.status}`);
+  const stored = await ChildModel.findOne({ chin: home.body.chin });
+  assert(stored?.birthSetting === 'home' && stored?.registrationChannel === 'chw', 'birth setting and channel must be recorded');
+
+  // §20: relocating to another facility with a mobility reason, then the record continues there.
+  const handoff = await json('POST', `/api/children/${encodeURIComponent(home.body.chin)}/handoff`, {
+    toFacilityId: facilityBId, lat: 9.03, lng: 7.49, reason: 'Family displaced', reasonCategory: 'displacement'
+  });
+  assert(handoff.status === 201 && handoff.body.reasonCategory === 'displacement', `handoff must record the mobility reason: ${JSON.stringify(handoff.body)}`);
+
+  // The Command Centre sees inclusion + mobility (admin-only aggregate).
+  const rm = await jsonAs(adminTokenT, 'GET', '/api/dashboard/registration-mobility');
+  assert(rm.status === 200, `expected 200, got ${rm.status}`);
+  assert(rm.body.birth.home >= 1, 'home births must be counted');
+  assert(rm.body.byChannel.some((c: any) => c.channel === 'chw' && c.count >= 1), 'the CHW channel must appear');
+  assert(rm.body.mobility.childrenMoved >= 1, 'a relocated child must be counted');
+  assert(rm.body.mobility.byReason.some((r: any) => r.reason === 'displacement'), 'the mobility reason must be counted');
+
+  const denied = await jsonAs(staffToken, 'GET', '/api/dashboard/registration-mobility');
+  assert(denied.status === 403, `registration-mobility must be admin-only, got ${denied.status}`);
+  await ChildModel.updateOne({ chin: home.body.chin }, { completedAt: NOON });
+});
+
 test('§21 Child Health Wallet: staff add records beyond immunisation; parent sees them; verifier denied', async () => {
   const cg = await json('POST', '/api/caregivers', { fullName: 'Wallet Carer', phone: '+2348013335555' });
   const dob = new Date(NOON.getTime() - 60 * DAY).toISOString().slice(0, 10);

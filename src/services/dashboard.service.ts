@@ -3,6 +3,7 @@ import { FacilityModel } from '../models/Facility';
 import { CaregiverModel } from '../models/Caregiver';
 import { EscalationModel } from '../models/Escalation';
 import { CertificateModel } from '../models/Certificate';
+import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { computeChildStatus } from './schedule.service';
 import { computeMilestones } from './milestone.service';
 
@@ -392,6 +393,76 @@ export async function overdueChildren(filter: GeoFilter, now: Date = new Date())
   }
 
   return out.sort((a, b) => b.mostOverdueDays - a.mostOverdueDays);
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  phc: 'PHC', hospital: 'Hospital', chw: 'Community health worker', mobile_team: 'Mobile team', outreach: 'Outreach', npc: 'NPC point'
+};
+const REASON_LABELS: Record<string, string> = {
+  relocation: 'Relocation', displacement: 'Displaced', nomadic: 'Nomadic', migration: 'Migrant', outreach: 'Outreach', other: 'Other'
+};
+
+export interface RegistrationMobility {
+  registered: number;
+  birth: { facility: number; home: number; other: number };
+  byChannel: Array<{ channel: string; label: string; count: number }>;
+  mobility: {
+    childrenMoved: number;
+    totalMoves: number;
+    crossStateMoves: number;
+    byReason: Array<{ reason: string; label: string; count: number }>;
+  };
+  generatedAt: string;
+}
+
+/**
+ * Registration inclusion (§19) and population mobility (§20): where and how
+ * children enter the registry — home births and CHW / mobile / outreach channels
+ * are counted alongside PHCs, never excluded — and how much the population moves,
+ * with cross-state transfers showing that the national record keeps continuity
+ * as families relocate. Counts only (§24).
+ */
+export async function registrationMobility(now: Date = new Date()): Promise<RegistrationMobility> {
+  const children = await ChildModel.find({});
+  const facilities = await FacilityModel.find({});
+  const stateById = new Map(facilities.map((f) => [String(f._id), f.stateName || UNKNOWN]));
+
+  const birth = { facility: 0, home: 0, other: 0 };
+  const channels = new Map<string, number>();
+  for (const c of children) {
+    const setting = (c.birthSetting ?? 'facility') as keyof typeof birth;
+    if (birth[setting] !== undefined) birth[setting] += 1;
+    const ch = c.registrationChannel ?? 'phc';
+    channels.set(ch, (channels.get(ch) ?? 0) + 1);
+  }
+
+  const handoffs = await FacilityHandoffModel.find({});
+  const reasons = new Map<string, number>();
+  const movedChildren = new Set<string>();
+  let crossState = 0;
+  for (const h of handoffs) {
+    movedChildren.add(String(h.childId));
+    const r = h.reasonCategory ?? 'relocation';
+    reasons.set(r, (reasons.get(r) ?? 0) + 1);
+    if (stateById.get(String(h.fromFacilityId)) !== stateById.get(String(h.toFacilityId))) crossState += 1;
+  }
+
+  return {
+    registered: children.length,
+    birth,
+    byChannel: [...channels.entries()]
+      .map(([channel, count]) => ({ channel, label: CHANNEL_LABELS[channel] ?? channel, count }))
+      .sort((a, b) => b.count - a.count),
+    mobility: {
+      childrenMoved: movedChildren.size,
+      totalMoves: handoffs.length,
+      crossStateMoves: crossState,
+      byReason: [...reasons.entries()]
+        .map(([reason, count]) => ({ reason, label: REASON_LABELS[reason] ?? reason, count }))
+        .sort((a, b) => b.count - a.count)
+    },
+    generatedAt: now.toISOString()
+  };
 }
 
 export interface ActivityEvent {

@@ -46,11 +46,18 @@ function toChildView(child: Awaited<ReturnType<typeof findChildOr404>>) {
   };
 }
 
+const BIRTH_SETTINGS = ['facility', 'home', 'other'];
+const REGISTRATION_CHANNELS = ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc'];
+
 export async function registerChild(req: Request, res: Response) {
-  const { fullName, sex, dateOfBirth, caregiverId, homeFacilityId } = req.body ?? {};
+  const { fullName, sex, dateOfBirth, caregiverId, homeFacilityId, birthSetting, registrationChannel } = req.body ?? {};
   if (!fullName || !sex || !dateOfBirth || !caregiverId || !homeFacilityId) {
     throw new AppError('fullName, sex, dateOfBirth, caregiverId, homeFacilityId are required');
   }
+  // §19: home births and non-PHC channels are first-class. Default to the
+  // facility path when unspecified, but never reject a home birth.
+  const setting = birthSetting && BIRTH_SETTINGS.includes(birthSetting) ? birthSetting : 'facility';
+  const channel = registrationChannel && REGISTRATION_CHANNELS.includes(registrationChannel) ? registrationChannel : 'phc';
 
   const [caregiver, facility] = await Promise.all([
     CaregiverModel.findById(caregiverId),
@@ -78,6 +85,8 @@ export async function registerChild(req: Request, res: Response) {
     caregiverId,
     homeFacilityId,
     currentFacilityId: homeFacilityId,
+    birthSetting: setting,
+    registrationChannel: channel,
     doses: buildDosesForChild(dob)
   });
 
@@ -229,7 +238,7 @@ export async function addWalletRecord(req: Request, res: Response) {
 
 export async function recordHandoff(req: Request, res: Response) {
   const child = await findChildOr404(req.params.chin);
-  const { toFacilityId, lat, lng, reason } = req.body ?? {};
+  const { toFacilityId, lat, lng, reason, reasonCategory } = req.body ?? {};
   if (!toFacilityId || typeof lat !== 'number' || typeof lng !== 'number') {
     throw new AppError('toFacilityId, lat, lng are required');
   }
@@ -237,12 +246,16 @@ export async function recordHandoff(req: Request, res: Response) {
   const toFacility = await FacilityModel.findById(toFacilityId);
   if (!toFacility) throw new AppError('toFacilityId does not match a known facility', 404);
 
+  const MOBILITY = ['relocation', 'displacement', 'nomadic', 'migration', 'outreach', 'other'];
+  const category = reasonCategory && MOBILITY.includes(reasonCategory) ? reasonCategory : 'relocation';
+
   const handoff = await FacilityHandoffModel.create({
     childId: child._id,
     fromFacilityId: child.currentFacilityId,
     toFacilityId,
     reportedLocation: { lat, lng },
     reason: reason ?? '',
+    reasonCategory: category,
     handoffAt: new Date()
   });
 

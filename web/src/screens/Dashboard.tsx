@@ -39,6 +39,12 @@ interface StatePriority {
 interface Coverage { states: StatePriority[]; }
 interface Milestones { registered: number; birth: number; foundation: number; healthyStart: number; }
 interface FraudAlerts { count: number; alerts: Array<{ kind: string; worker: string; role: string; count: number; detail: string; at: string }>; }
+interface RegMobility {
+  registered: number;
+  birth: { facility: number; home: number; other: number };
+  byChannel: Array<{ channel: string; label: string; count: number }>;
+  mobility: { childrenMoved: number; totalMoves: number; crossStateMoves: number; byReason: Array<{ reason: string; label: string; count: number }> };
+}
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
 interface SupplyPlan {
@@ -86,6 +92,7 @@ export function Dashboard() {
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
   const milestones = useGet<Milestones>('/api/dashboard/milestones');
   const integrity = useGet<FraudAlerts>('/api/fraud/alerts');
+  const regMob = useGet<RegMobility>('/api/dashboard/registration-mobility');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
   const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
@@ -309,6 +316,11 @@ export function Dashboard() {
             </ul>
           )}
         </section>
+
+        <section className="card panel">
+          <div className="panel-head"><h2>Registration &amp; mobility</h2><span className="eyebrow">inclusion &amp; continuity</span></div>
+          {!regMob.data ? <Loading /> : <RegMobilityPanel m={regMob.data} />}
+        </section>
       </div>
 
       {/* Supply & deployment plan — turns forecast demand into cold-chain, staffing, deployment */}
@@ -424,6 +436,41 @@ function StatusBar({ t }: { t: Metrics }) {
             <span className="muted">· {pct(s.n / total)}</span>
           </span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function RegMobilityPanel({ m }: { m: RegMobility }) {
+  const base = Math.max(1, m.registered);
+  const homeShare = m.birth.home + m.birth.other;
+  return (
+    <div className="regmob">
+      <div className="regmob-line">
+        <span className="regmob-key">Home / non-facility births</span>
+        <span className="regmob-val mono"><b>{fmt(homeShare)}</b><span className="muted">· {pct(homeShare / base)}</span></span>
+      </div>
+      <ul className="regmob-bars">
+        {m.byChannel.map((c) => (
+          <li key={c.channel} className="regmob-row">
+            <span className="regmob-label">{c.label}</span>
+            <span className="regmob-track"><span className="regmob-fill" style={{ width: `${(c.count / base) * 100}%` }} /></span>
+            <span className="regmob-num mono">{fmt(c.count)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="regmob-mobility">
+        <div className="regmob-line">
+          <span className="regmob-key">Children who relocated</span>
+          <span className="regmob-val mono"><b>{fmt(m.mobility.childrenMoved)}</b><span className="muted">· {fmt(m.mobility.crossStateMoves)} cross-state</span></span>
+        </div>
+        {m.mobility.byReason.length > 0 && (
+          <div className="regmob-chips">
+            {m.mobility.byReason.map((r) => (
+              <span key={r.reason} className="regmob-chip">{r.label} <b className="mono">{fmt(r.count)}</b></span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
