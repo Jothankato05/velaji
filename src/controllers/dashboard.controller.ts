@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import {
   geographicSummary,
   stockForecast,
+  supplyPlan,
   administrationTrend,
   facilityOutliers,
   recentActivity,
@@ -27,6 +28,14 @@ export async function getStockForecast(req: Request, res: Response) {
     throw new AppError('weeks must be an integer between 1 and 52');
   }
   res.json(await stockForecast(weeks, readFilter(req)));
+}
+
+export async function getSupplyPlan(req: Request, res: Response) {
+  const weeks = Number(req.query.weeks ?? 4);
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 52) {
+    throw new AppError('weeks must be an integer between 1 and 52');
+  }
+  res.json(await supplyPlan(weeks, readFilter(req)));
 }
 
 export async function getTrend(req: Request, res: Response) {

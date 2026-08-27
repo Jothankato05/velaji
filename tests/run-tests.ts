@@ -818,6 +818,29 @@ test('stock forecast counts upcoming demand per vaccine', async () => {
   assert(!body.byVaccine.some((v: any) => v.vaccineCode === 'PENTA'), 'overdue PENTA must not be in the forecast');
 });
 
+test('§18 supply plan turns demand into cold-chain, staffing and deployment', async () => {
+  const f1 = await dashFacility('Supply-State', 'SL-1', 'W', 'Supply PHC 1');
+  const f2 = await dashFacility('Supply-State', 'SL-2', 'W', 'Supply PHC 2');
+  for (let i = 0; i < 3; i++) await dashChild(f1, [dashDose('OPV', 'OPV', 1, 5, false)]); // 3 doses due soon in SL-1
+  for (let i = 0; i < 2; i++) await dashChild(f2, [dashDose('PCV', 'PCV', 1, 10, false)]); // 2 in SL-2
+
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/supply-plan?weeks=4&state=Supply-State');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.totalDoses === 5, `expected 5 doses due, got ${body.totalDoses}`);
+  assert(body.coldChain.doses === 5, 'cold-chain doses must match total');
+  assert(body.staffing.vaccinatorsNeeded >= 1, 'must recommend at least one vaccinator');
+  assert(body.breakdownBy === 'lga', `expected lga breakdown, got ${body.breakdownBy}`);
+  const sl1 = body.deployment.find((d: any) => d.area === 'SL-1');
+  const sl2 = body.deployment.find((d: any) => d.area === 'SL-2');
+  assert(sl1 && sl1.dueCount === 3 && sl2 && sl2.dueCount === 2, `deployment breakdown wrong: ${JSON.stringify(body.deployment)}`);
+  assert(body.deployment[0].dueCount >= body.deployment[1].dueCount, 'deployment must be highest-demand first');
+  assert(typeof body.outreach.overdue === 'number' && typeof body.outreach.zeroDose === 'number', 'outreach counts present');
+  assert(body.assumptions.dosesPerVaccinatorPerDay > 0, 'planning assumptions are surfaced');
+
+  const denied = await jsonAs(staffToken, 'GET', '/api/dashboard/supply-plan');
+  assert(denied.status === 403, `supply plan must be admin-only, got ${denied.status}`);
+});
+
 test('administration trend returns one point per week', async () => {
   const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/trend?weeks=8');
   assert(status === 200, `expected 200, got ${status}`);

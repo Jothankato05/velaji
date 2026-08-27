@@ -474,6 +474,95 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
   };
 }
 
+// --- Planning assumptions for supply intelligence (NCIHAP §18). These are
+// deliberate, visible heuristics for a prototype — not clinical constants —
+// surfaced with the numbers so a planner can see what they rest on. ---
+const COLD_CHAIN_CM3_PER_DOSE = 3; // approx packed vaccine volume per dose
+const DOSES_PER_VACCINATOR_PER_DAY = 40; // routine-session throughput per vaccinator
+const WORKING_DAYS_PER_WEEK = 5;
+
+export interface SupplyPlanArea {
+  area: string;
+  dueCount: number;
+  coldChainLitres: number;
+  vaccinatorsNeeded: number;
+}
+
+export interface SupplyPlan {
+  scope: string;
+  breakdownBy: string;
+  horizonWeeks: number;
+  totalDoses: number;
+  demandByVaccine: Array<{ vaccineCode: string; dueCount: number }>;
+  coldChain: { doses: number; litres: number };
+  staffing: { vaccinatorDays: number; vaccinatorsNeeded: number };
+  deployment: SupplyPlanArea[];
+  outreach: { overdue: number; zeroDose: number };
+  assumptions: { coldChainCm3PerDose: number; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
+  generatedAt: string;
+}
+
+/**
+ * Supply & deployment plan (NCIHAP §18): turn forecast demand into the numbers a
+ * planner actually acts on — cold-chain volume, vaccinators needed, where to
+ * deploy them (one geographic level down), and where active outreach is needed
+ * (overdue + zero-dose). "N children will need Vaccine X in the next weeks" →
+ * "so provision this much cold storage and this many vaccinators, here."
+ */
+export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = new Date()): Promise<SupplyPlan> {
+  const horizon = now.getTime() + weeks * 7 * DAY;
+  const level = nextLevel(filter);
+  const children = await ChildModel.find({});
+  const facilities = await FacilityModel.find({});
+  const geoById = new Map(facilities.map((f) => [String(f._id), { state: f.stateName || UNKNOWN, lga: f.lgaName || UNKNOWN, ward: f.wardName || UNSPECIFIED_WARD, facility: f.name || UNKNOWN, facilityId: String(f._id) }]));
+
+  const byVaccine = new Map<string, number>();
+  const byArea = new Map<string, number>();
+  let total = 0;
+  let overdue = 0;
+  let zeroDose = 0;
+
+  for (const child of children) {
+    const geo = geoById.get(String(child.currentFacilityId)) ?? { state: UNKNOWN, lga: UNKNOWN, ward: UNSPECIFIED_WARD, facility: UNKNOWN, facilityId: '' };
+    if (!inScope(geo, filter)) continue;
+
+    const doses = child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }));
+    if (computeChildStatus(doses, { now, needsReconciliation: child.needsReconciliation }) === 'RED') overdue += 1;
+    if (doses.every((d) => !d.administeredDate)) zeroDose += 1;
+
+    const areaKey = geo[level as keyof typeof geo] as string;
+    for (const d of doses) {
+      if (d.administeredDate) continue;
+      const due = d.dueDate.getTime();
+      if (due >= now.getTime() && due <= horizon) {
+        byVaccine.set(d.vaccineCode, (byVaccine.get(d.vaccineCode) ?? 0) + 1);
+        byArea.set(areaKey, (byArea.get(areaKey) ?? 0) + 1);
+        total += 1;
+      }
+    }
+  }
+
+  const litres = (doses: number) => Math.round((doses * COLD_CHAIN_CM3_PER_DOSE) / 100) / 10;
+  const vaccinators = (doses: number) => Math.ceil(Math.ceil(doses / DOSES_PER_VACCINATOR_PER_DAY) / Math.max(1, weeks * WORKING_DAYS_PER_WEEK));
+  const vaccinatorDays = Math.ceil(total / DOSES_PER_VACCINATOR_PER_DAY);
+
+  return {
+    scope: [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria',
+    breakdownBy: level,
+    horizonWeeks: weeks,
+    totalDoses: total,
+    demandByVaccine: [...byVaccine.entries()].map(([vaccineCode, dueCount]) => ({ vaccineCode, dueCount })).sort((a, b) => b.dueCount - a.dueCount),
+    coldChain: { doses: total, litres: litres(total) },
+    staffing: { vaccinatorDays, vaccinatorsNeeded: vaccinators(total) },
+    deployment: [...byArea.entries()]
+      .map(([area, dueCount]) => ({ area, dueCount, coldChainLitres: litres(dueCount), vaccinatorsNeeded: vaccinators(dueCount) }))
+      .sort((a, b) => b.dueCount - a.dueCount),
+    outreach: { overdue, zeroDose },
+    assumptions: { coldChainCm3PerDose: COLD_CHAIN_CM3_PER_DOSE, dosesPerVaccinatorPerDay: DOSES_PER_VACCINATOR_PER_DAY, workingDaysPerWeek: WORKING_DAYS_PER_WEEK },
+    generatedAt: now.toISOString()
+  };
+}
+
 export interface AdministrationTrend {
   weeks: number;
   points: Array<{ weekStarting: string; dosesAdministered: number }>;

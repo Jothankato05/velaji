@@ -163,3 +163,12 @@
 .integrity-who { font-weight: 600; font-size: 13.5px; color: var(--ink); }
 .integrity-detail { font-size: 12px; line-height: 1.4; }
 .integrity-count { font-size: 15px; font-weight: 700; color: var(--st-red); }
+
+/* ---- Supply & deployment plan (§18) ---- */
+.plan-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.plan-tile { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; background: var(--bg); }
+.plan-tile-v { font-size: 24px; font-weight: 700; color: var(--ink); }
+.plan-tile-l { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+.plan-tile.down .plan-tile-v { color: var(--st-red); }
+.plan-note { font-size: 11.5px; margin-top: 12px; }
+@media (max-width: 780px) { .plan-tiles { grid-template-columns: repeat(2, 1fr); } }
