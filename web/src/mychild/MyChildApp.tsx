@@ -20,9 +20,16 @@ interface Family {
   coverage: { programme: string; months: number; expiresAt: string; active: boolean } | null;
   rewards: MilestoneReward[];
   nextReward: { key: string; reward: string; dosesToGo: number } | null;
+  healthRecords: HealthRecordEntry[];
   tip: string;
 }
 interface MilestoneReward { key: string; title: string; reward: string; blurb: string; total: number; administered: number; attained: boolean; attainedAt: string | null; }
+interface HealthRecordEntry { id: string; domain: string; domainLabel: string; title: string; value: string; note: string; facility: string | null; recordedAt: string; }
+
+const DOMAIN_ICON: Record<string, string> = {
+  growth: '📏', vitamin_a: '💊', nutrition: '🍎', malaria: '🦟', sickle_cell: '🩸',
+  newborn_screening: '👶', development: '🧩', referral: '↪️', lab: '🔬', school_health: '🏫'
+};
 
 type Card = { chin: string; token: string };
 const CARD_KEY = 'ncihap.card'; // { chin, token }
@@ -314,6 +321,29 @@ function HomeView() {
           </div>
         </section>
       )}
+
+      <section className="mc-card mc-wallet">
+        <div className="mc-wallet-head">
+          <h3>{data.firstName}’s health record</h3>
+          <span className="mc-wallet-sub">One account, growing beyond vaccines</span>
+        </div>
+        {data.healthRecords.length === 0 ? (
+          <p className="mc-wallet-empty">Growth, Vitamin A, nutrition and other checks a health worker records will appear here alongside {data.firstName}’s vaccines.</p>
+        ) : (
+          <ul className="mc-wallet-list">
+            {data.healthRecords.map((r) => (
+              <li key={r.id} className="mc-wallet-item">
+                <span className="mc-wallet-icon" aria-hidden>{DOMAIN_ICON[r.domain] ?? '📋'}</span>
+                <span className="mc-wallet-body">
+                  <span className="mc-wallet-title">{r.title} <span className="mc-wallet-domain">{r.domainLabel}</span></span>
+                  <span className="mc-wallet-value">{r.value}{r.note ? ` — ${r.note}` : ''}</span>
+                  <span className="mc-wallet-meta">{fmtDate(r.recordedAt)}{r.facility ? ` · ${r.facility}` : ''}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mc-card mc-tip">
         <span className="mc-tip-icon" aria-hidden>☀</span>

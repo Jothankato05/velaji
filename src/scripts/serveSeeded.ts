@@ -15,6 +15,7 @@ import { CaregiverModel } from '../models/Caregiver';
 import { ChildModel } from '../models/Child';
 import { StaffUserModel } from '../models/StaffUser';
 import { DoseAdministrationModel } from '../models/DoseAdministration';
+import { HealthRecordModel } from '../models/HealthRecord';
 import { generateChin } from '../services/chin.service';
 import { buildDosesForChild } from '../services/schedule.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
@@ -99,6 +100,21 @@ async function main() {
   const ussdPhone = '+2348010000001';
   const ussdCaregiver = await CaregiverModel.create({ fullName: 'Aisha Bello', phone: ussdPhone });
   await ChildModel.updateOne({ _id: cardChild._id }, { fullName: 'Zara Bello', caregiverId: ussdCaregiver._id });
+
+  // A few Child Health Wallet records (§21) so the account shows growth beyond
+  // vaccines.
+  const rec = (domain: string, title: string, value: string, daysAgo: number) => ({
+    chin: cardChild.chin, childId: cardChild._id, domain, title, value, note: '',
+    facilityId: cardChild.currentFacilityId, recordedBy: 'nurse.amina', recordedByRole: 'staff',
+    recordedAt: new Date(now - daysAgo * DAY)
+  });
+  await HealthRecordModel.insertMany([
+    rec('growth', 'Weight-for-age', '7.4 kg · on track', 12),
+    rec('vitamin_a', 'Vitamin A', 'First dose given', 12),
+    rec('nutrition', 'Feeding', 'Exclusive breastfeeding', 40),
+    rec('development', 'Milestones', 'Sitting, babbling — age-appropriate', 12)
+  ]);
+
   const token = signChin(cardChild.chin);
 
   app.listen(env.PORT, () => {

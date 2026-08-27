@@ -6,6 +6,7 @@ import { CertificateModel } from '../models/Certificate';
 import { normalizeChin } from '../services/chin.service';
 import { computeChildStatus, computeDoseStatus } from '../services/schedule.service';
 import { computeMilestones, nextMilestone } from '../services/milestone.service';
+import { getHealthRecords } from '../services/wallet.service';
 import { verifyChinToken } from '../services/verification-token.service';
 import { AppError } from '../utils/AppError';
 
@@ -158,6 +159,7 @@ export async function familyJourney(req: Request, res: Response) {
       : null,
     rewards: computeMilestones(doses, dob),
     nextReward: nextMilestone(computeMilestones(doses, dob)),
+    healthRecords: await getHealthRecords(chin),
     tip: TIPS[now.getDate() % TIPS.length]
   });
 }
