@@ -1031,6 +1031,21 @@ test('§19/§20 registration is not facility-only, and mobility is tracked', asy
   await ChildModel.updateOne({ chin: home.body.chin }, { completedAt: NOON });
 });
 
+test('§18 supply plan reports facility cold-chain and access readiness (admin-only)', async () => {
+  await FacilityModel.create({
+    name: 'Infra PHC', wardName: 'W', lgaName: 'IN-1', stateName: 'Infra-State', location: { lat: 9, lng: 7 },
+    coldChainStatus: 'down', accessibility: 'security_compromised'
+  });
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/supply-plan?weeks=8&state=Infra-State');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.infrastructure.facilities >= 1, 'the scoped facility must be counted');
+  assert(body.infrastructure.coldChain.down >= 1, 'a down cold chain must be reported');
+  assert(body.infrastructure.access.securityCompromised >= 1, 'a security-compromised facility must be reported');
+
+  const denied = await jsonAs(staffToken, 'GET', '/api/dashboard/supply-plan');
+  assert(denied.status === 403, `supply-plan must be admin-only, got ${denied.status}`);
+});
+
 test('§11 defaulting barriers: a traced case records why, and it rolls up (admin-only)', async () => {
   const { childId, chin } = await makeReminderChild(200, { phone: null }); // overdue + unreachable -> escalates
   await reminderSvc().runCycle();

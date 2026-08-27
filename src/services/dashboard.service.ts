@@ -575,6 +575,11 @@ export interface SupplyPlan {
   staffing: { vaccinatorDays: number; vaccinatorsNeeded: number };
   deployment: SupplyPlanArea[];
   outreach: { overdue: number; zeroDose: number };
+  infrastructure: {
+    facilities: number;
+    coldChain: { functional: number; atRisk: number; down: number };
+    access: { accessible: number; hardToReach: number; securityCompromised: number };
+  };
   assumptions: { coldChainCm3PerDose: number; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
   generatedAt: string;
 }
@@ -623,6 +628,21 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
   const vaccinators = (doses: number) => Math.ceil(Math.ceil(doses / DOSES_PER_VACCINATOR_PER_DAY) / Math.max(1, weeks * WORKING_DAYS_PER_WEEK));
   const vaccinatorDays = Math.ceil(total / DOSES_PER_VACCINATOR_PER_DAY);
 
+  // Facility infrastructure in scope: can these facilities actually store the
+  // vaccines (§18 cold chain) and can workers reach the settlements (§19/§20)?
+  const cc = { functional: 0, at_risk: 0, down: 0 };
+  const ac = { accessible: 0, hard_to_reach: 0, security_compromised: 0 };
+  let facilitiesInScope = 0;
+  for (const f of facilities) {
+    const geo = { state: f.stateName || UNKNOWN, lga: f.lgaName || UNKNOWN, ward: f.wardName || UNSPECIFIED_WARD, facility: '', facilityId: '' };
+    if (!inScope(geo, filter)) continue;
+    facilitiesInScope += 1;
+    const cs = (f.coldChainStatus ?? 'functional') as keyof typeof cc;
+    if (cc[cs] !== undefined) cc[cs] += 1;
+    const as = (f.accessibility ?? 'accessible') as keyof typeof ac;
+    if (ac[as] !== undefined) ac[as] += 1;
+  }
+
   return {
     scope: [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria',
     breakdownBy: level,
@@ -635,6 +655,11 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
       .map(([area, dueCount]) => ({ area, dueCount, coldChainLitres: litres(dueCount), vaccinatorsNeeded: vaccinators(dueCount) }))
       .sort((a, b) => b.dueCount - a.dueCount),
     outreach: { overdue, zeroDose },
+    infrastructure: {
+      facilities: facilitiesInScope,
+      coldChain: { functional: cc.functional, atRisk: cc.at_risk, down: cc.down },
+      access: { accessible: ac.accessible, hardToReach: ac.hard_to_reach, securityCompromised: ac.security_compromised }
+    },
     assumptions: { coldChainCm3PerDose: COLD_CHAIN_CM3_PER_DOSE, dosesPerVaccinatorPerDay: DOSES_PER_VACCINATOR_PER_DAY, workingDaysPerWeek: WORKING_DAYS_PER_WEEK },
     generatedAt: now.toISOString()
   };
