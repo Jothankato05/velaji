@@ -6,6 +6,7 @@ import { CertificateModel } from '../models/Certificate';
 import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { computeChildStatus } from './schedule.service';
 import { computeMilestones } from './milestone.service';
+import { coldChainCm3 } from '../data/routine-immunization-schedule';
 
 /**
  * The National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
@@ -554,7 +555,8 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
 // --- Planning assumptions for supply intelligence (NCIHAP §18). These are
 // deliberate, visible heuristics for a prototype — not clinical constants —
 // surfaced with the numbers so a planner can see what they rest on. ---
-const COLD_CHAIN_CM3_PER_DOSE = 3; // approx packed vaccine volume per dose
+// Per-antigen cold-chain volumes are now in routine-immunization-schedule.ts
+// (coldChainCm3()), replacing the old flat 3 cm³/dose constant.
 const DOSES_PER_VACCINATOR_PER_DAY = 40; // routine-session throughput per vaccinator
 const WORKING_DAYS_PER_WEEK = 5;
 
@@ -570,7 +572,7 @@ export interface SupplyPlan {
   breakdownBy: string;
   horizonWeeks: number;
   totalDoses: number;
-  demandByVaccine: Array<{ vaccineCode: string; dueCount: number }>;
+  demandByVaccine: Array<{ vaccineCode: string; dueCount: number; cm3PerDose: number; totalCm3: number }>;
   coldChain: { doses: number; litres: number };
   staffing: { vaccinatorDays: number; vaccinatorsNeeded: number };
   deployment: SupplyPlanArea[];
@@ -580,7 +582,7 @@ export interface SupplyPlan {
     coldChain: { functional: number; atRisk: number; down: number };
     access: { accessible: number; hardToReach: number; securityCompromised: number };
   };
-  assumptions: { coldChainCm3PerDose: number; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
+  assumptions: { perAntigenVolumes: boolean; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
   generatedAt: string;
 }
 
@@ -624,7 +626,11 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
     }
   }
 
-  const litres = (doses: number) => Math.round((doses * COLD_CHAIN_CM3_PER_DOSE) / 100) / 10;
+  // Cold-chain volume now uses per-antigen WHO EPI figures instead of a flat constant.
+  const totalCm3 = [...byVaccine.entries()].reduce((sum, [vc, cnt]) => sum + cnt * coldChainCm3(vc), 0);
+  const litresFromCm3 = (cm3: number) => Math.round(cm3 / 100) / 10;
+  const litresFromDoses = (doses: number, vaccineCode?: string) =>
+    litresFromCm3(doses * (vaccineCode ? coldChainCm3(vaccineCode) : (total ? totalCm3 / total : 3)));
   const vaccinators = (doses: number) => Math.ceil(Math.ceil(doses / DOSES_PER_VACCINATOR_PER_DAY) / Math.max(1, weeks * WORKING_DAYS_PER_WEEK));
   const vaccinatorDays = Math.ceil(total / DOSES_PER_VACCINATOR_PER_DAY);
 
@@ -648,11 +654,15 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
     breakdownBy: level,
     horizonWeeks: weeks,
     totalDoses: total,
-    demandByVaccine: [...byVaccine.entries()].map(([vaccineCode, dueCount]) => ({ vaccineCode, dueCount })).sort((a, b) => b.dueCount - a.dueCount),
-    coldChain: { doses: total, litres: litres(total) },
+    demandByVaccine: [...byVaccine.entries()].map(([vaccineCode, dueCount]) => ({
+      vaccineCode, dueCount,
+      cm3PerDose: coldChainCm3(vaccineCode),
+      totalCm3: dueCount * coldChainCm3(vaccineCode),
+    })).sort((a, b) => b.dueCount - a.dueCount),
+    coldChain: { doses: total, litres: litresFromCm3(totalCm3) },
     staffing: { vaccinatorDays, vaccinatorsNeeded: vaccinators(total) },
     deployment: [...byArea.entries()]
-      .map(([area, dueCount]) => ({ area, dueCount, coldChainLitres: litres(dueCount), vaccinatorsNeeded: vaccinators(dueCount) }))
+      .map(([area, dueCount]) => ({ area, dueCount, coldChainLitres: litresFromDoses(dueCount), vaccinatorsNeeded: vaccinators(dueCount) }))
       .sort((a, b) => b.dueCount - a.dueCount),
     outreach: { overdue, zeroDose },
     infrastructure: {
@@ -660,7 +670,7 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
       coldChain: { functional: cc.functional, atRisk: cc.at_risk, down: cc.down },
       access: { accessible: ac.accessible, hardToReach: ac.hard_to_reach, securityCompromised: ac.security_compromised }
     },
-    assumptions: { coldChainCm3PerDose: COLD_CHAIN_CM3_PER_DOSE, dosesPerVaccinatorPerDay: DOSES_PER_VACCINATOR_PER_DAY, workingDaysPerWeek: WORKING_DAYS_PER_WEEK },
+    assumptions: { perAntigenVolumes: true, dosesPerVaccinatorPerDay: DOSES_PER_VACCINATOR_PER_DAY, workingDaysPerWeek: WORKING_DAYS_PER_WEEK },
     generatedAt: now.toISOString()
   };
 }
