@@ -14,6 +14,7 @@ import { FacilityModel } from '../models/Facility';
 import { CaregiverModel } from '../models/Caregiver';
 import { ChildModel } from '../models/Child';
 import { StaffUserModel } from '../models/StaffUser';
+import { DoseAdministrationModel } from '../models/DoseAdministration';
 import { generateChin } from '../services/chin.service';
 import { buildDosesForChild } from '../services/schedule.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
@@ -76,6 +77,18 @@ async function main() {
   // Kano — priority (red): the worst LGA (Dala) should surface first when drilling.
   await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3 });
   await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5 });
+
+  // A suspicious recording burst so the §17 Integrity panel has a live example:
+  // one worker "recording" ~30 doses within a few minutes (impossible throughput).
+  const burst = [];
+  for (let i = 0; i < 30; i++) {
+    burst.push({
+      chin: `NG-24-01-2000000${i % 10}`, childId: fctChildren[0]._id, vaccineCode: 'OPV', doseNumber: 1,
+      facilityId: null, recordedBy: 'idris.k', recordedByRole: 'staff', duplicate: false,
+      recordedAt: new Date(now - 40 * 60 * 1000 + i * 8 * 1000)
+    });
+  }
+  await DoseAdministrationModel.insertMany(burst);
 
   // One named MyChild card (in FCT), reusing an on-track child.
   const cardChild = fctChildren.find((c) => c.doses.some((d) => !d.administeredDate)) ?? fctChildren[0];

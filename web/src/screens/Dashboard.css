@@ -151,3 +151,15 @@
 .funnel-fill.birth { background: var(--st-amber); } .funnel-fill.foundation { background: var(--st-green); } .funnel-fill.healthy { background: var(--brand, var(--st-green)); }
 .funnel-num { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; font-size: 13px; min-width: 46px; }
 .funnel-num .muted { font-size: 11px; }
+
+/* ---- Integrity alerts (§17) ---- */
+.integrity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.integrity-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.integrity-list li:last-child { border-bottom: none; }
+.integrity-tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.integrity-tag.velocity { background: var(--st-red-bg); color: var(--st-red); }
+.integrity-tag.duplicates { background: var(--st-amber-bg); color: var(--st-amber); }
+.integrity-body { flex: 1; min-width: 0; }
+.integrity-who { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+.integrity-detail { font-size: 12px; line-height: 1.4; }
+.integrity-count { font-size: 15px; font-weight: 700; color: var(--st-red); }

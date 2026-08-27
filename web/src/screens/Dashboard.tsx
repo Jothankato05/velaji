@@ -38,6 +38,7 @@ interface StatePriority {
 }
 interface Coverage { states: StatePriority[]; }
 interface Milestones { registered: number; birth: number; foundation: number; healthyStart: number; }
+interface FraudAlerts { count: number; alerts: Array<{ kind: string; worker: string; role: string; count: number; detail: string; at: string }>; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
@@ -75,6 +76,7 @@ export function Dashboard() {
   const activity = useGet<Activity>('/api/dashboard/activity');
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
   const milestones = useGet<Milestones>('/api/dashboard/milestones');
+  const integrity = useGet<FraudAlerts>('/api/fraud/alerts');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
   const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
@@ -277,6 +279,26 @@ export function Dashboard() {
               ))}
             </ul>
           )) : <Loading />}
+        </section>
+
+        <section className="card panel">
+          <div className="panel-head"><h2>Integrity alerts</h2><span className="eyebrow">recording patterns to review</span></div>
+          {!integrity.data ? <Loading /> : integrity.data.alerts.length === 0 ? (
+            <Empty>No unusual recording activity flagged.</Empty>
+          ) : (
+            <ul className="integrity-list">
+              {integrity.data.alerts.map((a, i) => (
+                <li key={i} className="integrity-row">
+                  <span className={`integrity-tag ${a.kind}`}>{a.kind === 'velocity' ? 'Throughput' : 'Duplicates'}</span>
+                  <div className="integrity-body">
+                    <div className="integrity-who mono">{a.worker} <span className="muted">· {a.role}</span></div>
+                    <div className="muted integrity-detail">{a.detail}</div>
+                  </div>
+                  <span className="integrity-count mono">{fmt(a.count)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 

@@ -18,6 +18,8 @@ import { issueToken } from '../src/utils/token';
 import { buildVerificationUrl } from '../src/services/card.service';
 import { signChin } from '../src/services/verification-token.service';
 import { computeMilestones, nextMilestone } from '../src/services/milestone.service';
+import { DoseAdministrationModel } from '../src/models/DoseAdministration';
+import { VELOCITY_MAX_IN_WINDOW } from '../src/services/fraud.service';
 import type { SmsMessage, SmsProvider, SmsSendResult } from '../src/providers/sms';
 
 type TestFn = () => Promise<void>;
@@ -887,6 +889,47 @@ test('geographic breakdown carries a priority flag per area (drill-down triage)'
   const alpha = body.breakdown.find((b: any) => b.key === 'Alpha-CBS');
   assert(zeta && zeta.priority === 'red', `the all-overdue state should flag red, got ${zeta?.priority}`);
   assert(alpha && alpha.priority === 'green', `the all-complete state should flag green, got ${alpha?.priority}`);
+});
+
+test('§17 duplicate-dose detection: a dose already given cannot be re-recorded', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Dup Carer', phone: '+2348070001111' });
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Dup Child', sex: 'male', dateOfBirth: '2026-06-01', caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  const child = reg.body;
+  const d = child.doses[0];
+
+  const first = await json('POST', `/api/children/${encodeURIComponent(child.chin)}/doses`, { vaccineCode: d.vaccineCode, doseNumber: d.doseNumber, facilityId: facilityAId });
+  assert(first.status === 200, `first recording should succeed, got ${first.status}`);
+  const second = await json('POST', `/api/children/${encodeURIComponent(child.chin)}/doses`, { vaccineCode: d.vaccineCode, doseNumber: d.doseNumber, facilityId: facilityAId });
+  assert(second.status === 409, `re-recording an already-given dose must be refused with 409, got ${second.status}`);
+
+  const dupCount = await DoseAdministrationModel.countDocuments({ chin: child.chin, duplicate: true });
+  assert(dupCount >= 1, 'the duplicate attempt must be written to the ledger');
+  const genuine = await DoseAdministrationModel.countDocuments({ chin: child.chin, duplicate: false });
+  assert(genuine >= 1, 'the genuine administration must be on the ledger');
+  await ChildModel.updateOne({ chin: child.chin }, { completedAt: NOON });
+});
+
+test('§17 abnormal-activity detection flags impossible throughput; admin-only', async () => {
+  const base = new Date(NOON);
+  const events = [];
+  for (let i = 0; i < VELOCITY_MAX_IN_WINDOW + 3; i++) {
+    events.push({
+      chin: `NG-99-99-1000000${i % 10}`, childId: '64b7f1d2e4b0a12345678901', vaccineCode: 'X', doseNumber: 1,
+      facilityId: null, recordedBy: 'suspect.worker', recordedByRole: 'staff', duplicate: false,
+      recordedAt: new Date(base.getTime() + i * 10 * 1000) // 10s apart -> all inside one 10-min window
+    });
+  }
+  await DoseAdministrationModel.insertMany(events);
+
+  const res = await jsonAs(adminTokenT, 'GET', '/api/fraud/alerts');
+  assert(res.status === 200, `expected 200, got ${res.status}`);
+  const vel = res.body.alerts.find((a: any) => a.kind === 'velocity' && a.worker === 'suspect.worker');
+  assert(vel && vel.count > VELOCITY_MAX_IN_WINDOW, `expected a velocity alert above the threshold, got ${JSON.stringify(res.body.alerts)}`);
+
+  const denied = await jsonAs(staffToken, 'GET', '/api/fraud/alerts');
+  assert(denied.status === 403, `integrity alerts must be admin-only, got ${denied.status}`);
 });
 
 test('milestone attainment funnel: counts within registered, admin-only', async () => {
