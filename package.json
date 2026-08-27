@@ -1,7 +1,7 @@
 {
   "name": "velaji",
   "version": "1.0.0",
-  "description": "Velaji — child health identity, QR-verifiable card, and immunization status tracking prototype.",
+  "description": "Velaji — immunisation programme delivery platform (working prototype).",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
