@@ -8,7 +8,8 @@ const OPERATIONS = [
   { to: '/care', label: 'Point of Care', roles: ['staff', 'admin'] },
   { to: '/register', label: 'Child Registry', roles: ['staff', 'admin'] },
   { to: '/terminal', label: 'Verify Card', roles: ['verifier', 'staff', 'admin'] },
-  { to: '/escalations', label: 'Follow-up Queue', roles: ['staff', 'admin'] }
+  { to: '/escalations', label: 'Follow-up Queue', roles: ['staff', 'admin'] },
+  { to: '/ussd', label: 'USSD Access', roles: ['staff', 'admin'] }
 ] as const;
 
 function initials(name?: string) {
