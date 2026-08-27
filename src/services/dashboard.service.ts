@@ -110,9 +110,15 @@ export type PriorityLevel = 'red' | 'amber' | 'green';
  * intervention now); the amber band is the early warning tier.
  */
 export function classifyPriority(m: Metrics): PriorityLevel {
+  // Priority keys on defaulting (overdue), not raw completion. Completion
+  // naturally lags where the child population is young (many infants still
+  // mid-schedule), so a state with no overdue children is on-track even if few
+  // have finished yet — flagging it red would misdirect the recovery effort.
+  // Children who are genuinely not being brought show up as overdue, and that
+  // is what these flags and the recovery workflow act on.
   const overdueRate = m.registered ? m.overdue / m.registered : 0;
-  if (overdueRate >= 0.2 || m.completionRate < 0.35) return 'red';
-  if (overdueRate >= 0.1 || m.completionRate < 0.6) return 'amber';
+  if (overdueRate >= 0.2) return 'red';
+  if (overdueRate >= 0.1) return 'amber';
   return 'green';
 }
 
