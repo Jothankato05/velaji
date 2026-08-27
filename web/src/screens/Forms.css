@@ -70,3 +70,6 @@
   .esc-row { grid-template-columns: 1fr 1fr; gap: 6px 12px; }
   .reg-row { grid-template-columns: 1fr; }
 }
+
+.esc-resolve { display: inline-flex; gap: 6px; }
+.esc-resolve .esc-outcome { min-width: 120px; }

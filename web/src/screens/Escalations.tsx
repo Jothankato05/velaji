@@ -13,6 +13,7 @@ interface Escalation {
   facilityName: string | null;
   vaccine: string;
   reasonLabel: string;
+  barrierLabel: string | null;
   daysOverdue: number | null;
 }
 interface EscalationList {
@@ -22,18 +23,30 @@ interface EscalationList {
 }
 
 const OUTCOMES = ['reached', 'immunized', 'moved_away', 'unreachable', 'other'];
+// The documented Nigerian drivers of defaulting — recorded when tracing a case.
+const BARRIERS: Array<[string, string]> = [
+  ['hesitancy', 'Vaccine hesitancy / refusal'],
+  ['distance', 'Distance / access'],
+  ['insecurity', 'Insecurity'],
+  ['financial', 'Financial / poverty'],
+  ['unaware', 'Unaware / forgot'],
+  ['no_session', 'No session / stockout'],
+  ['other', 'Other']
+];
 
 export function Escalations() {
   const [tab, setTab] = useState<'open' | 'resolved'>('open');
   const list = useGet<EscalationList>(`/api/escalations?status=${tab}`);
   const [resolving, setResolving] = useState<string | null>(null);
+  const [barrier, setBarrier] = useState('');
   const [err, setErr] = useState('');
 
   async function resolve(id: string, outcome: string) {
     setErr('');
     try {
-      await api.post(`/api/escalations/${id}/resolve`, { outcome });
+      await api.post(`/api/escalations/${id}/resolve`, { outcome, barrier: barrier || null });
       setResolving(null);
+      setBarrier('');
       list.reload();
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : 'Could not resolve');
@@ -77,7 +90,7 @@ export function Escalations() {
                   <div className="mono muted esc-chin">{e.chin}</div>
                 </span>
                 <span>{e.vaccine}</span>
-                <span className="esc-reason">{e.reasonLabel}</span>
+                <span className="esc-reason">{tab === 'resolved' && e.barrierLabel ? e.barrierLabel : e.reasonLabel}</span>
                 <span className="mono">{e.daysOverdue != null ? `${e.daysOverdue}d` : '—'}</span>
                 <span className="esc-contact">
                   {e.caregiverName ?? '—'}
@@ -86,17 +99,22 @@ export function Escalations() {
                 <span className="esc-action">
                   {tab === 'open' && (
                     resolving === e.id ? (
-                      <select
-                        className="input esc-outcome"
-                        autoFocus
-                        defaultValue=""
-                        onChange={(ev) => ev.target.value && void resolve(e.id, ev.target.value)}
-                      >
-                        <option value="" disabled>Outcome…</option>
-                        {OUTCOMES.map((o) => <option key={o} value={o}>{o.replace('_', ' ')}</option>)}
-                      </select>
+                      <span className="esc-resolve">
+                        <select className="input esc-outcome" value={barrier} onChange={(ev) => setBarrier(ev.target.value)}>
+                          <option value="">Barrier (why)…</option>
+                          {BARRIERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                        <select
+                          className="input esc-outcome"
+                          defaultValue=""
+                          onChange={(ev) => ev.target.value && void resolve(e.id, ev.target.value)}
+                        >
+                          <option value="" disabled>Outcome…</option>
+                          {OUTCOMES.map((o) => <option key={o} value={o}>{o.replace('_', ' ')}</option>)}
+                        </select>
+                      </span>
                     ) : (
-                      <button className="btn" onClick={() => setResolving(e.id)}>Resolve</button>
+                      <button className="btn" onClick={() => { setResolving(e.id); setBarrier(''); }}>Resolve</button>
                     )
                   )}
                 </span>

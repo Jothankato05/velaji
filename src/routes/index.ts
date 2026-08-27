@@ -22,7 +22,7 @@ import { verifyChin } from '../controllers/verify.controller';
 import { familyJourney } from '../controllers/family.controller';
 import { handleUssdWebhook } from '../controllers/ussd.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
-import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
+import { getEscalations, postResolveEscalation, getDefaultingReasons } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
 import { getSummary, getStockForecast, getSupplyPlan, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones, getRegistrationMobility } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
@@ -126,6 +126,7 @@ apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getA
 apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHandler(getCoverageByState));
 apiRouter.get('/api/dashboard/milestones', requireRole('admin'), asyncHandler(getMilestones));
 apiRouter.get('/api/dashboard/registration-mobility', requireRole('admin'), asyncHandler(getRegistrationMobility));
+apiRouter.get('/api/dashboard/defaulting-reasons', requireRole('admin'), asyncHandler(getDefaultingReasons));
 
 // Fraud/data-integrity monitoring (NCIHAP §17): abnormal recording patterns
 // flagged for human review. Admin-only.

@@ -17,6 +17,7 @@ import { StaffUserModel } from '../models/StaffUser';
 import { DoseAdministrationModel } from '../models/DoseAdministration';
 import { HealthRecordModel } from '../models/HealthRecord';
 import { FacilityHandoffModel } from '../models/FacilityHandoff';
+import { EscalationModel } from '../models/Escalation';
 import { generateChin } from '../services/chin.service';
 import { buildDosesForChild } from '../services/schedule.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
@@ -148,6 +149,21 @@ async function main() {
       reportedLocation: { lat: 9, lng: 7 }, reason: '', reasonCategory: reasons[i], handoffAt: new Date(now - (i + 1) * 3 * DAY)
     });
     await ChildModel.updateOne({ _id: movers[i]._id }, { currentFacilityId: to._id });
+  }
+
+  // A few traced-and-resolved cases with the barrier recorded, so the "Why
+  // children default" view has data. The mix mirrors the documented drivers —
+  // hesitancy leads, then access/awareness, with insecurity in the north-east.
+  const traced = await ChildModel.find({}).limit(14);
+  const barrierMix = ['hesitancy', 'hesitancy', 'hesitancy', 'hesitancy', 'distance', 'distance', 'distance', 'unaware', 'unaware', 'insecurity', 'insecurity', 'financial', 'no_session', 'other'] as const;
+  for (let i = 0; i < traced.length; i++) {
+    const c = traced[i];
+    await EscalationModel.create({
+      childId: c._id, chin: c.chin, doseKey: `PENTA#1`, reason: i % 2 === 0 ? 'lost_to_followup' : 'max_attempts',
+      remindersSent: 3, status: 'resolved', raisedAt: new Date(now - (i + 5) * DAY), lastSeenAt: new Date(now - (i + 5) * DAY),
+      resolvedAt: new Date(now - (i + 1) * DAY), resolvedBy: 'nurse.amina', outcome: i % 3 === 0 ? 'immunized' : 'reached',
+      barrier: barrierMix[i]
+    });
   }
 
   const token = signChin(cardChild.chin);

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { listEscalations, resolveEscalation } from '../services/escalation.service';
+import { listEscalations, resolveEscalation, defaultingReasons, BARRIERS } from '../services/escalation.service';
 import { AppError } from '../utils/AppError';
 
 const VALID_OUTCOMES = ['immunized', 'reached', 'moved_away', 'unreachable', 'other'];
@@ -19,11 +19,19 @@ export async function postResolveEscalation(req: Request, res: Response) {
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   if (!mongoose.isValidObjectId(id)) throw new AppError('Invalid escalation id', 400);
 
-  const { outcome, note } = req.body ?? {};
+  const { outcome, note, barrier } = req.body ?? {};
   if (outcome !== undefined && outcome !== null && !VALID_OUTCOMES.includes(outcome)) {
     throw new AppError(`outcome must be one of: ${VALID_OUTCOMES.join(', ')}`);
   }
+  if (barrier !== undefined && barrier !== null && !BARRIERS.includes(barrier)) {
+    throw new AppError(`barrier must be one of: ${BARRIERS.join(', ')}`);
+  }
 
-  const resolved = await resolveEscalation(id, req.user!.username, outcome ?? 'other', note ?? '');
+  const resolved = await resolveEscalation(id, req.user!.username, outcome ?? 'other', note ?? '', barrier ?? null);
   res.json(resolved);
+}
+
+/** Why children default, in aggregate (§11 intelligence). Admin-only. */
+export async function getDefaultingReasons(_req: Request, res: Response) {
+  res.json(await defaultingReasons());
 }
