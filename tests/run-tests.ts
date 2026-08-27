@@ -868,6 +868,117 @@ test('§18 cold-chain volume uses per-antigen WHO figures, not a flat constant',
   assert(body.assumptions.perAntigenVolumes === true, 'plan must declare it uses per-antigen volumes');
 });
 
+test('§19 antenatal: a pregnancy registers, takes visits, and converts to a child at birth', async () => {
+  const fac = await dashFacility('Antenatal-State', 'AN-1', 'W', 'ANC PHC');
+  const cg = await CaregiverModel.create({ fullName: 'Expectant Carer', phone: '+2348070000001' });
+  const edd = new Date(Date.now() + 30 * DAY);
+
+  const created = await jsonAs(staffToken, 'POST', '/api/pregnancies', {
+    caregiverId: String(cg._id), facilityId: String(fac._id), expectedDeliveryDate: edd.toISOString()
+  });
+  assert(created.status === 201, `expected 201, got ${created.status}`);
+  const ancId = created.body.ancId;
+  assert(/^NG-ANC-\d{8}$/.test(ancId), `ANC id must be its own namespace, got ${ancId}`);
+  assert(ancId.indexOf('NG-2') !== 0, 'an ANC id must never look like a CHIN');
+  assert(created.body.visitCount === 0 && created.body.risk === 'at_risk',
+    'a pregnancy with no recorded contacts starts at risk');
+  assert(created.body.caregiverPhone === '+2348070000001',
+    'the caregiver phone must carry through — it is what the USSD channel keys on');
+
+  // Four contacts is the threshold where zero-dose risk roughly halves.
+  for (let i = 0; i < 4; i++) {
+    const v = await jsonAs(staffToken, 'POST', `/api/pregnancies/${ancId}/visits`, {});
+    assert(v.status === 200, `visit ${i + 1} failed with ${v.status}`);
+  }
+  const fourth = await jsonAs(staffToken, 'GET', '/api/antenatal/follow-up');
+  assert(fourth.status === 200, 'follow-up list must be readable by staff');
+
+  // The birth: the antenatal record becomes a child record.
+  const linked = await jsonAs(staffToken, 'POST', `/api/pregnancies/${ancId}/link-birth`, {
+    fullName: 'Linked Newborn', sex: 'female', dateOfBirth: new Date().toISOString()
+  });
+  assert(linked.status === 201, `expected 201 on link, got ${linked.status}`);
+  assert(/^NG-\d{2}-\d{2}-\d{8}$/.test(linked.body.chin), `expected a real CHIN, got ${linked.body.chin}`);
+  assert(linked.body.ancVisits === 4, `expected 4 carried-over visits, got ${linked.body.ancVisits}`);
+
+  // The child exists, carries the antenatal channel, and kept the same caregiver.
+  const child = await ChildModel.findOne({ chin: linked.body.chin });
+  assert(child, 'linking must actually create the child');
+  assert(child!.registrationChannel === 'antenatal', `expected antenatal channel, got ${child!.registrationChannel}`);
+  assert(String(child!.caregiverId) === String(cg._id), 'the caregiver must carry across from the pregnancy');
+  assert(child!.doses.length > 0, 'the linked child must get a full schedule');
+
+  // Linking twice must not mint a second child for the same pregnancy.
+  const again = await jsonAs(staffToken, 'POST', `/api/pregnancies/${ancId}/link-birth`, {
+    fullName: 'Duplicate', sex: 'male', dateOfBirth: new Date().toISOString()
+  });
+  assert(again.status === 409, `re-linking must be refused, got ${again.status}`);
+});
+
+test('§19 antenatal: a pregnancy loss closes quietly and stops generating follow-up', async () => {
+  const fac = await dashFacility('Antenatal-State', 'AN-2', 'W', 'ANC PHC 2');
+  const cg = await CaregiverModel.create({ fullName: 'Second Carer', phone: '+2348070000002' });
+  const created = await jsonAs(staffToken, 'POST', '/api/pregnancies', {
+    caregiverId: String(cg._id), facilityId: String(fac._id),
+    expectedDeliveryDate: new Date(Date.now() - 40 * DAY).toISOString() // already overdue
+  });
+  const ancId = created.body.ancId;
+
+  const before = await jsonAs(staffToken, 'GET', '/api/antenatal/follow-up');
+  assert(before.body.pregnancies.some((p: any) => p.ancId === ancId),
+    'an overdue pregnancy must appear on the follow-up list');
+
+  const closed = await jsonAs(staffToken, 'POST', `/api/pregnancies/${ancId}/close`, { reason: 'not_a_live_birth' });
+  assert(closed.status === 200, `expected 200 on close, got ${closed.status}`);
+  assert(closed.body.status === 'closed', 'the record must be closed');
+
+  const after = await jsonAs(staffToken, 'GET', '/api/antenatal/follow-up');
+  assert(!after.body.pregnancies.some((p: any) => p.ancId === ancId),
+    'a closed pregnancy must stop generating follow-up work');
+
+  const cannotLink = await jsonAs(staffToken, 'POST', `/api/pregnancies/${ancId}/link-birth`, {
+    fullName: 'X', sex: 'male', dateOfBirth: new Date().toISOString()
+  });
+  assert(cannotLink.status === 409, `a closed record must not be linkable, got ${cannotLink.status}`);
+});
+
+test('§19 antenatal pipeline: counts the unborn, flags low-contact, admin-only', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/antenatal?weeks=12');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(typeof body.active === 'number' && typeof body.linked === 'number', 'pipeline counts present');
+  assert(body.byRisk.atRisk + body.byRisk.onTrack + body.byRisk.recommended === body.active,
+    'every active pregnancy must fall in exactly one contact band');
+  assert(body.linked >= 1, 'the linked birth from the earlier test must be counted');
+  assert(body.conversionRate > 0 && body.conversionRate <= 1, `conversion rate out of range: ${body.conversionRate}`);
+  assert(Array.isArray(body.byArea), 'expected births broken down by area');
+
+  const denied = await jsonAs(staffToken, 'GET', '/api/dashboard/antenatal');
+  assert(denied.status === 403, `the antenatal pipeline must be admin-only, got ${denied.status}`);
+
+  const verifierDenied = await jsonAs(verifierToken, 'GET', '/api/antenatal/follow-up');
+  assert(verifierDenied.status === 403, `verifiers must not see antenatal contact details, got ${verifierDenied.status}`);
+});
+
+test('§18 supply plan sees birth doses for children not yet born', async () => {
+  const fac = await dashFacility('BirthDose-State', 'BD-1', 'W', 'Birth Dose PHC');
+  const cg = await CaregiverModel.create({ fullName: 'Third Carer', phone: '+2348070000003' });
+  // Three pregnancies due inside a 4-week horizon.
+  for (let i = 0; i < 3; i++) {
+    await jsonAs(staffToken, 'POST', '/api/pregnancies', {
+      caregiverId: String(cg._id), facilityId: String(fac._id),
+      expectedDeliveryDate: new Date(Date.now() + (7 + i) * DAY).toISOString()
+    });
+  }
+
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/supply-plan?weeks=4');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.expectedBirths.births >= 3, `expected at least 3 births due, got ${body.expectedBirths.births}`);
+  // Every birth needs BCG + OPV0 + HepB0.
+  assert(body.expectedBirths.birthDoses === body.expectedBirths.births * 3,
+    'each expected birth must budget three birth doses');
+  assert(body.expectedBirths.coldChainLitres >= 0, 'birth-dose cold-chain volume must be reported');
+});
+
 test('administration trend returns one point per week', async () => {
   const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/trend?weeks=8');
   assert(status === 200, `expected 200, got ${status}`);
