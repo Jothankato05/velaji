@@ -9,6 +9,7 @@ import { buildDosesForChild, computeChildStatus } from '../services/schedule.ser
 import { generatePrintableCardSvg } from '../services/card.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
 import { autoResolveForDose } from '../services/escalation.service';
+import { recordAdministration } from '../services/fraud.service';
 import { AppError } from '../utils/AppError';
 
 async function findChildOr404(chinParam: string | string[]) {
@@ -97,8 +98,20 @@ export async function recordDose(req: Request, res: Response) {
   const dose = child.doses.find((d) => d.vaccineCode === vaccineCode && d.doseNumber === Number(doseNumber));
   if (!dose) throw new AppError(`No scheduled dose ${vaccineCode} #${doseNumber} for this child`, 404);
 
+  const actor = { recordedBy: req.user?.username ?? 'unknown', recordedByRole: (req.user?.role ?? 'system') as 'verifier' | 'staff' | 'admin' | 'system' };
+
+  // NCIHAP §17 duplicate-dose detection: a dose already given must not be
+  // silently re-recorded (double claims). Log the attempt to the fraud ledger
+  // and refuse it.
+  if (dose.administeredDate) {
+    await recordAdministration({ chin: child.chin, childId: child._id, vaccineCode, doseNumber: Number(doseNumber), facilityId, ...actor, duplicate: true }).catch(() => {});
+    throw new AppError(`This dose was already recorded on ${dose.administeredDate.toISOString().slice(0, 10)}.`, 409);
+  }
+
   dose.administeredDate = administeredAt ? new Date(administeredAt) : new Date();
   dose.administeredAtFacilityId = facilityId;
+  // §17 audit: every genuine administration is written to an append-only ledger.
+  await recordAdministration({ chin: child.chin, childId: child._id, vaccineCode, doseNumber: Number(doseNumber), facilityId, ...actor }).catch(() => {});
 
   const complete = child.doses.every((d) => d.administeredDate);
   if (complete && !child.completedAt) {

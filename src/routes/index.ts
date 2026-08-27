@@ -23,6 +23,7 @@ import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.c
 import { getSummary, getStockForecast, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
 import { getRecovery } from '../controllers/recovery.controller';
+import { getIntegrityAlerts } from '../controllers/fraud.controller';
 
 export const apiRouter = Router();
 
@@ -103,6 +104,10 @@ apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getO
 apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getActivity));
 apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHandler(getCoverageByState));
 apiRouter.get('/api/dashboard/milestones', requireRole('admin'), asyncHandler(getMilestones));
+
+// Fraud/data-integrity monitoring (NCIHAP §17): abnormal recording patterns
+// flagged for human review. Admin-only.
+apiRouter.get('/api/fraud/alerts', requireRole('admin'), asyncHandler(getIntegrityAlerts));
 
 // The recovery call list behind the drill-down — individual overdue children in
 // a scope, for the worker who will act on them. Staff/admin only (it carries
