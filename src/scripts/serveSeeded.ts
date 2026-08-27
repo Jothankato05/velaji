@@ -24,15 +24,17 @@ import { hashPassword } from '../utils/password';
 const DAY = 24 * 60 * 60 * 1000;
 const now = Date.now();
 type Id = Types.ObjectId;
-type Profile = 'complete' | 'ontrack' | 'overdue' | 'zero';
+type Profile = 'complete' | 'ontrack' | 'overdue' | 'zero' | 'nearterm';
 
 async function makeChild(facilityId: Id, caregiverId: Id, profile: Profile, name: string) {
-  const ageMonths = profile === 'complete' ? 30 : profile === 'ontrack' ? 6 : profile === 'overdue' ? 13 : 1.5;
+  // 'nearterm' = a ~6-week-old, birth doses given, whose infant-series doses
+  // fall due within the next weeks — real upcoming demand for the §18 plan.
+  const ageMonths = profile === 'complete' ? 30 : profile === 'ontrack' ? 6 : profile === 'overdue' ? 13 : profile === 'nearterm' ? 1.3 : 1.5;
   const dob = new Date(now - ageMonths * 30.44 * DAY);
   const doses = buildDosesForChild(dob);
   for (const d of doses) {
     if (d.dueDate.getTime() >= now) continue;
-    if (profile === 'complete' || profile === 'ontrack') d.administeredDate = new Date(d.dueDate.getTime() + 2 * DAY);
+    if (profile === 'complete' || profile === 'ontrack' || profile === 'nearterm') d.administeredDate = new Date(d.dueDate.getTime() + 2 * DAY);
     else if (profile === 'overdue' && Math.random() < 0.5) d.administeredDate = new Date(d.dueDate.getTime() + 2 * DAY);
     // 'zero' → nothing administered
   }
@@ -64,19 +66,19 @@ async function main() {
     username: 'admin', passwordHash: await hashPassword('admin-demo-pass'), fullName: 'Command Admin', role: 'admin'
   });
 
-  // FCT — healthy (green): two facilities, both strong.
+  // FCT — healthy (green): two facilities, both strong. nearterm = upcoming demand.
   const fctChildren = [
-    ...await seedFacility('FCT', 'AMAC', 'Wuse', 'Wuse PHC', { complete: 10, ontrack: 5 }),
-    ...await seedFacility('FCT', 'Bwari', 'Kubwa', 'Kubwa PHC', { complete: 6, ontrack: 4 })
+    ...await seedFacility('FCT', 'AMAC', 'Wuse', 'Wuse PHC', { complete: 10, ontrack: 5, nearterm: 12 }),
+    ...await seedFacility('FCT', 'Bwari', 'Kubwa', 'Kubwa PHC', { complete: 6, ontrack: 4, nearterm: 8 })
   ];
 
   // Lagos — watch (amber): one solid, one slipping.
-  await seedFacility('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 7, ontrack: 4 });
-  await seedFacility('Lagos', 'Eti-Osa', 'Lekki', 'Lekki PHC', { complete: 3, ontrack: 2, overdue: 3 });
+  await seedFacility('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 7, ontrack: 4, nearterm: 10 });
+  await seedFacility('Lagos', 'Eti-Osa', 'Lekki', 'Lekki PHC', { complete: 3, ontrack: 2, overdue: 3, nearterm: 6 });
 
   // Kano — priority (red): the worst LGA (Dala) should surface first when drilling.
-  await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3 });
-  await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5 });
+  await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3, nearterm: 7 });
+  await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5, nearterm: 5 });
 
   // A suspicious recording burst so the §17 Integrity panel has a live example:
   // one worker "recording" ~30 doses within a few minutes (impossible throughput).

@@ -41,6 +41,14 @@ interface Milestones { registered: number; birth: number; foundation: number; he
 interface FraudAlerts { count: number; alerts: Array<{ kind: string; worker: string; role: string; count: number; detail: string; at: string }>; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
+interface SupplyPlan {
+  scope: string; breakdownBy: string; horizonWeeks: number; totalDoses: number;
+  coldChain: { doses: number; litres: number };
+  staffing: { vaccinatorDays: number; vaccinatorsNeeded: number };
+  deployment: Array<{ area: string; dueCount: number; coldChainLitres: number; vaccinatorsNeeded: number }>;
+  outreach: { overdue: number; zeroDose: number };
+  assumptions: { coldChainCm3PerDose: number; dosesPerVaccinatorPerDay: number; workingDaysPerWeek: number };
+}
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
 interface Activity { events: Array<{ kind: string; label: string; detail: string; at: string }>; }
 interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
@@ -72,6 +80,7 @@ export function Dashboard() {
   const summary = useGet<Summary>(`/api/dashboard/summary${qs(filter)}`);
   const trend = useGet<Trend>('/api/dashboard/trend?weeks=8');
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${filter.state ? `&state=${encodeURIComponent(filter.state)}` : ''}`);
+  const supply = useGet<SupplyPlan>(`/api/dashboard/supply-plan?weeks=4${qs(filter).replace('?', '&')}`);
   const outliers = useGet<Outliers>('/api/dashboard/outliers');
   const activity = useGet<Activity>('/api/dashboard/activity');
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
@@ -301,6 +310,39 @@ export function Dashboard() {
           )}
         </section>
       </div>
+
+      {/* Supply & deployment plan — turns forecast demand into cold-chain, staffing, deployment */}
+      <section className="card panel">
+        <div className="panel-head">
+          <h2>Supply &amp; deployment plan</h2>
+          <span className="eyebrow">next 4 weeks · {summary.data.scope.label}</span>
+        </div>
+        {!supply.data ? <Loading /> : supply.data.totalDoses === 0 ? (
+          <Empty>No doses fall due in this window.</Empty>
+        ) : (
+          <>
+            <div className="plan-tiles">
+              <div className="plan-tile"><span className="plan-tile-v mono">{fmt(supply.data.totalDoses)}</span><span className="plan-tile-l">Doses due</span></div>
+              <div className="plan-tile"><span className="plan-tile-v mono">{supply.data.coldChain.litres} L</span><span className="plan-tile-l">Cold-chain volume</span></div>
+              <div className="plan-tile"><span className="plan-tile-v mono">{fmt(supply.data.staffing.vaccinatorsNeeded)}</span><span className="plan-tile-l">Vaccinators · {fmt(supply.data.staffing.vaccinatorDays)} vaccinator-days</span></div>
+              <div className="plan-tile down"><span className="plan-tile-v mono">{fmt(supply.data.outreach.overdue + supply.data.outreach.zeroDose)}</span><span className="plan-tile-l">Need outreach · {fmt(supply.data.outreach.overdue)} overdue, {fmt(supply.data.outreach.zeroDose)} zero-dose</span></div>
+            </div>
+            <div className="cbs-scroll">
+              <table className="cbs">
+                <thead><tr><th>Deploy to · {LEVEL_LABEL[supply.data.breakdownBy] ?? supply.data.breakdownBy}</th><th className="num">Doses</th><th className="num">Cold-chain (L)</th><th className="num">Vaccinators</th></tr></thead>
+                <tbody>
+                  {supply.data.deployment.map((a) => (
+                    <tr key={a.area}><td className="cbs-state">{a.area}</td><td className="num mono">{fmt(a.dueCount)}</td><td className="num mono">{a.coldChainLitres}</td><td className="num mono">{fmt(a.vaccinatorsNeeded)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="plan-note muted">
+              Planning estimate — {supply.data.assumptions.coldChainCm3PerDose} cm³/dose cold-chain · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Not a clinical figure.
+            </div>
+          </>
+        )}
+      </section>
 
       {/* Recovery call list — closes the loop from the worst facility to action */}
       {filter.ward && (

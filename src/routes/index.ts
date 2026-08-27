@@ -20,7 +20,7 @@ import { familyJourney } from '../controllers/family.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
-import { getSummary, getStockForecast, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones } from '../controllers/dashboard.controller';
+import { getSummary, getStockForecast, getSupplyPlan, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
 import { getRecovery } from '../controllers/recovery.controller';
 import { getIntegrityAlerts } from '../controllers/fraud.controller';
@@ -99,6 +99,7 @@ apiRouter.get('/api/children/:chin/access-log', requireRole('admin'), asyncHandl
 // child data — only counts and rates.
 apiRouter.get('/api/dashboard/summary', requireRole('admin'), asyncHandler(getSummary));
 apiRouter.get('/api/dashboard/stock-forecast', requireRole('admin'), asyncHandler(getStockForecast));
+apiRouter.get('/api/dashboard/supply-plan', requireRole('admin'), asyncHandler(getSupplyPlan));
 apiRouter.get('/api/dashboard/trend', requireRole('admin'), asyncHandler(getTrend));
 apiRouter.get('/api/dashboard/outliers', requireRole('admin'), asyncHandler(getOutliers));
 apiRouter.get('/api/dashboard/activity', requireRole('admin'), asyncHandler(getActivity));
