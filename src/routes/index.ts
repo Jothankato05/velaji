@@ -13,6 +13,8 @@ import {
   getCard,
   getCertificate,
   getJourney,
+  getWallet,
+  addWalletRecord,
   recordHandoff
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
@@ -84,6 +86,8 @@ apiRouter.post('/api/children/:chin/doses', ...childRecord, asyncHandler(recordD
 apiRouter.get('/api/children/:chin/card.svg', ...childRecord, asyncHandler(getCard));
 apiRouter.get('/api/children/:chin/certificate', ...childRecord, asyncHandler(getCertificate));
 apiRouter.get('/api/children/:chin/journey', ...childRecord, asyncHandler(getJourney));
+apiRouter.get('/api/children/:chin/wallet', ...childRecord, asyncHandler(getWallet));
+apiRouter.post('/api/children/:chin/wallet', ...childRecord, asyncHandler(addWalletRecord));
 apiRouter.post('/api/children/:chin/handoff', ...childRecord, asyncHandler(recordHandoff));
 apiRouter.get('/api/children/:chin/reminders', ...childRecord, asyncHandler(getChildReminderLog));
 

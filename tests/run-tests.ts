@@ -994,6 +994,40 @@ test('staged milestones (§14): birth badge earned, foundation is the next rewar
   assert(nextMilestone(allDone) === null, 'a complete schedule has no next reward');
 });
 
+test('§21 Child Health Wallet: staff add records beyond immunisation; parent sees them; verifier denied', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Wallet Carer', phone: '+2348013335555' });
+  const dob = new Date(NOON.getTime() - 60 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Wallet Child', sex: 'female', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  const wchin = reg.body.chin;
+
+  // Empty wallet at first.
+  const empty = await jsonAs(staffToken, 'GET', `/api/children/${encodeURIComponent(wchin)}/wallet`);
+  assert(empty.status === 200 && Array.isArray(empty.body.records) && empty.body.records.length === 0, 'a new child has an empty wallet');
+
+  // Add a growth record (staff).
+  const add = await jsonAs(staffToken, 'POST', `/api/children/${encodeURIComponent(wchin)}/wallet`, { domain: 'growth', title: 'Weight-for-age', value: '6.1 kg · on track' });
+  assert(add.status === 201, `expected 201, got ${add.status}: ${JSON.stringify(add.body)}`);
+  assert(add.body.domainLabel === 'Growth monitoring' && add.body.value === '6.1 kg · on track', 'the record carries a domain label and value');
+
+  // An unrecognised domain is rejected.
+  const bad = await jsonAs(staffToken, 'POST', `/api/children/${encodeURIComponent(wchin)}/wallet`, { domain: 'astrology', title: 'x', value: 'y' });
+  assert(bad.status === 400, `an unknown domain must be rejected, got ${bad.status}`);
+
+  // A verifier may not read or write the wallet (child record, staff/admin only).
+  const vGet = await jsonAs(verifierToken, 'GET', `/api/children/${encodeURIComponent(wchin)}/wallet`);
+  assert(vGet.status === 403, `a verifier must not read the wallet, got ${vGet.status}`);
+
+  // The parent sees the wallet through their card (MyChild).
+  const token = signChin(wchin);
+  const fam = await json('GET', `/api/family/${encodeURIComponent(wchin)}?t=${encodeURIComponent(token)}`, undefined, { auth: false });
+  assert(fam.status === 200 && Array.isArray(fam.body.healthRecords), 'the family view carries the health record');
+  assert(fam.body.healthRecords.some((r: any) => r.domain === 'growth' && r.title === 'Weight-for-age'), 'the parent sees the growth record');
+
+  await ChildModel.updateOne({ chin: wchin }, { completedAt: NOON });
+});
+
 test('§8 USSD: a basic-phone caregiver gets status, next vaccine and rewards by phone number', async () => {
   const phone = '+2348012349999';
   const cg = await json('POST', '/api/caregivers', { fullName: 'USSD Carer', phone });

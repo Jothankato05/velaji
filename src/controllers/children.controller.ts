@@ -10,6 +10,7 @@ import { generatePrintableCardSvg } from '../services/card.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
 import { autoResolveForDose } from '../services/escalation.service';
 import { recordAdministration } from '../services/fraud.service';
+import { addHealthRecord, getHealthRecords, isHealthDomain } from '../services/wallet.service';
 import { AppError } from '../utils/AppError';
 
 async function findChildOr404(chinParam: string | string[]) {
@@ -203,6 +204,27 @@ export async function getJourney(req: Request, res: Response) {
       : null,
     doses
   });
+}
+
+/** Child Health Wallet (NCIHAP §21): the child's non-immunisation health
+ *  records — growth, Vitamin A, nutrition, development, referrals, labs, … */
+export async function getWallet(req: Request, res: Response) {
+  const child = await findChildOr404(req.params.chin);
+  res.json({ chin: child.chin, records: await getHealthRecords(child.chin) });
+}
+
+export async function addWalletRecord(req: Request, res: Response) {
+  const child = await findChildOr404(req.params.chin);
+  const { domain, title, value, note, facilityId } = req.body ?? {};
+  if (!isHealthDomain(domain)) throw new AppError('domain must be a recognised health-wallet domain');
+  if (!title || !value) throw new AppError('title and value are required');
+
+  const record = await addHealthRecord(
+    child,
+    { domain, title: String(title), value: String(value), note: note ? String(note) : undefined, facilityId },
+    { username: req.user?.username ?? 'unknown', role: req.user?.role ?? 'system' }
+  );
+  res.status(201).json(record);
 }
 
 export async function recordHandoff(req: Request, res: Response) {
