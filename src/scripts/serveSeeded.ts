@@ -92,9 +92,13 @@ async function main() {
   }
   await DoseAdministrationModel.insertMany(burst);
 
-  // One named MyChild card (in FCT), reusing an on-track child.
+  // One named MyChild card (in FCT), reusing an on-track child. Give it a
+  // dedicated caregiver with a distinct phone so the USSD demo maps that number
+  // to exactly this one child.
   const cardChild = fctChildren.find((c) => c.doses.some((d) => !d.administeredDate)) ?? fctChildren[0];
-  await ChildModel.updateOne({ _id: cardChild._id }, { fullName: 'Zara Bello' });
+  const ussdPhone = '+2348010000001';
+  const ussdCaregiver = await CaregiverModel.create({ fullName: 'Aisha Bello', phone: ussdPhone });
+  await ChildModel.updateOne({ _id: cardChild._id }, { fullName: 'Zara Bello', caregiverId: ussdCaregiver._id });
   const token = signChin(cardChild.chin);
 
   app.listen(env.PORT, () => {
@@ -104,6 +108,8 @@ async function main() {
     console.log('ADMIN_LOGIN=admin / admin-demo-pass');
     // eslint-disable-next-line no-console
     console.log(`CARD_LINK=${env.APP_BASE_URL}/mychild/${cardChild.chin}?t=${token}`);
+    // eslint-disable-next-line no-console
+    console.log(`USSD_PHONE=${ussdPhone}`);
   });
 }
 

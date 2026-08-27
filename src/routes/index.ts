@@ -17,6 +17,7 @@ import {
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
 import { familyJourney } from '../controllers/family.controller';
+import { handleUssdWebhook } from '../controllers/ussd.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
 import { getEscalations, postResolveEscalation } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
@@ -52,6 +53,11 @@ apiRouter.get('/api/verify/:chin', cardLimiter, asyncHandler(verifyChin));
 // MyChild family app — the parent's own view, reached with their card
 // (CHIN + signed token). Public like verify; the card is the key.
 apiRouter.get('/api/family/:chin', cardLimiter, asyncHandler(familyJourney));
+
+// USSD access (NCIHAP §8): a basic-phone caregiver dials a short code; the
+// telecom gateway POSTs the session here. Public — the gateway is the caller
+// and provides the phone number; there is no bearer token.
+apiRouter.post('/webhooks/ussd', cardLimiter, asyncHandler(handleUssdWebhook));
 
 // --- Everything below requires a staff bearer token. ---
 apiRouter.use(requireAuth);

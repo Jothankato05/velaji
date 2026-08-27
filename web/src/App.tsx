@@ -7,6 +7,7 @@ import { PointOfCare } from './screens/PointOfCare';
 import { Register } from './screens/Register';
 import { Escalations } from './screens/Escalations';
 import { Terminal } from './screens/Terminal';
+import { UssdSim } from './screens/UssdSim';
 import { MyChildApp } from './mychild/MyChildApp';
 import type { ReactNode } from 'react';
 
@@ -46,6 +47,7 @@ export function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/terminal" element={<Terminal />} />
                 <Route path="/escalations" element={<Escalations />} />
+                <Route path="/ussd" element={<UssdSim />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AppShell>

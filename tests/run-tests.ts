@@ -994,6 +994,34 @@ test('staged milestones (§14): birth badge earned, foundation is the next rewar
   assert(nextMilestone(allDone) === null, 'a complete schedule has no next reward');
 });
 
+test('§8 USSD: a basic-phone caregiver gets status, next vaccine and rewards by phone number', async () => {
+  const phone = '+2348012349999';
+  const cg = await json('POST', '/api/caregivers', { fullName: 'USSD Carer', phone });
+  const dob = new Date(NOON.getTime() - 30 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Ussd Child', sex: 'female', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId
+  });
+  assert(reg.status === 201, `expected child, got ${reg.status}`);
+
+  // The USSD gateway posts to a public webhook; the phone number identifies the caller.
+  const menu = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '' }, { auth: false });
+  assert(menu.status === 200, `expected 200, got ${menu.status}`);
+  assert(typeof menu.body === 'string' && menu.body.startsWith('CON'), `main screen must keep the session open, got: ${menu.body}`);
+  assert(/1\. Next vaccine/.test(menu.body) && /Ussd/.test(menu.body), `menu must name the child and options: ${menu.body}`);
+
+  const next = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '1' }, { auth: false });
+  assert(next.body.startsWith('END'), 'the next-vaccine screen closes the session');
+  assert(/Next for/.test(next.body) && /At /.test(next.body), `next vaccine screen must name the vaccine and facility: ${next.body}`);
+
+  const rewards = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '2' }, { auth: false });
+  assert(rewards.body.startsWith('END') && /reward/i.test(rewards.body), `rewards screen wrong: ${rewards.body}`);
+
+  const unknown = await json('POST', '/webhooks/ussd', { phoneNumber: '+2340000000000', text: '' }, { auth: false });
+  assert(unknown.body.startsWith('END') && /No child is registered/.test(unknown.body), `unknown number must be told to register: ${unknown.body}`);
+
+  await ChildModel.updateOne({ chin: reg.body.chin }, { completedAt: NOON });
+});
+
 test('the family view carries the staged rewards and the next reward', async () => {
   const cg = await json('POST', '/api/caregivers', { fullName: 'Reward Carer', phone: '+2348079998888' });
   const dob = new Date(NOON.getTime() - 40 * DAY).toISOString().slice(0, 10); // ~40-day-old
