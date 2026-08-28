@@ -59,7 +59,7 @@ export function Escalations() {
         <div className="eyebrow">Continued default · NCIHAP §7</div>
         <h1>Follow-up queue</h1>
         <p className="muted page-sub">
-          Children the reminder engine has handed to a human — the caregiver isn't
+          Children the reminder engine has handed to a human. The caregiver isn't
           responding, or there's no way to reach them. Go trace the family.
         </p>
       </div>
@@ -91,9 +91,9 @@ export function Escalations() {
                 </span>
                 <span>{e.vaccine}</span>
                 <span className="esc-reason">{tab === 'resolved' && e.barrierLabel ? e.barrierLabel : e.reasonLabel}</span>
-                <span className="mono">{e.daysOverdue != null ? `${e.daysOverdue}d` : '—'}</span>
+                <span className="mono">{e.daysOverdue != null ? `${e.daysOverdue}d` : '-'}</span>
                 <span className="esc-contact">
-                  {e.caregiverName ?? '—'}
+                  {e.caregiverName ?? '-'}
                   {e.caregiverPhone && <div className="mono muted">{e.caregiverPhone}</div>}
                 </span>
                 <span className="esc-action">

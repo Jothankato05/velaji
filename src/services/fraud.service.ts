@@ -91,7 +91,7 @@ export async function detectIntegrityAlerts(now: Date = new Date(), lookbackDays
         worker,
         role: w.role,
         count: peak,
-        detail: `${peak} doses recorded within ${VELOCITY_WINDOW_MINUTES} minutes — above the ${VELOCITY_MAX_IN_WINDOW} plausible-throughput threshold`,
+        detail: `${peak} doses recorded within ${VELOCITY_WINDOW_MINUTES} minutes, above the ${VELOCITY_MAX_IN_WINDOW} plausible-throughput threshold`,
         at: (peakAt ?? now).toISOString()
       });
     }
@@ -101,7 +101,7 @@ export async function detectIntegrityAlerts(now: Date = new Date(), lookbackDays
         worker,
         role: w.role,
         count: w.duplicates,
-        detail: `${w.duplicates} duplicate-dose attempts — the same dose recorded again after it was already given`,
+        detail: `${w.duplicates} duplicate-dose attempts: the same dose recorded again after it was already given`,
         at: now.toISOString()
       });
     }

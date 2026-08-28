@@ -17,10 +17,10 @@ async function bootstrap() {
       const { seedDemoData } = await import('./scripts/demoSeed');
       const { cardChin, ussdPhone } = await seedDemoData();
       // eslint-disable-next-line no-console
-      console.log(`[demo] seeded — card CHIN ${cardChin}, USSD ${ussdPhone}`);
+      console.log(`[demo] seeded: card CHIN ${cardChin}, USSD ${ussdPhone}`);
     } else {
       // eslint-disable-next-line no-console
-      console.log(`[demo] skipped — database already holds ${existing} children`);
+      console.log(`[demo] skipped: database already holds ${existing} children`);
     }
   }
 

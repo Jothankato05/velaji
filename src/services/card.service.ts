@@ -36,7 +36,7 @@ export async function generatePrintableCardSvg(input: {
   // A guardian name/phone is basic ID + contact, not sensitive medical data —
   // so it stays consistent with NCIHAP §5 (nothing medical printed openly; the
   // QR still retrieves the vaccination schedule from the registry).
-  const parent = input.caregiverName ? escapeXml(input.caregiverName) : '—';
+  const parent = input.caregiverName ? escapeXml(input.caregiverName) : '-';
   const parentPhone = input.caregiverPhone ? escapeXml(input.caregiverPhone) : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="410" viewBox="0 0 640 410">

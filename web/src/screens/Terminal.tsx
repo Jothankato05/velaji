@@ -75,7 +75,7 @@ export function Terminal() {
               <div><dt>Child</dt><dd>{r.childName}</dd></div>
               <div><dt>CHIN</dt><dd className="mono">{r.chin}</dd></div>
               {r.nextDue && (
-                <div><dt>Next due</dt><dd>{r.nextDue.vaccine} — {String(r.nextDue.dueDate).slice(0, 10)}</dd></div>
+                <div><dt>Next due</dt><dd>{r.nextDue.vaccine}, due {String(r.nextDue.dueDate).slice(0, 10)}</dd></div>
               )}
               {r.dateOfBirth && <div><dt>Date of birth</dt><dd>{String(r.dateOfBirth).slice(0, 10)}</dd></div>}
               {r.currentFacility && <div><dt>Facility</dt><dd>{r.currentFacility}</dd></div>}

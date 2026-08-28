@@ -75,7 +75,7 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
   // Child main menu.
   if (!menuStep) {
     return {
-      message: `${first} — ${statusHeadline(status)}\n1. Next vaccine\n2. Reward status\n0. Exit`,
+      message: `${first}: ${statusHeadline(status)}\n1. Next vaccine\n2. Reward status\n0. Exit`,
       continue: true
     };
   }

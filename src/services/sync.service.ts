@@ -104,7 +104,7 @@ async function applyRecordDose(tx: IncomingTx): Promise<TxResult> {
     }
     child.needsReconciliation = true;
     await child.save();
-    return { result: 'conflict', chin, detail: 'dose recorded by another source — flagged for reconciliation (GREY)' };
+    return { result: 'conflict', chin, detail: 'dose recorded by another source, flagged for reconciliation (GREY)' };
   }
 
   dose.administeredDate = recordedAt;
