@@ -29,3 +29,14 @@
   .login-brand { padding: 40px 28px; }
   .login-brand h1 { font-size: 34px; }
 }
+
+/* Demo-instance notice: present only when the build carries demo credentials. */
+.banner.demo-note {
+  background: rgba(15, 92, 87, .08);
+  border: 1px solid rgba(15, 92, 87, .28);
+  border-left: 3px solid #0F5C57;
+  color: inherit;
+  font-size: .84rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
