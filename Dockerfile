@@ -1,16 +1,23 @@
-# NCIHAP API — production image (the backend only; the web/ SPA deploys
-# separately as static assets).
+# Velaji — production image. Builds the API and the web SPA, then serves both
+# from one origin: the SPA at /, the API at /api. One URL, no CORS to configure.
 #
-# Multi-stage: build with the full toolchain, then ship a lean runtime with
-# production dependencies only.
+# Multi-stage: full toolchain in the build stages, lean runtime at the end.
 
-# ---- build ----
-FROM node:20-slim AS build
+# ---- build the API ----
+FROM node:20-slim AS api-build
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
+RUN npm run build
+
+# ---- build the web SPA ----
+FROM node:20-slim AS web-build
+WORKDIR /web
+COPY web/package.json web/package-lock.json* ./
+RUN npm ci
+COPY web/ ./
 RUN npm run build
 
 # ---- runtime ----
@@ -21,7 +28,9 @@ COPY package.json package-lock.json* ./
 # Omit dev deps (typescript, tsx, mongodb-memory-server) — production connects
 # to a real MONGODB_URI and runs the compiled JS.
 RUN npm ci --omit=dev && npm cache clean --force
-COPY --from=build /app/dist ./dist
+COPY --from=api-build /app/dist ./dist
+# app.ts looks for ../web-dist relative to dist/, i.e. /app/web-dist.
+COPY --from=web-build /web/dist ./web-dist
 
 # Run as the non-root user the base image already provides.
 USER node
