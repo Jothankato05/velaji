@@ -32,6 +32,12 @@ const webDist = path.resolve(__dirname, '../web-dist');
 if (fs.existsSync(webDist)) {
   // Real built files first: /assets/*.js, /assets/*.css, favicon, and so on.
   app.use(express.static(webDist, { index: false, maxAge: '1h' }));
+  // The pitch deck is a standalone static page, not part of the SPA, so it gets
+  // an explicit route ahead of the fallback — otherwise /deck would be handed to
+  // React, which has no such route. /deck.html works via express.static above;
+  // this just gives it the tidier URL.
+  app.get('/deck', (_req, res) => res.sendFile(path.join(webDist, 'deck.html')));
+
   // Then the SPA fallback, so client-side routes (/, /dashboard,
   // /mychild/:chin) survive a hard refresh or a link opened cold.
   app.get(/^\/(?!api\/|webhooks\/|health$|ready$).*/, (_req, res) => {

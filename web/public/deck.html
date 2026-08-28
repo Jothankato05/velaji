@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Velaji — the child identity-and-entitlement rail. Pitch deck by Team Primers for Hackaholics 7.0.">
+<title>Velaji — Pitch Deck · Team Primers</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap">
+
+</head>
+<body>
+<style>
+  /* Template ported from the Team SafeCare / ImmuniReach deck: white ground with
+     a pale blue corner glow, Poppins throughout, blue rule under a blue heading,
+     paired pale/blue cards with pill badges, italic pull-line, and a footer
+     carrying sources left and deck mark right. Single committed light theme —
+     every colour is painted explicitly so it holds on any host background. */
+  :root {
+    /* Brand blue sampled from the Primers logo (#406AFF), with tints derived
+       from it. The layout template is Team SafeCare's; the colour is ours. */
+    --blue:      #406AFF;
+    --blue-deep: #2B4FD6;
+    --blue-panel:#406AFF;
+    --pill-bg:   #E3E8FF;
+    --pill-ink:  #2B4FD6;
+    --ink:       #0E1B2A;
+    --body:      #46586B;
+    --muted:     #7A8A99;
+    --rule:      #DEE4E9;
+    --card:      #F7F9FB;
+    --card-line: #E6EBEF;
+    --tint:      #E8EDFF;
+    --tint-line: #C6D1FF;
+    --white:     #FFFFFF;
+    --good:      #12805C;
+    --warn:      #B4451F;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #E9EDF1;
+    color: var(--ink);
+    font-family: Poppins, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh;
+  }
+
+  .deck { padding: 1.4rem 1rem 3rem; }
+
+  .slide {
+    position: relative;
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto 1.4rem;
+    /* 16:9, clipped. Because overflow:hidden hides a spill silently, every slide
+       is kept with visible headroom rather than fitted exactly — text metrics
+       shift with device pixel ratio and an exact fit turns into a lost sentence. */
+    aspect-ratio: 16 / 9;
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(14,27,42,.06), 0 18px 40px -28px rgba(14,27,42,.45);
+    overflow: hidden;
+    scroll-snap-align: center;
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    padding: 4.7cqw 5cqw 3.2cqw;
+  }
+  /* The pale blue glow in the top-right corner of every template slide. */
+  .slide::after {
+    content: "";
+    position: absolute; top: 0; right: 0; width: 34%; height: 46%;
+    background: radial-gradient(120% 120% at 100% 0%, rgba(64,106,255,.10), rgba(64,106,255,0) 70%);
+    pointer-events: none;
+  }
+
+  /* ---------- shared type ---------- */
+  .pill {
+    display: inline-block; background: var(--pill-bg); color: var(--pill-ink);
+    font-size: 1.32cqw; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    padding: .75em 1.3em; border-radius: 6px;
+  }
+  .pill.solid { background: var(--blue); color: var(--white); }
+
+  h1 { font-size: 7.4cqw; font-weight: 700; letter-spacing: -.03em; line-height: 1; margin: 3cqw 0 0; }
+  h2 {
+    font-size: 3.3cqw; font-weight: 700; color: var(--blue);
+    letter-spacing: -.02em; line-height: 1.08; margin: 0 0 1.3cqw;
+    padding-bottom: 1.2cqw; border-bottom: 1px solid var(--rule);
+    text-wrap: balance;
+  }
+  .sub { font-style: italic; color: var(--muted); font-size: 1.74cqw; margin: 0 0 1.7cqw; }
+  p { color: var(--body); font-size: 1.66cqw; line-height: 1.5; margin: 0 0 1cqw; }
+  strong { color: var(--ink); font-weight: 600; }
+  .accent { color: var(--blue); }
+
+  .rule-short { width: 7cqw; height: .55cqw; background: var(--blue); border-radius: 2px; margin: 3cqw 0; }
+
+  .foot {
+    margin-top: auto; padding-top: 1.4cqw;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 2cqw;
+  }
+  .foot .src { font-style: italic; color: var(--muted); font-size: 1.16cqw; line-height: 1.5; max-width: 74%; }
+  .foot .mark { color: var(--muted); font-size: 1.24cqw; white-space: nowrap; }
+
+  /* ---------- title slide ---------- */
+  .title-slide { flex-direction: row; align-items: center; gap: 4cqw; }
+  .title-left { flex: 1 1 58%; }
+  .title-right {
+    flex: 0 0 32%; aspect-ratio: 1; border-radius: 8px;
+    background: linear-gradient(160deg, #F4F6FF, #E7ECFF);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4cqw;
+  }
+  .title-right img { width: 46%; height: auto; display: block; }
+  .title-sub { font-size: 2.15cqw; color: var(--body); line-height: 1.5; margin: 2.4cqw 0 0; max-width: 26em; }
+  .title-meta { font-size: 1.42cqw; color: var(--muted); }
+
+  /* ---------- cards ---------- */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2cqw; }
+  .cards.three { grid-template-columns: repeat(3, 1fr); }
+  .card {
+    background: var(--card); border: 1px solid var(--card-line);
+    border-radius: 8px; padding: 1.9cqw 1.9cqw 1.7cqw;
+  }
+  .card.tint { background: var(--tint); border-color: var(--tint-line); }
+  .card h3 { font-size: 1.95cqw; font-weight: 600; color: var(--ink); margin: 1.3cqw 0 1cqw; line-height: 1.25; }
+  .card p { font-size: 1.46cqw; margin-bottom: .6cqw; }
+  .card ul { margin: 0; padding: 0; list-style: none; }
+  .card li {
+    position: relative; padding-left: 1.7cqw; margin-bottom: .75cqw;
+    color: var(--body); font-size: 1.5cqw; line-height: 1.5;
+  }
+  .card li::before { content: "•"; position: absolute; left: 0; color: var(--muted); }
+  .card li:last-child { margin-bottom: 0; }
+
+  /* ---------- stat band ---------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(14cqw, 1fr)); gap: 1.8cqw; margin: .5cqw 0 1.6cqw; }
+  .stat b { display: block; font-size: 4cqw; font-weight: 700; color: var(--blue); line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .stat.bad b { color: var(--warn); }
+  .stat.good b { color: var(--good); }
+  .stat span { display: block; font-size: 1.32cqw; color: var(--body); margin-top: .7cqw; line-height: 1.4; }
+
+  /* ---------- pull line ---------- */
+  .pull { font-style: italic; color: var(--ink); font-size: 1.66cqw; line-height: 1.42; margin: 1.3cqw 0 0; }
+
+  /* ---------- flow ---------- */
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: .7cqw; margin: 1cqw 0 1.5cqw; }
+  .flow .step {
+    background: var(--card); border: 1px solid var(--card-line); border-radius: 6px;
+    padding: .8cqw 1.1cqw; font-size: 1.34cqw; color: var(--ink); font-weight: 500;
+  }
+  .flow .step.end { background: var(--tint); border-color: var(--tint-line); color: var(--blue-deep); font-weight: 600; }
+  .flow .arw { color: var(--muted); font-size: 1.4cqw; }
+
+  /* ---------- comparison table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 1.36cqw; }
+  thead th {
+    background: var(--blue); color: var(--white); font-weight: 600; text-align: left;
+    padding: .95cqw 1.2cqw; font-size: 1.36cqw;
+  }
+  thead th.us { background: var(--blue-deep); }
+  tbody td { padding: .82cqw 1.2cqw; border-bottom: 1px solid var(--rule); color: var(--body); }
+  tbody tr:nth-child(even) td { background: #F7F8FC; }
+  tbody td.us { background: #EEF1FF; color: var(--ink); font-weight: 500; }
+  tbody td:first-child { color: var(--ink); }
+
+  /* ---------- team ---------- */
+  .team { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.6cqw; margin-top: 1cqw; }
+  .member {
+    background: var(--card); border: 1px solid var(--card-line); border-radius: 8px;
+    padding: 2cqw 1.5cqw; text-align: center;
+  }
+  .member .mono {
+    width: 6.2cqw; height: 6.2cqw; margin: 0 auto 1.4cqw; border-radius: 50%;
+    background: var(--tint); color: var(--blue-deep);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2cqw; font-weight: 700; letter-spacing: -.02em;
+  }
+  .member .name { font-size: 1.48cqw; font-weight: 600; color: var(--ink); line-height: 1.3; }
+  .member .role { font-size: 1.24cqw; color: var(--body); line-height: 1.4; margin-top: .7cqw; }
+  .member.lead { background: var(--tint); border-color: var(--tint-line); }
+  .member.lead .mono { background: var(--blue); color: var(--white); }
+
+  /* ---------- closing panel ---------- */
+  .closing { justify-content: center; }
+  .panel {
+    background: var(--blue-panel); border-radius: 10px; color: var(--white);
+    padding: 4.5cqw 4.5cqw; display: flex; gap: 4cqw; align-items: center;
+  }
+  .panel-main { flex: 1 1 auto; }
+  .panel h2 { color: var(--white); border: none; padding: 0; margin: 0; font-size: 3.9cqw; line-height: 1.14; }
+  .panel .rule-short { background: var(--white); margin: 2.6cqw 0; }
+  .panel p { color: rgba(255,255,255,.92); font-size: 1.72cqw; margin: 0; }
+  .panel-glyph {
+    flex: 0 0 20%; aspect-ratio: 1; background: var(--white); border-radius: 8px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8cqw;
+  }
+  .panel-glyph img { width: 44%; height: auto; display: block; }
+  .closing-foot { margin-top: 2.6cqw; color: var(--muted); font-size: 1.42cqw; }
+
+
+  /* ---------- print / save-as-PDF ---------- */
+  @media print {
+    /* 16:9 landscape page so a slide fills it edge to edge. */
+    @page { size: 297mm 167mm; margin: 0; }
+    html, body { height: auto; background: var(--white); overflow: visible; }
+    body { scroll-snap-type: none; }
+    .deck { padding: 0; }
+    .slide {
+      width: 100%; max-width: none; margin: 0; border-radius: 0;
+      box-shadow: none; break-after: page; page-break-after: always;
+      /* Without this the blue panels and tinted cards print as white. */
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .hint, .toolbar { display: none !important; }
+  }
+  /* Backgrounds must survive the print pipeline everywhere they carry meaning. */
+  .panel, .card, .pill, thead th, tbody td.us, .member .mono, .stat b, .title-right {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    position: fixed; right: 1rem; bottom: 1rem; z-index: 30;
+    display: flex; gap: .5rem;
+  }
+  .toolbar button {
+    font-family: Poppins, sans-serif; font-size: .78rem; font-weight: 600;
+    color: var(--white); background: var(--blue); border: none;
+    padding: .62rem 1.05rem; border-radius: 6px; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(64,106,255,.35);
+  }
+  .toolbar button.ghost { background: var(--white); color: var(--blue-deep); border: 1px solid var(--tint-line); box-shadow: none; }
+  .toolbar button:hover { filter: brightness(1.06); }
+  .toolbar button:focus-visible { outline: 2px solid var(--blue-deep); outline-offset: 2px; }
+
+  .hint {
+    position: fixed; bottom: .9rem; left: 50%; transform: translateX(-50%);
+    font-size: .64rem; letter-spacing: .1em; color: var(--muted);
+    background: var(--white); border: 1px solid var(--rule);
+    padding: .35rem .8rem; border-radius: 99px; z-index: 20; transition: opacity .4s ease;
+  }
+  .hint.gone { opacity: 0; pointer-events: none; }
+
+  /* On narrow screens let slides grow rather than crush the type. */
+  @media (max-width: 720px) {
+    .slide { aspect-ratio: auto; min-height: 92vh; padding: 7cqw 6cqw; }
+    .cards, .cards.three { grid-template-columns: 1fr; }
+    .title-slide { flex-direction: column; align-items: flex-start; }
+    .title-right { flex: 0 0 auto; width: 46%; }
+    .panel { flex-direction: column; align-items: flex-start; }
+    .team { grid-template-columns: repeat(2, 1fr); }
+    .panel-glyph { width: 34%; flex: 0 0 auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="toolbar">
+  <button type="button" onclick="window.print()" title="Opens your browser's print dialog — choose 'Save as PDF'">Download PDF</button>
+  <button type="button" class="ghost" onclick="document.querySelector('.slide').scrollIntoView({behavior:'smooth'})">Top</button>
+</div>
+
+<div class="hint" id="hint">↓ / → to advance</div>
+
+<div class="deck">
+
+  <!-- 01 · TITLE -->
+  <section class="slide title-slide">
+    <div class="title-left">
+      <span class="pill">Team Primers</span>
+      <h1>Velaji</h1>
+      <p class="title-sub">One child. One record. Every vaccine. Everywhere.<br>
+        The card carries the schedule, so the parent does not have to.</p>
+      <div class="rule-short"></div>
+      <p class="title-meta">Hackaholics 7.0 &nbsp;·&nbsp; Healthcare track &nbsp;·&nbsp; August 2026</p>
+    </div>
+    <div class="title-right">
+      <img src="data:image/png;base64,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" alt="Primers">
+    </div>
+  </section>
+
+  <!-- 02 · PROBLEM -->
+  <section class="slide">
+    <h2>2.3 million Nigerian children have never had a single vaccine</h2>
+    <p class="sub">Second highest on earth. Most are not refusals — they are children the system lost track of.</p>
+    <div class="stats">
+      <div class="stat bad"><b>2.3M</b><span>Zero-dose children</span></div>
+      <div class="stat bad"><b>57%</b><span>Penta3 coverage, national</span></div>
+      <div class="stat bad"><b>18%</b><span>Children with no vaccine at all</span></div>
+      <div class="stat bad"><b>43,700</b><span>Diphtheria cases, 2022–25</span></div>
+    </div>
+    <p>A family moves. A paper card is lost. At that moment nobody — not the mother, not the next clinic she walks into — knows which vaccine that child is owed.</p>
+    <div class="foot">
+      <span class="src">Sources: WHO / UNICEF WUENIC 2024; MICS / NICS 2021 (National Bureau of Statistics &amp; UNICEF); NCDC diphtheria situation reports, 2022–2025.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 02</span>
+    </div>
+  </section>
+
+  <!-- 03 · THE OVERLAP -->
+  <section class="slide">
+    <h2>Where Nigeria fails to vaccinate, it also fails to register</h2>
+    <p class="sub">Two national failures, one child. They share a cause.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="pill">Lowest birth registration</span>
+        <h3>They are never written down</h3>
+        <ul>
+          <li>Sokoto <strong>22.5%</strong> &nbsp;·&nbsp; Jigawa <strong>23.6%</strong></li>
+          <li>Against Lagos <strong>93.7%</strong> and FCT <strong>87.3%</strong></li>
+          <li>Nigeria holds 11% of West Africa's unregistered children</li>
+        </ul>
+      </div>
+      <div class="card tint">
+        <span class="pill solid">Lowest immunisation</span>
+        <h3>They are never vaccinated</h3>
+        <ul>
+          <li>Sokoto <strong>11%</strong> Penta3 &nbsp;·&nbsp; Zamfara <strong>25%</strong></li>
+          <li>Against Lagos <strong>85%</strong> and FCT <strong>80%</strong></li>
+          <li><strong>51%</strong> of Sokoto's children have had no vaccine at all</li>
+        </ul>
+      </div>
+    </div>
+    <p class="pull">Correlation of <strong>0.70</strong> across all 37 states — <strong>eleven fall below the national average on both.</strong> A child born at home without a skilled attendant is missed by the register and missed by the cold chain on the same day: zero-dose runs at 35.4% for home deliveries against 16.7% in facilities.</p>
+    <div class="foot">
+      <span class="src">Source: MICS / NICS 2021, all 37 states, one survey. Pearson r = 0.70; twelve states break the pattern, Katsina and Bayelsa most visibly. Delivery-place figures from a six-state determinants study (n = 1,958).</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 03</span>
+    </div>
+  </section>
+
+  <!-- 04 · THE TRAP -->
+  <section class="slide">
+    <h2>The fund built for these children cannot reach them</h2>
+    <p class="sub">A consequence nobody planned, and the reason an identifier is the intervention.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="pill">The entitlement exists</span>
+        <h3>₦282.7bn, already committed</h3>
+        <ul>
+          <li>BHCPF is <strong>1% of the Consolidated Revenue Fund</strong> — ₦125.7bn in 2024, ₦282.7bn in 2025</li>
+          <li>Its Vulnerable Group Fund covers <strong>under-fives and pregnant women</strong></li>
+          <li>NHIA Act 2022 made health insurance mandatory</li>
+        </ul>
+      </div>
+      <div class="card tint">
+        <span class="pill solid">The door is shut</span>
+        <h3>Enrolment runs on the NIN</h3>
+        <ul>
+          <li>You enrol through the social register and the <strong>NIN</strong></li>
+          <li>No birth registration means <strong>no NIN</strong></li>
+          <li>So the children with the strongest claim are the ones who <strong>cannot make it</strong></li>
+        </ul>
+      </div>
+    </div>
+    <p class="pull">Nigeria is not short of money for this. What is missing is the identifier that connects a child to it.</p>
+    <div class="foot">
+      <span class="src">Sources: National Health Insurance Authority; Basic Health Care Provision Fund, NPHCDA gateway; BudgIT budget analysis, 2025.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 04</span>
+    </div>
+  </section>
+
+  <!-- 05 · SOLUTION -->
+  <section class="slide">
+    <h2>One number. One card. It works like a bank card</h2>
+    <p class="sub">The card carries the account, works at any branch, and the machine knows what to do.</p>
+    <div class="flow">
+      <span class="step">Register child</span><span class="arw">→</span>
+      <span class="step">Card prints</span><span class="arw">→</span>
+      <span class="step">Present at any facility</span><span class="arw">→</span>
+      <span class="step">System says what's next</span><span class="arw">→</span>
+      <span class="step">Dose recorded</span><span class="arw">→</span>
+      <span class="step end">NHIA coverage activates</span>
+    </div>
+    <div class="cards three">
+      <div class="card">
+        <h3>USSD access</h3>
+        <p>A short code on a feature phone. No smartphone, no app, no data — where coverage is worst, that is the phone people have.</p>
+      </div>
+      <div class="card">
+        <h3>Offline-first</h3>
+        <p>Mobile teams register and record doses with no connectivity, syncing when they return to range.</p>
+      </div>
+      <div class="card">
+        <h3>Opens before birth</h3>
+        <p>Registered at antenatal care, where under four visits roughly doubles zero-dose risk.</p>
+      </div>
+    </div>
+    <p class="pull">The parent remembers nothing — and the number is what carries her into civil registration, and into the coverage she was owed.</p>
+    <div class="foot">
+      <span class="src">Antenatal figures: six-state determinants study (n = 1,958); WHO 2016 antenatal care model. Around 37% of Nigerian women attend no antenatal care at all, so this is an additional route in, never the only one.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 05</span>
+    </div>
+  </section>
+
+  <!-- 06 · ADOPTION COST -->
+  <section class="slide">
+    <h2>What adoption costs: scan one QR code</h2>
+    <p class="sub">That is the whole change to a health worker's day. Nothing already deployed has to move.</p>
+    <div class="cards">
+      <div class="card tint">
+        <span class="pill solid">A layer, not a replacement</span>
+        <h3>We build to EMID, not around it</h3>
+        <ul>
+          <li>Nigeria already runs <strong>EMID</strong> for immunisation data, Gavi-funded</li>
+          <li>NPHCDA publishes an <strong>Immunization FHIR guide</strong> — we export to it</li>
+          <li>EMID keeps the record; we add what it does not hold</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="pill">Less work, not more</span>
+        <h3>The scan replaces a slower step</h3>
+        <ul>
+          <li>The worker already needs to know which vaccine is due</li>
+          <li>Today they derive it from a paper card, or a guess</li>
+          <li>No new hardware — the card is printed paper</li>
+        </ul>
+      </div>
+    </div>
+    <p class="pull">Velaji adds the two things a reporting system does not hold: <strong>something in the mother's hand</strong>, and <strong>what each child is due next</strong>.</p>
+    <div class="foot">
+      <span class="src">Sources: Electronic Management of Immunization Data evaluation, Global Health: Science and Practice, 2024; NPHCDA Immunization FHIR Implementation Guide.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 06</span>
+    </div>
+  </section>
+
+  <!-- 07 · TWO ENGINES -->
+  <section class="slide">
+    <h2>Two engines. Neither works alone</h2>
+    <p class="sub">One spreads without us. The other is already funded by law.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="pill">Growth</span>
+        <h3>It spreads on its own</h3>
+        <ul>
+          <li>The card is free to the family, so every facility that scans one adds to the national record without being told to</li>
+          <li>Registration is not facility-only — home births, community health workers, mobile teams and outreach all enter the same registry</li>
+        </ul>
+      </div>
+      <div class="card tint">
+        <span class="pill solid">Sustainability</span>
+        <h3>Funded by statute, not philanthropy</h3>
+        <ul>
+          <li>NHIA Act 2022 and 1% of the Consolidated Revenue Fund already target zero-dose reduction in the first year of life</li>
+          <li>Complete the schedule and coverage activates — we build the rail for money that already exists</li>
+        </ul>
+      </div>
+    </div>
+    <p class="pull">Without the reward, the card is just admin. Without the record, the reward cannot be verified — so it cannot be paid.</p>
+    <div class="foot">
+      <span class="src">Nigeria transitions off Gavi support by 2028, having committed to increase vaccine co-financing 10% a year. Every naira has to buy more coverage.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 07</span>
+    </div>
+  </section>
+
+  <!-- 08 · COMPARATIVE FRAMEWORK -->
+  <section class="slide">
+    <h2>How Velaji compares to what already exists</h2>
+    <p class="sub">Almost every piece of this exists somewhere. Nothing joins them up.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>EMID</th>
+          <th>New Incentives</th>
+          <th>U-WIN (India)</th>
+          <th class="us">Velaji</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Card in the caregiver's hand</td><td>—</td><td>—</td><td>Digital</td><td class="us">✓</td></tr>
+        <tr><td>USSD on a feature phone</td><td>—</td><td>—</td><td>—</td><td class="us">✓</td></tr>
+        <tr><td>Completion incentive</td><td>—</td><td>Cash</td><td>—</td><td class="us">Insurance</td></tr>
+        <tr><td>Funded by statute</td><td>Donor</td><td>Donor</td><td>✓</td><td class="us">✓</td></tr>
+        <tr><td>Route into civil registration</td><td>—</td><td>—</td><td>Partial</td><td class="us">✓</td></tr>
+        <tr><td>Randomised evidence of impact</td><td>—</td><td>✓ +14–21pp</td><td>—</td><td class="us">Not yet</td></tr>
+      </tbody>
+    </table>
+    <p class="pull">A child in Sokoto is zero-dose in EMID, absent from the NPC register and unenrollable at the state insurance agency — <strong>three systems, one child, no shared identifier.</strong> The CHIN is that identifier.</p>
+    <div class="foot">
+      <span class="src">New Incentives reaches ~1.5M children across nine northern states with randomised-trial gains of 14–21 percentage points; their evidence is stronger than ours. U-WIN completed national rollout in November 2024 — 19M mothers, 58M children.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 08</span>
+    </div>
+  </section>
+
+  <!-- 09 · STATUS -->
+  <section class="slide">
+    <h2>A working prototype, live today</h2>
+    <p class="sub">Not a mockup. Two applications, running against a seeded national dataset.</p>
+    <div class="stats">
+      <div class="stat good"><b>Live</b><span>velaji.onrender.com</span></div>
+      <div class="stat good"><b>91</b><span>Passing tests</span></div>
+      <div class="stat good"><b>13</b><span>Command Centre panels</span></div>
+      <div class="stat good"><b>2</b><span>Apps — Command Centre &amp; MyChild</span></div>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="pill">Built</span>
+        <ul>
+          <li>National dashboard with geographic triage</li>
+          <li>Defaulter recovery with barrier capture</li>
+          <li>Staged incentive funnel; fraud detection on an append-only ledger</li>
+          <li>USSD, offline sync, antenatal register and FHIR R4 export</li>
+        </ul>
+      </div>
+      <div class="card tint">
+        <span class="pill solid">Not built — said plainly</span>
+        <ul>
+          <li>No real child's data has ever touched it</li>
+          <li>SMS, telephony and NHIA are honest stubs behind real seams</li>
+          <li>Civil-registration referral is built; the NPC and EMID pipes are not</li>
+          <li>Insurance-as-reward has a mechanism, not yet evidence</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot">
+      <span class="src">The immunisation schedule is reference data and requires clinical sign-off before any real deployment.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 09</span>
+    </div>
+  </section>
+
+  <!-- 10 · TEAM -->
+  <section class="slide">
+    <h2>Meet the team</h2>
+    <p class="sub">Team Primers — builders, operators and the people who will be in the room.</p>
+    <div class="team">
+      <div class="member lead">
+        <div class="mono">JK</div>
+        <div class="name">Jothan Jerry Kato</div>
+        <div class="role">Founder &amp; Backend Developer</div>
+      </div>
+      <div class="member">
+        <div class="mono">AE</div>
+        <div class="name">Anointed Rademene Ekabua</div>
+        <div class="role">CTO &amp; Full Stack Developer</div>
+      </div>
+      <div class="member">
+        <div class="mono">AD</div>
+        <div class="name">Aaron Adamilo Daniel</div>
+        <div class="role">Chief Operations Officer</div>
+      </div>
+      <div class="member">
+        <div class="mono">EB</div>
+        <div class="name">Ejindu Blessing Mmesomachukwu</div>
+        <div class="role">Product Manager</div>
+      </div>
+      <div class="member">
+        <div class="mono">UJ</div>
+        <div class="name">Umeh Jason Chimdiadi</div>
+        <div class="role">Presenter</div>
+      </div>
+    </div>
+    <p class="pull">A working prototype, not a concept: the platform in this deck is live, tested and built by the people on this slide.</p>
+    <div class="foot">
+      <span class="src">Hackaholics 7.0 requires at least one founder or core decision-maker to drive the pitch sessions.</span>
+      <span class="mark">Team Primers &nbsp;·&nbsp; 10</span>
+    </div>
+  </section>
+
+  <!-- 11 · CLOSING -->
+  <section class="slide closing">
+    <div class="panel">
+      <div class="panel-main">
+        <h2>"No child should be invisible to the system that exists to protect her."</h2>
+        <div class="rule-short"></div>
+        <p>Nigeria has the money, the mandate and the register.<br>
+          Velaji is the number that connects a child to all three.</p>
+      </div>
+      <div class="panel-glyph">
+        <img src="data:image/png;base64,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" alt="Primers">
+      </div>
+    </div>
+    <p class="closing-foot">Velaji &nbsp;·&nbsp; Team Primers &nbsp;·&nbsp; velaji.onrender.com &nbsp;·&nbsp; Hackaholics 7.0</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var hint = document.getElementById('hint');
+    var hidden = false;
+    function hide() { if (!hidden) { hint.classList.add('gone'); hidden = true; } }
+    function current() {
+      var best = 0, bestD = Infinity, mid = window.innerHeight / 2;
+      slides.forEach(function (s, i) {
+        var r = s.getBoundingClientRect();
+        var d = Math.abs((r.top + r.bottom) / 2 - mid);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      return best;
+    }
+    function go(i) {
+      i = Math.max(0, Math.min(slides.length - 1, i));
+      slides[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      hide();
+    }
+    document.addEventListener('keydown', function (e) {
+      if (['ArrowDown', 'ArrowRight', 'PageDown', ' '].indexOf(e.key) > -1) { e.preventDefault(); go(current() + 1); }
+      else if (['ArrowUp', 'ArrowLeft', 'PageUp'].indexOf(e.key) > -1) { e.preventDefault(); go(current() - 1); }
+      else if (e.key === 'Home') { e.preventDefault(); go(0); }
+      else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+    });
+    window.addEventListener('scroll', function () { if (window.scrollY > 40) hide(); }, { passive: true });
+  })();
+</script>
+</body>
+</html>
