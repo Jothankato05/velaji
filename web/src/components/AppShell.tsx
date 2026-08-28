@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="brand">
           <span className="brand-mark" aria-hidden>◈</span>
           <div>
-            <div className="brand-name">NCIHAP</div>
+            <div className="brand-name">Velaji</div>
             <div className="brand-sub">National Health Network</div>
           </div>
         </div>

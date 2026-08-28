@@ -119,7 +119,7 @@ function SignIn({ onCard }: { onCard: (c: Card) => void }) {
     <div className="mc-signin">
       <div className="mc-signin-panel">
         <div className="mc-logo"><span className="mc-heart" aria-hidden>♥</span> MyChild</div>
-        <p className="mc-signin-sub">powered by NCIHAP</p>
+        <p className="mc-signin-sub">powered by Velaji</p>
         <h1>Your child’s health, in your hand.</h1>
         <p className="mc-signin-desc">Scan the QR on your child’s card, or paste the card link, to see their vaccines and next visit.</p>
         <form onSubmit={submit} className="mc-signin-form">
@@ -167,7 +167,7 @@ function Shell({ card, onSignOut }: { card: Card; onSignOut: () => void }) {
     <div className="mc">
       <aside className="mc-side">
         <div className="mc-logo"><span className="mc-heart" aria-hidden>♥</span> MyChild</div>
-        <div className="mc-logo-sub">powered by NCIHAP</div>
+        <div className="mc-logo-sub">powered by Velaji</div>
         <nav className="mc-nav">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mc-nav-link${isActive ? ' active' : ''}`}>{n.label}</NavLink>
@@ -438,7 +438,7 @@ function AppointmentsView() {
       )}
       <section className="mc-card mc-note">
         <div className="mc-rem-head">How reminders work</div>
-        <p>When a dose is due, NCIHAP sends a reminder to {data.parentName ? `${data.parentName.split(' ')[0]}’s` : 'your'} phone. Just bring the card to {next?.facility ?? 'any health centre'}, and any facility in Nigeria can give the next dose. Need a different day? Visit the facility and the schedule adjusts automatically.</p>
+        <p>When a dose is due, Velaji sends a reminder to {data.parentName ? `${data.parentName.split(' ')[0]}’s` : 'your'} phone. Just bring the card to {next?.facility ?? 'any health centre'}, and any facility in Nigeria can give the next dose. Need a different day? Visit the facility and the schedule adjusts automatically.</p>
       </section>
     </>
   );

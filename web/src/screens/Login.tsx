@@ -40,13 +40,14 @@ export function Login() {
     <div className="login">
       <section className="login-brand">
         <div className="login-mark" aria-hidden>◈</div>
-        <h1>NCIHAP</h1>
+        <h1>Velaji</h1>
         <p className="login-tagline">
           One child. One record. Every vaccine. Everywhere.
         </p>
         <p className="login-desc">
-          National Child Immunisation &amp; Health Assurance Programme: a
-          lifelong, verifiable immunisation record for every Nigerian child.
+          The platform delivering NCIHAP, Nigeria&rsquo;s National Child
+          Immunisation &amp; Health Assurance Programme: a lifelong, verifiable
+          immunisation record for every child.
         </p>
       </section>
 
@@ -96,6 +97,11 @@ export function Login() {
 
           <p className="login-note muted">
             No self-registration. Accounts are issued by a programme administrator.
+          </p>
+          {/* Maker credit, kept small and singular: the product is Velaji, the
+              team is Primers, and only one of those belongs in a product header. */}
+          <p className="muted login-built-by">
+            Built by Team Primers.
           </p>
         </form>
       </section>

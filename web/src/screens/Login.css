@@ -40,3 +40,12 @@
   line-height: 1.5;
   margin-bottom: 1rem;
 }
+
+/* Maker credit under the sign-in form: present, but never competing with the
+   product mark above it. */
+.login-built-by {
+  margin-top: .45rem;
+  font-size: .74rem;
+  letter-spacing: .01em;
+  opacity: .75;
+}
