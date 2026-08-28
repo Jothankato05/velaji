@@ -72,7 +72,7 @@ export function UssdSim() {
         <div className="ussd-screen">
           {!started ? (
             <div className="ussd-idle">
-              <div className="ussd-idle-brand">NCIHAP</div>
+              <div className="ussd-idle-brand">Velaji</div>
               <div className="ussd-idle-sub">Dial {dialCode}</div>
             </div>
           ) : (
