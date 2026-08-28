@@ -11,6 +11,8 @@ import { maybeIssueCertificate } from '../services/certificate.service';
 import { autoResolveForDose } from '../services/escalation.service';
 import { recordAdministration } from '../services/fraud.service';
 import { addHealthRecord, getHealthRecords, isHealthDomain } from '../services/wallet.service';
+import { referForRegistration, recordRegistration } from '../services/birth-registration.service';
+import { childToFhirBundle } from '../services/fhir.service';
 import { AppError } from '../utils/AppError';
 
 async function findChildOr404(chinParam: string | string[]) {
@@ -263,4 +265,49 @@ export async function recordHandoff(req: Request, res: Response) {
   await child.save();
 
   res.status(201).json(handoff);
+}
+
+/**
+ * §4 civil registration: hand this child to NPC for birth registration, then
+ * carry the numbers back when they are issued. Velaji does not register births;
+ * it knows the child exists and refers her.
+ */
+export async function postReferBirthRegistration(req: Request, res: Response) {
+  const child = await findChildOr404(req.params.chin);
+  res.json(await referForRegistration(child.chin));
+}
+
+export async function postBirthRegistration(req: Request, res: Response) {
+  const { registrationNumber, nin } = req.body ?? {};
+  const child = await findChildOr404(req.params.chin);
+  res.json(await recordRegistration(child.chin, { registrationNumber, nin }));
+}
+
+/**
+ * §22 interoperability: this child as a FHIR R4 Bundle, shaped to the NPHCDA
+ * Immunization IG — Patient, the doses given, and (the part EMID does not hold)
+ * what is still due and when.
+ */
+export async function getChildFhir(req: Request, res: Response) {
+  const child = await findChildOr404(req.params.chin);
+  const facility = await FacilityModel.findById(child.currentFacilityId);
+  const bundle = childToFhirBundle({
+    chin: child.chin,
+    fullName: child.fullName,
+    sex: child.sex,
+    dateOfBirth: child.dateOfBirth,
+    doses: child.doses.map((d) => ({
+      vaccineCode: d.vaccineCode,
+      displayName: d.displayName,
+      doseNumber: d.doseNumber,
+      dueDate: d.dueDate,
+      administeredDate: d.administeredDate ?? null
+    })),
+    birthRegistration: {
+      registrationNumber: child.birthRegistration?.registrationNumber || undefined,
+      nin: child.birthRegistration?.nin || undefined
+    },
+    facilityName: facility?.name
+  });
+  res.type('application/fhir+json').json(bundle);
 }

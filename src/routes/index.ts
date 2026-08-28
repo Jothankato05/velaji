@@ -16,7 +16,10 @@ import {
   getJourney,
   getWallet,
   addWalletRecord,
-  recordHandoff
+  recordHandoff,
+  postReferBirthRegistration,
+  postBirthRegistration,
+  getChildFhir
 } from '../controllers/children.controller';
 import { verifyChin } from '../controllers/verify.controller';
 import { familyJourney } from '../controllers/family.controller';
@@ -108,6 +111,16 @@ apiRouter.get('/api/children/:chin/wallet', ...childRecord, asyncHandler(getWall
 apiRouter.post('/api/children/:chin/wallet', ...childRecord, asyncHandler(addWalletRecord));
 apiRouter.post('/api/children/:chin/handoff', ...childRecord, asyncHandler(recordHandoff));
 apiRouter.get('/api/children/:chin/reminders', ...childRecord, asyncHandler(getChildReminderLog));
+
+// §4 civil registration: refer the child to NPC, then carry back the birth
+// registration number and NIN. The identity link that makes BHCPF enrolment —
+// and so the Healthy Start reward — reachable at all.
+apiRouter.post('/api/children/:chin/birth-registration/refer', ...childRecord, asyncHandler(postReferBirthRegistration));
+apiRouter.post('/api/children/:chin/birth-registration', ...childRecord, asyncHandler(postBirthRegistration));
+
+// §22 interoperability: the child as a FHIR R4 Bundle for the NPHCDA
+// Immunization IG — we integrate with EMID rather than duplicating it.
+apiRouter.get('/api/children/:chin/fhir', ...childRecord, asyncHandler(getChildFhir));
 
 // Antenatal registration (NCIHAP §19, extended): open the record during
 // pregnancy, so the child arrives already known and the caregiver's phone is
