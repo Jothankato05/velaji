@@ -35,6 +35,36 @@ const childSchema = new Schema(
       enum: ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc', 'antenatal'],
       default: 'phc'
     },
+    /**
+     * Civil registration status (NCIHAP §4).
+     *
+     * The zero-dose child and the unregistered child are overwhelmingly the same
+     * child: only ~57% of Nigerian under-five births are registered, and the
+     * distribution mirrors immunisation coverage almost exactly (Lagos 94% /
+     * FCT 87% against Jigawa 23.6% / Sokoto 22.5%), for the same reason — born
+     * at home, no skilled attendant, never written down.
+     *
+     * That has a consequence the programme has to solve rather than observe:
+     * BHCPF's Vulnerable Group Fund covers under-fives, but enrolment runs on
+     * the social register and the NIN. No birth registration means no NIN, which
+     * means the children with the strongest claim on the fund cannot make it.
+     *
+     * So a health contact becomes a route to legal identity. Velaji does NOT
+     * register births — NPC does — but it knows the child exists, and can refer
+     * and then carry the resulting numbers. 'referred' means handed to NPC;
+     * 'registered' means NPC returned a birth registration number.
+     */
+    birthRegistration: {
+      status: {
+        type: String,
+        enum: ['not_registered', 'referred', 'registered'],
+        default: 'not_registered'
+      },
+      registrationNumber: { type: String, default: '' },
+      nin: { type: String, default: '' },
+      referredAt: { type: Date, default: null },
+      registeredAt: { type: Date, default: null }
+    },
     // NCIHAP §10: record is unverified/incomplete and needs reconciliation
     // (e.g. an offline record not yet reconciled, or a data conflict). Drives
     // the GREY status. Defaults false — a normal record is never GREY just for

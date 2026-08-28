@@ -979,6 +979,94 @@ test('§18 supply plan sees birth doses for children not yet born', async () => 
   assert(body.expectedBirths.coldChainLitres >= 0, 'birth-dose cold-chain volume must be reported');
 });
 
+test('§4 civil registration: refer to NPC, carry back the number and NIN', async () => {
+  const fac = await dashFacility('Identity-State', 'ID-1', 'W', 'Identity PHC');
+  const cg = await CaregiverModel.create({ fullName: 'Identity Carer', phone: '+2348090000001', nin: '11122233344' });
+  const reg = await jsonAs(staffToken, 'POST', '/api/children', {
+    fullName: 'Unregistered Child', sex: 'male', dateOfBirth: new Date(Date.now() - 30 * DAY).toISOString(),
+    caregiverId: String(cg._id), homeFacilityId: String(fac._id), birthSetting: 'home', registrationChannel: 'chw'
+  });
+  const chin = reg.body.chin;
+
+  // A child known to health but invisible to the state — the default, and the point.
+  const child0 = await ChildModel.findOne({ chin });
+  assert(child0!.birthRegistration.status === 'not_registered',
+    'a newly registered child starts with no civil registration');
+
+  const referred = await jsonAs(staffToken, 'POST', `/api/children/${chin}/birth-registration/refer`, {});
+  assert(referred.status === 200, `expected 200 on refer, got ${referred.status}`);
+  assert(referred.body.status === 'referred' && referred.body.referredAt, 'refer records status and time');
+
+  const done = await jsonAs(staffToken, 'POST', `/api/children/${chin}/birth-registration`, {
+    registrationNumber: 'BRN-2026-004417', nin: '99988877766'
+  });
+  assert(done.status === 200, `expected 200 on record, got ${done.status}`);
+  assert(done.body.status === 'registered', 'status becomes registered');
+  assert(done.body.registrationNumber === 'BRN-2026-004417', 'the NPC number is carried onto the health record');
+  assert(done.body.nin === '99988877766', 'the NIN is carried too — it is what makes BHCPF enrolment possible');
+
+  // Re-referring an already-registered child is refused, not silently re-run.
+  const again = await jsonAs(staffToken, 'POST', `/api/children/${chin}/birth-registration/refer`, {});
+  assert(again.status === 409, `re-referring a registered child must be refused, got ${again.status}`);
+
+  const verifierDenied = await jsonAs(verifierToken, 'POST', `/api/children/${chin}/birth-registration/refer`, {});
+  assert(verifierDenied.status === 403, `verifiers must not touch civil registration, got ${verifierDenied.status}`);
+});
+
+test('§4 identity gap rolls up into registration & mobility (admin-only)', async () => {
+  const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/registration-mobility');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.identity, 'the identity gap is reported alongside registration');
+  assert(body.identity.registered >= 1, 'the registered child from the previous test is counted');
+  assert(body.identity.withNin >= 1, 'children carrying a NIN are counted');
+  assert(body.identity.known === body.registered,
+    'the identity denominator must be every child the health system knows');
+  assert(body.identity.unregistered === body.identity.known - body.identity.registered,
+    'unregistered is everything not yet carrying a birth registration number');
+  assert(Array.isArray(body.identity.byState) && body.identity.byState.length > 0,
+    'the gap is broken down by state, worst-first');
+});
+
+test('§22 FHIR export: Patient, doses given, and what is still due', async () => {
+  const fac = await dashFacility('Fhir-State', 'FH-1', 'W', 'FHIR PHC');
+  const cg = await CaregiverModel.create({ fullName: 'Fhir Carer', phone: '+2348090000002' });
+  const reg = await jsonAs(staffToken, 'POST', '/api/children', {
+    fullName: 'Fhir Child', sex: 'female', dateOfBirth: new Date(Date.now() - 200 * DAY).toISOString(),
+    caregiverId: String(cg._id), homeFacilityId: String(fac._id)
+  });
+  const chin = reg.body.chin;
+  await jsonAs(staffToken, 'POST', `/api/children/${chin}/doses`, {
+    vaccineCode: 'BCG', doseNumber: 1, facilityId: String(fac._id)
+  });
+
+  const { status, body } = await jsonAs(staffToken, 'GET', `/api/children/${chin}/fhir`);
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.resourceType === 'Bundle' && body.type === 'collection', 'a FHIR collection Bundle');
+
+  const kinds = body.entry.map((e: any) => e.resource.resourceType);
+  assert(kinds.includes('Patient'), 'Bundle carries the Patient');
+  assert(kinds.includes('Immunization'), 'Bundle carries the administered dose');
+  assert(kinds.includes('ImmunizationRecommendation'),
+    'Bundle carries what is still DUE — the payload a reporting system does not hold');
+
+  const patient = body.entry.find((e: any) => e.resource.resourceType === 'Patient').resource;
+  assert(patient.identifier.some((i: any) => i.value === chin), 'the CHIN is the Patient identifier');
+  assert(!patient.identifier.some((i: any) => i.system.includes('nin')),
+    'no NIN identifier is emitted for an unregistered child — absence is the finding');
+  assert(patient.gender === 'female' && patient.birthDate, 'core demographics are present');
+
+  const imm = body.entry.find((e: any) => e.resource.resourceType === 'Immunization').resource;
+  assert(imm.status === 'completed' && imm.vaccineCode.coding[0].code === 'BCG', 'the dose is coded');
+  assert(imm.patient.reference === `Patient/${patient.id}`, 'the dose references the patient');
+
+  const rec = body.entry.find((e: any) => e.resource.resourceType === 'ImmunizationRecommendation').resource;
+  assert(rec.recommendation.length > 0 && rec.recommendation[0].dateCriterion[0].value,
+    'each outstanding dose carries the date it is due');
+
+  const verifierDenied = await jsonAs(verifierToken, 'GET', `/api/children/${chin}/fhir`);
+  assert(verifierDenied.status === 403, `verifiers must not export child records, got ${verifierDenied.status}`);
+});
+
 test('administration trend returns one point per week', async () => {
   const { status, body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/trend?weeks=8');
   assert(status === 200, `expected 200, got ${status}`);

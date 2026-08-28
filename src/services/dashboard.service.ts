@@ -8,6 +8,7 @@ import { computeChildStatus } from './schedule.service';
 import { computeMilestones } from './milestone.service';
 import { coldChainCm3 } from '../data/routine-immunization-schedule';
 import { expectedBirths } from './antenatal.service';
+import { identityGap, type IdentityGap } from './birth-registration.service';
 
 /**
  * The National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
@@ -420,6 +421,13 @@ export interface RegistrationMobility {
     crossStateMoves: number;
     byReason: Array<{ reason: string; label: string; count: number }>;
   };
+  /**
+   * §4: children with a health record but no civil registration. Reported here
+   * rather than as its own view because it IS a registration fact — how many of
+   * the children we have reached the state still cannot see, and therefore
+   * cannot enrol in the coverage completing the schedule is meant to unlock.
+   */
+  identity: IdentityGap;
   generatedAt: string;
 }
 
@@ -455,9 +463,12 @@ export async function registrationMobility(now: Date = new Date()): Promise<Regi
     if (stateById.get(String(h.fromFacilityId)) !== stateById.get(String(h.toFacilityId))) crossState += 1;
   }
 
+  const identity = await identityGap();
+
   return {
     registered: children.length,
     birth,
+    identity,
     byChannel: [...channels.entries()]
       .map(([channel, count]) => ({ channel, label: CHANNEL_LABELS[channel] ?? channel, count }))
       .sort((a, b) => b.count - a.count),

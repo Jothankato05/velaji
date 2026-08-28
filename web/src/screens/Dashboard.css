@@ -197,3 +197,10 @@
 .plan-infra-item.warn { color: var(--st-red); }
 .plan-infra-item b { color: var(--ink); }
 .plan-infra-item.warn b { color: var(--st-red); }
+
+/* §4 identity gap — a footnote inside Registration & mobility, not its own panel */
+.regmob-note {
+  margin: .5rem 0 0;
+  font-size: .78rem;
+  line-height: 1.5;
+}

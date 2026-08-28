@@ -44,6 +44,7 @@ interface RegMobility {
   birth: { facility: number; home: number; other: number };
   byChannel: Array<{ channel: string; label: string; count: number }>;
   mobility: { childrenMoved: number; totalMoves: number; crossStateMoves: number; byReason: Array<{ reason: string; label: string; count: number }> };
+  identity: { known: number; registered: number; referred: number; unregistered: number; withNin: number; byState: Array<{ state: string; known: number; unregistered: number; rate: number }> };
 }
 interface DefaultingReasons { total: number; reasons: Array<{ barrier: string; label: string; count: number }>; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
@@ -585,6 +586,28 @@ function RegMobilityPanel({ m }: { m: RegMobility }) {
               <span key={r.reason} className="regmob-chip">{r.label} <b className="mono">{fmt(r.count)}</b></span>
             ))}
           </div>
+        )}
+        {/* §4 identity: children the health system has reached who the state
+            still cannot see — and so cannot enrol in the coverage completing
+            the schedule unlocks. Sits here because it is a registration fact,
+            not a new panel. */}
+        <div className="regmob-line">
+          <span className="regmob-key">No civil registration</span>
+          <span className="regmob-val mono">
+            <b>{fmt(m.identity.unregistered)}</b>
+            <span className="muted">
+              of {fmt(m.identity.known)} · {pct(m.identity.known ? m.identity.unregistered / m.identity.known : 0)}
+              {m.identity.referred > 0 ? ` · ${fmt(m.identity.referred)} referred to NPC` : ''}
+            </span>
+          </span>
+        </div>
+        {m.identity.unregistered > 0 && (
+          <p className="regmob-note muted">
+            Known to health, invisible to the state — so not enrollable in BHCPF, which requires a NIN.
+            {m.identity.byState[0] && m.identity.byState[0].unregistered > 0
+              ? ` Worst: ${m.identity.byState[0].state} (${fmt(m.identity.byState[0].unregistered)}).`
+              : ''}
+          </p>
         )}
       </div>
     </div>

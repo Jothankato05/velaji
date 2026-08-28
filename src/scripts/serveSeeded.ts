@@ -219,6 +219,33 @@ async function main() {
     }
   }
 
+  // §4 civil registration. Deliberately skewed to the real distribution: only
+  // ~57% of Nigerian under-five births are registered, and the gap concentrates
+  // in the same states as low immunisation coverage. Children registered through
+  // home births and CHW/mobile channels are the least likely to be registered,
+  // which is exactly the population BHCPF cannot enrol.
+  const idChildren = await ChildModel.find({});
+  for (let i = 0; i < idChildren.length; i++) {
+    const c = idChildren[i];
+    const homeBirth = c.birthSetting === 'home';
+    // Facility births register far more often than home births.
+    const registered = homeBirth ? i % 5 === 0 : i % 10 < 7;
+    const referred = !registered && i % 3 === 0;
+    if (registered) {
+      await ChildModel.updateOne({ _id: c._id }, {
+        'birthRegistration.status': 'registered',
+        'birthRegistration.registrationNumber': `BRN-2026-${String(100000 + i).slice(-6)}`,
+        'birthRegistration.nin': i % 2 === 0 ? String(70000000000 + i) : '',
+        'birthRegistration.registeredAt': new Date(now - (i + 3) * DAY)
+      });
+    } else if (referred) {
+      await ChildModel.updateOne({ _id: c._id }, {
+        'birthRegistration.status': 'referred',
+        'birthRegistration.referredAt': new Date(now - (i + 1) * DAY)
+      });
+    }
+  }
+
   const token = signChin(cardChild.chin);
 
   app.listen(env.PORT, () => {
