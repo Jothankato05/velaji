@@ -51,6 +51,20 @@ hypothetical one:
   largest", targeting 100M+ children — alongside nOPV2, malaria (R21) and HPV
   ([WHO Afro](https://www.afro.who.int/countries/nigeria/news/nigeria-intensifies-fight-against-vaccine-preventable-diseases-nationwide-measles-rubella-and-polio), [NPHCDA](https://nphcda.gov.ng/measles-rubella-vaccine/)). The bundled schedule tracks that (`src/data/routine-immunization-schedule.ts`).
 
+- **The zero-dose child and the unregistered child are the same child.** Only
+  **57%** of under-five births are registered with civil authorities (MICS 2021;
+  NPC's own administrative figure is 53%), and Nigeria accounts for **11% of all
+  unregistered children in West Africa**. The distribution mirrors immunisation
+  almost exactly — **Lagos 94% and FCT 87%, against Jigawa 23.6% and Sokoto
+  22.5%** — and for the same documented reason: births at home, without a
+  skilled attendant, in rural areas ([UNICEF](https://www.unicef.org/nigeria/press-releases/only-43-cent-nigerian-childrens-births-registered-unicef), [MICS 2021](https://www.nigerianstat.gov.ng/download/1241212)).
+  This matters beyond identity: BHCPF's Vulnerable Group Fund covers under-fives
+  and pregnant women, but enrolment runs on the **social register and the NIN** —
+  so a child with no birth registration has no NIN, and **cannot be enrolled in
+  the fund that exists for her**. Registering the child in a health record that
+  can later carry across to civil registration is what breaks that loop, and it
+  is why §4 of the concept ties the CHIN to the NPC record and the NIN.
+
 Two more findings shape the design:
 
 - **Reminders work, and multi-channel matters.** SMS reminder + defaulter-tracing
@@ -91,6 +105,23 @@ every certificate) instead of faking a connection.
 **CHIN is not a national identity number.** It's a system-generated ID scoped
 to this software only, for tracking a child across visits and facilities
 when they have no birth certificate or national ID yet. See `src/services/chin.service.ts`.
+
+**This is not a greenfield, and nothing here is unprecedented.** Nigeria already
+runs **EMID** (Electronic Management of Immunization Data) — built in 2021,
+DHIS2-interoperable, Gavi-funded, and under active optimisation with NPHCDA —
+plus an [NPHCDA Immunization FHIR IG](https://build.fhir.org/ig/Nigeria-FHIR-Community/NPHCDA-ImmunizationIG/)
+that any serious system should build to rather than around. Demand-side
+incentives are already operating at scale in the north: **New Incentives / All
+Babies Are Equal** reaches ~1.5M children across 9 states with RCT-measured
+gains of **14–21 percentage points** ([GiveWell](https://www.givewell.org/charities/new-incentives)).
+And the registry-plus-antenatal model this repo implements exists nationally
+elsewhere — **India's U-WIN** completed its nationwide rollout in November 2024,
+covering 19M pregnant women and 58M children.
+
+What is *not* already joined up in Nigeria is the seam between the immunisation
+record, civil registration, and health-insurance entitlement — three systems
+that fail the same child without sharing an identifier. That intersection, not
+the registry itself, is what this prototype is exploring.
 
 ## What this is
 
