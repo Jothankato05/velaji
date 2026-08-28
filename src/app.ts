@@ -17,23 +17,29 @@ app.use(securityHeaders);
 // A hard limit turns an oversized/hostile body into a cheap 413 instead of
 // letting it consume memory.
 app.use(express.json({ limit: '64kb' }));
-app.use(apiRouter);
-
 // Serve the built SPA from the same origin as the API when it is present in the
 // image (production). One URL means no CORS to configure and one link to hand
 // out. In dev the Vite server owns the SPA and this directory does not exist,
-// so the block is skipped entirely.
+// so the whole block is skipped.
+//
+// ORDER MATTERS, and getting it wrong is silent: apiRouter ends with an
+// unscoped `.use(requireAuth)`, which intercepts EVERY path that reaches it —
+// so anything registered after apiRouter gets a 401 instead of a page. Both
+// handlers below therefore sit BEFORE it, and the fallback excludes the API
+// prefixes itself so a genuine unknown /api path still falls through to
+// apiRouter and 404s as JSON rather than returning index.html.
 const webDist = path.resolve(__dirname, '../web-dist');
 if (fs.existsSync(webDist)) {
+  // Real built files first: /assets/*.js, /assets/*.css, favicon, and so on.
   app.use(express.static(webDist, { index: false, maxAge: '1h' }));
-  // SPA fallback: any non-API GET that is not a real file returns index.html so
-  // client-side routes (/dashboard, /mychild/:chin) survive a hard refresh.
-  // Registered AFTER apiRouter, so a genuine unknown /api path still 404s JSON.
-  app.get(/^\/(?!api\/|webhooks\/|health$|ready$).*/, (req, res, next) => {
-    if (req.method !== 'GET') return next();
+  // Then the SPA fallback, so client-side routes (/, /dashboard,
+  // /mychild/:chin) survive a hard refresh or a link opened cold.
+  app.get(/^\/(?!api\/|webhooks\/|health$|ready$).*/, (_req, res) => {
     res.sendFile(path.join(webDist, 'index.html'));
   });
 }
+
+app.use(apiRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
