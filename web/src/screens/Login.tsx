@@ -3,10 +3,23 @@ import { useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
 import './Login.css';
 
+/**
+ * Demo credentials, pre-filled into the form so a reviewer can sign in without
+ * being handed a username out of band.
+ *
+ * Deliberately driven by build-time env vars rather than hardcoded: they are
+ * only ever set on the public demo instance, whose data is entirely invented.
+ * A real deployment builds without them and the fields come up empty, so this
+ * convenience cannot follow the app to somewhere it would be a vulnerability.
+ */
+const DEMO_USERNAME = import.meta.env.VITE_DEMO_USERNAME ?? '';
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD ?? '';
+const IS_DEMO = Boolean(DEMO_USERNAME && DEMO_PASSWORD);
+
 export function Login() {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState(DEMO_USERNAME);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -44,6 +57,13 @@ export function Login() {
           <p className="muted login-form-sub">
             For registered facility staff and programme administrators.
           </p>
+
+          {IS_DEMO && (
+            <div className="banner demo-note">
+              <strong>Demo instance.</strong> Credentials are filled in — just
+              press Sign in. Every child in this dataset is invented.
+            </div>
+          )}
 
           {error && <div className="banner error" role="alert">{error}</div>}
 
