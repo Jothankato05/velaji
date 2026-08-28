@@ -13,7 +13,7 @@ import { AppError } from '../utils/AppError';
 const DAY = 24 * 60 * 60 * 1000;
 
 const TIPS = [
-  'Give your child safe, clean water often — especially in warm weather.',
+  'Give your child safe, clean water often, especially in warm weather.',
   'Keep the vaccination card safe. It works at any health facility in Nigeria.',
   'Breastfeeding in the first months protects your baby from many illnesses.',
   'A little fever after a vaccine is normal. Offer fluids and comfort.',

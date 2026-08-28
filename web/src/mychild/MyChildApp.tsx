@@ -317,7 +317,7 @@ function HomeView() {
           <span className="mc-cov-badge" aria-hidden>◈</span>
           <div>
             <h3>Healthy Start coverage is active</h3>
-            <p>{data.coverage.months} months of NHIA child health coverage — through {fmtDate(data.coverage.expiresAt)}.</p>
+            <p>{data.coverage.months} months of NHIA child health coverage, valid through {fmtDate(data.coverage.expiresAt)}.</p>
           </div>
         </section>
       )}
@@ -336,7 +336,7 @@ function HomeView() {
                 <span className="mc-wallet-icon" aria-hidden>{DOMAIN_ICON[r.domain] ?? '📋'}</span>
                 <span className="mc-wallet-body">
                   <span className="mc-wallet-title">{r.title} <span className="mc-wallet-domain">{r.domainLabel}</span></span>
-                  <span className="mc-wallet-value">{r.value}{r.note ? ` — ${r.note}` : ''}</span>
+                  <span className="mc-wallet-value">{r.value}{r.note ? `: ${r.note}` : ''}</span>
                   <span className="mc-wallet-meta">{fmtDate(r.recordedAt)}{r.facility ? ` · ${r.facility}` : ''}</span>
                 </span>
               </li>
@@ -377,7 +377,7 @@ function VaccinesView() {
 
   return (
     <>
-      <ViewHead data={data} title={`${data.firstName}’s vaccines`} sub="Every dose in the national schedule — what’s done and what’s coming." />
+      <ViewHead data={data} title={`${data.firstName}’s vaccines`} sub="Every dose in the national schedule: what’s done and what’s coming." />
       <section className="mc-card">
         <div className="mc-journey-head">
           <h3>{data.progress.administered} of {data.progress.total} doses complete</h3>
@@ -416,7 +416,7 @@ function AppointmentsView() {
   const next = data.nextAppointment;
   return (
     <>
-      <ViewHead data={data} title="Appointments" sub="You never have to remember the next date — the system does it for you." />
+      <ViewHead data={data} title="Appointments" sub="You never have to remember the next date. The system does it for you." />
       {next ? (
         <section className="mc-card mc-appt-card">
           <div className="mc-appt-big">
@@ -438,7 +438,7 @@ function AppointmentsView() {
       )}
       <section className="mc-card mc-note">
         <div className="mc-rem-head">How reminders work</div>
-        <p>When a dose is due, NCIHAP sends a reminder to {data.parentName ? `${data.parentName.split(' ')[0]}’s` : 'your'} phone. Just bring the card to {next?.facility ?? 'any health centre'} — any facility in Nigeria can give the next dose. Need a different day? Visit the facility and the schedule adjusts automatically.</p>
+        <p>When a dose is due, NCIHAP sends a reminder to {data.parentName ? `${data.parentName.split(' ')[0]}’s` : 'your'} phone. Just bring the card to {next?.facility ?? 'any health centre'}, and any facility in Nigeria can give the next dose. Need a different day? Visit the facility and the schedule adjusts automatically.</p>
       </section>
     </>
   );
@@ -446,7 +446,7 @@ function AppointmentsView() {
 
 const FAQ = [
   { q: 'My child has a fever after a vaccine.', a: 'Mild fever for a day or two is normal and shows the vaccine is working. Offer fluids, keep them cool, and give paracetamol if a health worker advised it. See a health worker if the fever is high or lasts more than 48 hours.' },
-  { q: 'We missed a scheduled dose.', a: 'It’s not too late. Bring the card to any facility — the schedule catches up automatically, and no earlier dose is wasted.' },
+  { q: 'We missed a scheduled dose.', a: 'It’s not too late. Bring the card to any facility and the schedule catches up automatically, and no earlier dose is wasted.' },
   { q: 'Is it safe to give several vaccines at once?', a: 'Yes. The routine schedule is designed to give several vaccines in one visit safely, so your child is protected sooner with fewer trips.' }
 ];
 
@@ -496,7 +496,7 @@ function EmergencyView() {
   const { data } = useFamily();
   return (
     <>
-      <ViewHead data={data} title="Emergency" sub="If your child shows any danger sign, get help now — don’t wait." />
+      <ViewHead data={data} title="Emergency" sub="If your child shows any danger sign, get help now. Don’t wait." />
       <section className="mc-card mc-emergency-call">
         <div>
           <div className="mc-rem-head">National emergency line</div>
@@ -518,7 +518,7 @@ function EmergencyView() {
           <span className="mc-facility-icon" aria-hidden>🏥</span>
           <div>
             <h3>Nearest known facility</h3>
-            <p>{data.facility.name} — {data.facility.ward}, {data.facility.lga}, {data.facility.state}</p>
+            <p>{data.facility.name}, {data.facility.ward}, {data.facility.lga}, {data.facility.state}</p>
           </div>
         </section>
       )}
@@ -545,14 +545,14 @@ function MoreView() {
         <section className="mc-card mc-coverage">
           <span className="mc-cov-badge" aria-hidden>◈</span>
           <div>
-            <h3>Healthy Start — {data.coverage.active ? 'active' : 'expired'}</h3>
+            <h3>Healthy Start: {data.coverage.active ? 'active' : 'expired'}</h3>
             <p>{data.coverage.months} months of NHIA child health coverage{data.coverage.active ? ` through ${fmtDate(data.coverage.expiresAt)}` : ''}.</p>
           </div>
         </section>
       )}
       <section className="mc-card mc-note">
         <div className="mc-rem-head">Keep the card safe</div>
-        <p>The card is the key. It works at any health facility in Nigeria — you never have to remember which vaccine is next or when. If you lose it, visit your home facility to reprint it.</p>
+        <p>The card is the key. It works at any health facility in Nigeria. You never have to remember which vaccine is next or when. If you lose it, visit your home facility to reprint it.</p>
       </section>
     </>
   );

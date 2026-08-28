@@ -160,7 +160,7 @@ export async function getCard(req: Request, res: Response) {
 export async function getCertificate(req: Request, res: Response) {
   const child = await findChildOr404(req.params.chin);
   const certificate = await CertificateModel.findOne({ childId: child._id });
-  if (!certificate) throw new AppError('No certificate issued yet — schedule is not complete', 404);
+  if (!certificate) throw new AppError('No certificate issued yet; the schedule is not complete', 404);
   res.json(certificate);
 }
 

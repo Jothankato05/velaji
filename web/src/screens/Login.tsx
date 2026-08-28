@@ -45,7 +45,7 @@ export function Login() {
           One child. One record. Every vaccine. Everywhere.
         </p>
         <p className="login-desc">
-          National Child Immunisation &amp; Health Assurance Programme — a
+          National Child Immunisation &amp; Health Assurance Programme: a
           lifelong, verifiable immunisation record for every Nigerian child.
         </p>
       </section>
@@ -60,7 +60,7 @@ export function Login() {
 
           {IS_DEMO && (
             <div className="banner demo-note">
-              <strong>Demo instance.</strong> Credentials are filled in — just
+              <strong>Demo instance.</strong> Credentials are filled in, so just
               press Sign in. Every child in this dataset is invented.
             </div>
           )}

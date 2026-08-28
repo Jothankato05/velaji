@@ -35,7 +35,7 @@ export function startReminderJob(): void {
 
   // eslint-disable-next-line no-console
   console.log(
-    `[reminder] engine ENABLED — every ${env.REMINDER_SCAN_INTERVAL_MINUTES}m, ` +
+    `[reminder] engine ENABLED: every ${env.REMINDER_SCAN_INTERVAL_MINUTES}m, ` +
       `cooldown ${env.REMINDER_COOLDOWN_HOURS}h, max ${env.REMINDER_MAX_PER_DOSE}/dose, ` +
       `window ${env.REMINDER_SEND_START_HOUR}:00-${env.REMINDER_SEND_END_HOUR}:00, provider=${env.SMS_PROVIDER}`
   );

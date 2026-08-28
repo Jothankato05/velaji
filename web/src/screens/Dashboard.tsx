@@ -161,7 +161,7 @@ export function Dashboard() {
         ))}
       </nav>
 
-      {/* headline KPIs — matched to the reference set */}
+      {/* headline KPIs, matched to the reference set */}
       <div className="kpis">
         <Kpi
           label="Children registered"
@@ -188,7 +188,7 @@ export function Dashboard() {
         <StatusBar t={t} />
       </section>
 
-      {/* Coverage by priority state — national triage, worst-first */}
+      {/* Coverage by priority state: national triage, worst-first */}
       <section className="card panel">
         <div className="panel-head">
           <h2>Coverage by priority state</h2>
@@ -343,7 +343,7 @@ export function Dashboard() {
         <section className="card panel">
           <div className="panel-head"><h2>Why children default</h2><span className="eyebrow">barriers from traced cases</span></div>
           {!barriers.data ? <Loading /> : barriers.data.total === 0 ? (
-            <Empty>No barriers recorded yet — they're captured when a traced case is resolved.</Empty>
+            <Empty>No barriers recorded yet. They're captured when a traced case is resolved.</Empty>
           ) : (
             <ul className="regmob-bars">
               {barriers.data.reasons.map((r) => (
@@ -358,7 +358,7 @@ export function Dashboard() {
         </section>
       </div>
 
-      {/* Antenatal pipeline — children not yet born. Antenatal contact is the
+      {/* Antenatal pipeline: children not yet born. Antenatal contact is the
           strongest early predictor of whether a child is ever vaccinated, so
           this is the only view that can flag a likely zero-dose child BEFORE
           the child exists. */}
@@ -368,7 +368,7 @@ export function Dashboard() {
           <span className="eyebrow">children not yet born · next {antenatal.data?.horizonWeeks ?? 12} weeks</span>
         </div>
         {!antenatal.data ? <Loading /> : antenatal.data.active + antenatal.data.linked === 0 ? (
-          <Empty>No antenatal registrations yet — pregnancies registered at ANC appear here.</Empty>
+          <Empty>No antenatal registrations yet. Pregnancies registered at ANC appear here.</Empty>
         ) : (
           <>
             <div className="plan-tiles">
@@ -395,14 +395,14 @@ export function Dashboard() {
             )}
             <div className="plan-note muted">
               {fmt(antenatal.data.linked)} pregnancies have converted to child records ({Math.round(antenatal.data.conversionRate * 100)}% of those resolved).
-              Fewer than four antenatal contacts is associated with roughly double the zero-dose rate (35.0% vs 17.1%, six Nigerian states) — a service-contact signal, not a clinical judgement.
+              Fewer than four antenatal contacts is associated with roughly double the zero-dose rate (35.0% vs 17.1%, six Nigerian states). This is a service-contact signal, not a clinical judgement.
               Antenatal is an additional channel: around 37% of women attend no ANC at all, so it never replaces the CHW, home-birth and outreach routes.
             </div>
           </>
         )}
       </section>
 
-      {/* Supply & deployment plan — turns forecast demand into cold-chain, staffing, deployment */}
+      {/* Supply & deployment plan: turns forecast demand into cold-chain, staffing, deployment */}
       <section className="card panel">
         <div className="panel-head">
           <h2>Supply &amp; deployment plan</h2>
@@ -422,7 +422,7 @@ export function Dashboard() {
               <div className="plan-infra">
                 <span className="plan-infra-item">
                   Plus <b className="mono">{fmt(supply.data.expectedBirths.birthDoses)}</b> birth doses for <b className="mono">{fmt(supply.data.expectedBirths.births)}</b> expected births
-                  (BCG, OPV0, HepB0 · <b className="mono">{supply.data.expectedBirths.coldChainLitres >= 0.1 ? `${supply.data.expectedBirths.coldChainLitres} L` : `${supply.data.expectedBirths.coldChainCm3} cm³`}</b>) — demand the child register alone cannot see.
+                  (BCG, OPV0, HepB0 · <b className="mono">{supply.data.expectedBirths.coldChainLitres >= 0.1 ? `${supply.data.expectedBirths.coldChainLitres} L` : `${supply.data.expectedBirths.coldChainCm3} cm³`}</b>), which is demand the child register alone cannot see.
                 </span>
               </div>
             )}
@@ -466,23 +466,23 @@ export function Dashboard() {
               </div>
             )}
             <div className="plan-note muted">
-              Planning estimate — cold-chain volume uses per-antigen WHO EPI packed volumes (BCG ~0.9, Penta ~3.1, MR ~5.2 cm³/dose incl. diluent) · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Cold-chain / access reflect recorded facility status. Not clinical figures.
+              Planning estimate. Cold-chain volume uses per-antigen WHO EPI packed volumes (BCG ~0.9, Penta ~3.1, MR ~5.2 cm³/dose incl. diluent) · {supply.data.assumptions.dosesPerVaccinatorPerDay} doses/vaccinator/day · {supply.data.assumptions.workingDaysPerWeek}-day week. Cold-chain / access reflect recorded facility status. Not clinical figures.
             </div>
           </>
         )}
       </section>
 
-      {/* Recovery call list — closes the loop from the worst facility to action */}
+      {/* Recovery call list: closes the loop from the worst facility to action */}
       {filter.ward && (
         <section className="card panel">
           <div className="panel-head">
-            <h2>Overdue children — recovery list</h2>
+            <h2>Overdue children: recovery list</h2>
             <span className="eyebrow">{summary.data.scope.label} · {recovery.data ? `${recovery.data.count} to reach` : '…'}</span>
           </div>
           {!recovery.data ? (
             <Loading />
           ) : recovery.data.children.length === 0 ? (
-            <Empty>No overdue children here — nothing to recover.</Empty>
+            <Empty>No overdue children here. Nothing to recover.</Empty>
           ) : (
             <div className="rec-scroll">
               <table className="rec">
@@ -499,7 +499,7 @@ export function Dashboard() {
                       <td className="rec-vax">{c.overdueVaccines.slice(0, 3).join(', ')}{c.overdueVaccines.length > 3 ? ` +${c.overdueVaccines.length - 3}` : ''}</td>
                       <td className="num mono rec-late">{c.mostOverdueDays}d</td>
                       <td>
-                        <div>{c.caregiverName ?? '—'}</div>
+                        <div>{c.caregiverName ?? '-'}</div>
                         {c.caregiverPhone && <a className="rec-phone mono" href={`tel:${c.caregiverPhone}`}>{c.caregiverPhone}</a>}
                       </td>
                       <td className="num"><Link to={`/care?chin=${encodeURIComponent(c.chin)}`} className="btn btn-sm">Open</Link></td>
@@ -588,7 +588,7 @@ function RegMobilityPanel({ m }: { m: RegMobility }) {
           </div>
         )}
         {/* §4 identity: children the health system has reached who the state
-            still cannot see — and so cannot enrol in the coverage completing
+            still cannot see, and so cannot enrol in the coverage completing
             the schedule unlocks. Sits here because it is a registration fact,
             not a new panel. */}
         <div className="regmob-line">
@@ -603,7 +603,7 @@ function RegMobilityPanel({ m }: { m: RegMobility }) {
         </div>
         {m.identity.unregistered > 0 && (
           <p className="regmob-note muted">
-            Known to health, invisible to the state — so not enrollable in BHCPF, which requires a NIN.
+            Known to health, invisible to the state, so not enrollable in BHCPF, which requires a NIN.
             {m.identity.byState[0] && m.identity.byState[0].unregistered > 0
               ? ` Worst: ${m.identity.byState[0].state} (${fmt(m.identity.byState[0].unregistered)}).`
               : ''}

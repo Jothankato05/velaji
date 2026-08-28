@@ -54,7 +54,7 @@ function resolveChin(input: { chin?: string; qr?: string }): { chin: string; met
     if (!chin || !token) throw new AppError('QR content is missing the CHIN or token', 400);
     const normalized = normalizeChin(chin);
     if (!verifyChinToken(normalized, token)) {
-      throw new AppError('QR verification token is invalid — the card may be forged', 401);
+      throw new AppError('QR verification token is invalid; the card may be forged', 401);
     }
     return { chin: normalized, method: 'qr' };
   }
@@ -64,7 +64,7 @@ function resolveChin(input: { chin?: string; qr?: string }): { chin: string; met
     // The Luhn check catches a mistyped CHIN before it silently points at
     // the wrong child (or nothing).
     if (!isValidChinFormat(normalized)) {
-      throw new AppError('That CHIN is not valid — check for a typo', 400);
+      throw new AppError('That CHIN is not valid; check for a typo', 400);
     }
     return { chin: normalized, method: 'chin' };
   }

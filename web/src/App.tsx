@@ -31,7 +31,7 @@ export function App() {
 
   return (
     <Routes>
-      {/* MyChild — the family app. A separate world, no staff login; the
+      {/* MyChild, the family app. A separate world, no staff login; the
           parent's card is their key. */}
       <Route path="/mychild/*" element={<MyChildApp />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />

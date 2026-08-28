@@ -71,7 +71,7 @@ export function Register() {
           <h1>The card is ready. Give it to the family.</h1>
           <p className="muted reg-sub">
             They carry this card anywhere in Nigeria. At any facility it tells the system who the child
-            is and which vaccine is next — no paper record to lose, nothing to remember.
+            is and which vaccine is next. No paper record to lose, nothing to remember.
           </p>
         </div>
 
@@ -91,7 +91,7 @@ export function Register() {
         <div className="eyebrow">Registry · birth &amp; first contact</div>
         <h1>Register a child</h1>
         <p className="muted reg-sub">
-          Registering issues the child's Child Health ID and prints their card — the start of the record
+          Registering issues the child's Child Health ID and prints their card: the start of the record
           that follows them for life.
         </p>
       </div>
@@ -119,7 +119,7 @@ export function Register() {
           <select className="input" value={facilityId} onChange={(e) => setFacilityId(e.target.value)} required>
             {facilities.length === 0 && <option value="">No facilities registered</option>}
             {facilities.map((f) => (
-              <option key={f._id} value={f._id}>{f.name} — {f.lgaName}, {f.stateName}</option>
+              <option key={f._id} value={f._id}>{f.name}, {f.lgaName}, {f.stateName}</option>
             ))}
           </select>
         </div>

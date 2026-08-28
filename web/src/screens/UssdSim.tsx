@@ -32,7 +32,7 @@ export function UssdSim() {
       setText(nextText);
       setReply('');
     } catch {
-      setScreen('Network error — could not reach the USSD service.');
+      setScreen('Network error. Could not reach the USSD service.');
       setOpen(false);
     } finally {
       setBusy(false);
@@ -55,11 +55,11 @@ export function UssdSim() {
     <div className="ussd">
       <div className="ussd-intro">
         <div className="eyebrow">Multi-channel access · §8</div>
-        <h1>USSD — the basic-phone channel</h1>
+        <h1>USSD: the basic-phone channel</h1>
         <p className="muted">
           A caregiver with no smartphone dials a short code and gets the same critical
-          information as the app — child status, the next vaccine and where, reward
-          progress — identified by their phone number, nothing to type. This drives the
+          information as the app: child status, the next vaccine and where, and reward
+          progress, identified by their phone number with nothing to type. This drives the
           real <code>/webhooks/ussd</code> endpoint.
         </p>
         <p className="muted ussd-hint">

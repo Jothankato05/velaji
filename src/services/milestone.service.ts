@@ -40,8 +40,8 @@ interface MilestoneDef {
 // parent sees on the vaccine timeline.
 const DEFS: MilestoneDef[] = [
   { key: 'birth', title: 'Birth Start', reward: 'Digital birth-immunisation certificate', blurb: 'Registered and off to a protected start.', maxAgeDays: 21 },
-  { key: 'foundation', title: 'Foundation Protected', reward: 'Child wellness benefit', blurb: 'The infant series is complete — the hardest stretch, done.', maxAgeDays: 200 },
-  { key: 'healthy_start', title: 'Healthy Start', reward: '12 months of NHIA child health coverage', blurb: 'Fully immunised — health protection unlocked.', maxAgeDays: Infinity }
+  { key: 'foundation', title: 'Foundation Protected', reward: 'Child wellness benefit', blurb: 'The infant series is complete. The hardest stretch, done.', maxAgeDays: 200 },
+  { key: 'healthy_start', title: 'Healthy Start', reward: '12 months of NHIA child health coverage', blurb: 'Fully immunised. Health protection unlocked.', maxAgeDays: Infinity }
 ];
 
 export function computeMilestones(doses: DoseInput[], dateOfBirth: Date): MilestoneReward[] {

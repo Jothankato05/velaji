@@ -144,7 +144,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
     rec('growth', 'Weight-for-age', '7.4 kg · on track', 12),
     rec('vitamin_a', 'Vitamin A', 'First dose given', 12),
     rec('nutrition', 'Feeding', 'Exclusive breastfeeding', 40),
-    rec('development', 'Milestones', 'Sitting, babbling — age-appropriate', 12)
+    rec('development', 'Milestones', 'Sitting, babbling, age-appropriate', 12)
   ]);
 
   // §19: a share of children are home births via non-PHC channels — inclusion.

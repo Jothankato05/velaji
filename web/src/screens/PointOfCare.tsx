@@ -159,7 +159,7 @@ export function PointOfCare() {
           {/* the ONE next action, or the payoff */}
           {journey.nextDue ? (
             <div className="next card">
-              <div className="eyebrow">Next vaccine — the system chose this, not the parent</div>
+              <div className="eyebrow">Next vaccine: the system chose this, not the parent</div>
               <div className="next-vaccine">{journey.nextDue.vaccine}</div>
               <div className="next-meta">
                 dose #{journey.nextDue.doseNumber} · due {journey.nextDue.dueDate.slice(0, 10)}

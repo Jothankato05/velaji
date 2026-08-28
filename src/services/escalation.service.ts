@@ -31,8 +31,8 @@ export interface EscalationView {
 }
 
 const REASON_LABEL: Record<string, string> = {
-  max_attempts: 'Reminded to the limit — caregiver not responding',
-  lost_to_followup: 'Overdue and unreachable — needs tracing'
+  max_attempts: 'Reminded to the limit; caregiver not responding',
+  lost_to_followup: 'Overdue and unreachable; needs tracing'
 };
 
 /** The documented Nigerian drivers of defaulting / zero-dose (WHO, NPHCDA,
@@ -156,7 +156,7 @@ export async function autoResolveForDose(childId: Types.ObjectId, doseKey: strin
         resolvedAt: new Date(),
         resolvedBy: 'system',
         outcome: 'immunized',
-        resolutionNote: 'Dose recorded — auto-resolved.'
+        resolutionNote: 'Dose recorded, auto-resolved.'
       }
     }
   );
