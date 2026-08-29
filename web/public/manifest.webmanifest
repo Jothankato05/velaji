@@ -1,0 +1,40 @@
+{
+  "name": "Velaji — Child Immunisation & Health Assurance",
+  "short_name": "Velaji",
+  "description": "One child. One record. Every vaccine. Everywhere. The platform delivering NCIHAP, Nigeria's National Child Immunisation and Health Assurance Programme.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0e5c46",
+  "background_color": "#f3f7f5",
+  "lang": "en-NG",
+  "dir": "ltr",
+  "categories": ["health", "medical", "government"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Register a child",
+      "short_name": "Register",
+      "url": "/register",
+      "description": "Enrol a child and print their card"
+    },
+    {
+      "name": "Point of care",
+      "short_name": "Point of care",
+      "url": "/point-of-care",
+      "description": "Scan a card and record a dose"
+    },
+    {
+      "name": "Command Centre",
+      "short_name": "Dashboard",
+      "url": "/dashboard",
+      "description": "National coverage and recovery"
+    }
+  ]
+}
