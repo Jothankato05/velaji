@@ -162,6 +162,31 @@
   .stat.good b { color: var(--good); }
   .stat span { display: block; font-size: 1.32cqw; color: var(--body); margin-top: .7cqw; line-height: 1.4; }
 
+  /* Slide 02 is four numbers and one sentence, so it ran short and left a dead
+     band above the footer: .foot takes margin-top:auto, which collects every
+     spare pixel into a single gap at the bottom rather than spreading it.
+     Plex sets narrower than Poppins did, so lines that used to wrap no longer
+     do, which made an existing gap obvious rather than creating one.
+
+     Two changes, neither of which is inflating type until it happens to fit.
+     The slack is split above and below the group so it reads as centred in the
+     space the footer does not claim, and the numbers are sized to the job they
+     actually do on this slide: they are the argument, not a caption under it. */
+  .slide-headline .stats { margin-top: auto; margin-bottom: 0; gap: 1.6cqw; }
+  .slide-headline .stat {
+    /* The deck's own card treatment, borrowed from the paired cards on slide 03
+       rather than invented here, so the row gains real height from padding and
+       a ground instead of from type inflated past the size the numbers want. */
+    background: var(--card); border: 1px solid var(--card-line);
+    border-radius: 8px; padding: 3.4cqw 1.6cqw 3cqw;
+  }
+  .slide-headline .stat b { font-size: 7.2cqw; }
+  .slide-headline .stat span { font-size: 1.42cqw; margin-top: .9cqw; }
+  .slide-headline .lead {
+    margin: 0 0 auto; padding-top: 3cqw;
+    font-size: 2.9cqw; line-height: 1.45; color: var(--ink); max-width: 94%;
+  }
+
   /* ---------- pull line ---------- */
   .pull { font-style: italic; color: var(--ink); font-size: 1.66cqw; line-height: 1.42; margin: 1.3cqw 0 0; }
 
@@ -237,7 +262,8 @@
     .hint, .toolbar { display: none !important; }
   }
   /* Backgrounds must survive the print pipeline everywhere they carry meaning. */
-  .panel, .card, .pill, thead th, tbody td.us, .member .mono, .stat b, .title-right {
+  .panel, .card, .pill, thead th, tbody td.us, .member .mono, .stat b, .title-right,
+  .slide-headline .stat {
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 
@@ -303,7 +329,7 @@
   </section>
 
   <!-- 02 · PROBLEM -->
-  <section class="slide">
+  <section class="slide slide-headline">
     <h2>2.3 million Nigerian children have never had a single vaccine</h2>
     <p class="sub">Second highest on earth. Most are not refusals. They are children the system lost track of.</p>
     <div class="stats">
@@ -312,7 +338,7 @@
       <div class="stat bad"><b>18%</b><span>Children with no vaccine at all</span></div>
       <div class="stat bad"><b>43,700</b><span>Diphtheria cases, 2022-25</span></div>
     </div>
-    <p>A family moves. A paper card is lost. At that moment nobody knows which vaccine that child is owed: not the mother, not the next clinic she walks into.</p>
+    <p class="lead">A family moves. A paper card is lost. At that moment nobody knows which vaccine that child is owed: not the mother, not the next clinic she walks into.</p>
     <div class="foot">
       <span class="src">Sources: WHO / UNICEF WUENIC 2024; MICS / NICS 2021 (National Bureau of Statistics &amp; UNICEF); NCDC diphtheria situation reports, 2022-2025.</span>
       <span class="mark">Team Primers &nbsp;·&nbsp; 02</span>
