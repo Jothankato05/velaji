@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, ApiError } from './api';
+import { api, ApiError, OfflineError } from './api';
 
 interface State<T> {
   data: T | null;
@@ -26,7 +26,20 @@ export function useGet<T>(path: string | null): State<T> {
     api
       .get<T>(path)
       .then((d) => alive && setData(d))
-      .catch((e) => alive && setError(e instanceof ApiError ? e.message : 'Failed to load'))
+      // Now that a session survives the app closing, a worker can reach these
+      // panels with no signal, so "failed" has to distinguish a server that said
+      // no from one that was never reached.
+      .catch(
+        (e) =>
+          alive &&
+          setError(
+            e instanceof OfflineError
+              ? 'No connection. This panel needs the network; recorded doses still sync when you are back in range.'
+              : e instanceof ApiError
+                ? e.message
+                : 'Failed to load'
+          )
+      )
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
