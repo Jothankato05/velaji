@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
-import { ApiError } from '../lib/api';
+import { ApiError, OfflineError } from '../lib/api';
 import './Login.css';
 
 /**
@@ -30,7 +30,17 @@ export function Login() {
     try {
       await login(username.trim(), password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not sign in. Try again.');
+      // Being unreachable is not the same as being refused. Signing in is the
+      // one action the offline shell cannot complete, so say so plainly rather
+      // than leaving someone retrying a password that was never the problem.
+      if (err instanceof OfflineError) {
+        setError(
+          'No connection, so signing in is not possible right now. ' +
+            'The app opens offline, but the first sign-in on this device needs a network.'
+        );
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Could not sign in. Try again.');
+      }
     } finally {
       setBusy(false);
     }
