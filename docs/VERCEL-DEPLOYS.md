@@ -1,5 +1,10 @@
 # Why Vercel deploys get BLOCKED, and how to fix it permanently
 
+> **Status: resolved on 29 August 2026.** `primerscorperation@gmail.com` is now a
+> verified address on the Vercel account, so ordinary pushes deploy again. The
+> rest of this page is kept because the failure is invisible from outside and
+> will look identical if it ever recurs, for this project or another.
+
 The pitch deck at **velaji-deck.vercel.app** deploys from `deck/` in this
 repository on every push to `main`. In August 2026 every deploy after the first
 came back with status `BLOCKED` — no build log, no error in the code, and the
@@ -39,7 +44,7 @@ comparing live content against the repository, reveals it.
 
 ---
 
-## The permanent fix (do this once)
+## The permanent fix (done, 29 August 2026)
 
 1. Open **https://vercel.com/account** — your personal account settings, not the
    Primers team settings.
@@ -60,7 +65,11 @@ Two things worth knowing:
 
 ---
 
-## The stopgap (if the deck must be current right now)
+## The stopgap (no longer needed)
+
+Kept for reference only. Two commits in this repository's history carry the
+Vercel-linked address for this reason and say so in their messages; that is why,
+and it should not be repeated.
 
 A single commit authored with the Vercel-linked address passes the check without
 touching the repository's configured identity:
