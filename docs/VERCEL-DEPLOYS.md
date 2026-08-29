@@ -1,9 +1,9 @@
 # Why Vercel deploys get BLOCKED, and how to fix it permanently
 
-> **Status: resolved on 29 August 2026.** `primerscorperation@gmail.com` is now a
-> verified address on the Vercel account, so ordinary pushes deploy again. The
-> rest of this page is kept because the failure is invisible from outside and
-> will look identical if it ever recurs, for this project or another.
+> **Status: resolved on 29 August 2026** by adding `primerscorperation@gmail.com`
+> to the **GitHub** account, not the Vercel one. The rest of this page is kept
+> because the failure is invisible from outside and will look identical if it
+> ever recurs, for this project or another.
 
 The pitch deck at **velaji-deck.vercel.app** deploys from `deck/` in this
 repository on every push to `main`. In August 2026 every deploy after the first
@@ -17,23 +17,34 @@ This document is here so nobody has to diagnose that twice.
 
 ## What is actually wrong
 
-Vercel refuses to build a git deployment when it cannot match the **commit
-author's email** to a Vercel account with access to the project.
+Vercel will not build a git deployment it cannot attribute to a person. The
+check runs on the **GitHub login** GitHub resolves the commit author to, not on
+the raw email and not on the addresses held by the Vercel account.
 
-| | |
-|---|---|
-| Commits here are authored as | `primerscorperation@gmail.com` |
-| The Vercel account is | `jothankato05` / `jerryjothan639@gmail.com` |
+GitHub can only resolve an author to a login when the commit's author email is a
+verified address on that GitHub account. It was not, so GitHub handed Vercel a
+commit belonging to nobody, and Vercel declined to run it.
 
-Both addresses belong to the same person. Vercel has no way to know that, so it
-blocks the deploy rather than run someone else's code against your account.
+The deployment records make this unambiguous. Across the fifteen deploys of the
+blocked period the correlation is exact, with no exceptions either way:
 
-The deployment record carries the giveaway:
+| Commit authored as | `meta.githubCommitAuthorLogin` | Result |
+|---|---|---|
+| `jerryjothan639@gmail.com` | `Jothankato05` | READY, 4 of 4 |
+| `primerscorperation@gmail.com` | *field absent* | BLOCKED, 11 of 11 |
+
+The missing field is the whole diagnosis. `state` and `errorLink` only say the
+deploy was refused:
 
 ```
 "state": "BLOCKED",
 "errorLink": "https://vercel.com/docs/deployments/troubleshoot-project-collaboration#account-configuration"
 ```
+
+That link points at Vercel account configuration, which is what sent the first
+investigation to the wrong settings page. Adding the address to the Vercel
+account changed nothing, and the next push under the normal identity came back
+blocked again, which is what isolated GitHub as the real owner of the check.
 
 ### Why it is easy to miss
 
@@ -46,22 +57,21 @@ comparing live content against the repository, reveals it.
 
 ## The permanent fix (done, 29 August 2026)
 
-1. Open **https://vercel.com/account** — your personal account settings, not the
-   Primers team settings.
-2. Find the **Email** section and add `primerscorperation@gmail.com` as an
-   additional address on the account.
-3. Open that inbox and click Vercel's verification link. It is not active until
-   you do.
+1. Open **https://github.com/settings/emails**.
+2. Add `primerscorperation@gmail.com` and verify it from that inbox. It does
+   nothing until verified.
 
-That is the whole fix. From then on, pushes authored with either address deploy
-normally.
+That is the whole fix, and it is on GitHub. Vercel needs no change at all.
 
-Two things worth knowing:
+Three things worth knowing:
 
+- GitHub **back-attributes past commits** carrying that address to your login,
+  so the repository's history stops being split between an attributed author and
+  an anonymous one.
 - **Already-blocked deployments do not retroactively build.** They stay blocked.
   The next push carries everything that was queued behind them.
-- The address only needs to be on the **account**. You do not need to invite
-  yourself to the team or change anything about the project.
+- Adding the address on the **Vercel** side is harmless but irrelevant. It was
+  tried first and did not unblock anything.
 
 ---
 
@@ -86,6 +96,10 @@ untouched, and every other commit keeps the normal identity.
 This is a workaround, not a fix — it has to be repeated for every deploy until
 the email is added.
 
+It also has a cost worth naming: it puts a second author identity into the
+history for reasons that have nothing to do with the code, which is exactly the
+confusion the permanent fix removes.
+
 ---
 
 ## Checking a deploy actually worked
@@ -101,6 +115,14 @@ curl -s https://velaji-deck.vercel.app | grep -o '<title>[^<]*</title>'
 
 If those disagree with the repository, the deploy did not land, whatever the
 status code says.
+
+The strongest single check is a straight diff, remembering that the working copy
+is CRLF and what Vercel serves is not:
+
+```bash
+diff <(curl -s https://velaji-deck.vercel.app | tr -d '\r') \
+     <(tr -d '\r' < deck/index.html) && echo "live deck matches the repository"
+```
 
 ### A note on rate limiting
 
