@@ -8,16 +8,23 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Serif:wght@500;600&display=swap">
 
 </head>
 <body>
 <style>
   /* Template ported from the Team SafeCare / ImmuniReach deck: white ground with
-     a pale blue corner glow, Poppins throughout, blue rule under a blue heading,
-     paired pale/blue cards with pill badges, italic pull-line, and a footer
-     carrying sources left and deck mark right. Single committed light theme:
-     every colour is painted explicitly so it holds on any host background. */
+     a pale blue corner glow, blue rule under a blue heading, paired pale/blue
+     cards with pill badges, italic pull-line, and a footer carrying sources
+     left and deck mark right. Single committed light theme: every colour is
+     painted explicitly so it holds on any host background.
+
+     Type is IBM Plex, Serif for display and Sans for everything read at speed,
+     matching the app so the deck link and the live prototype read as one
+     product. It replaced Poppins, which is a geometric sans that has become a
+     reliable marker of machine-generated decks, and the app's Inter for the
+     same reason. Plex Mono was already carrying identifiers in the app, so this
+     makes the three a single superfamily rather than three unrelated choices. */
   :root {
     /* Brand blue sampled from the Primers logo (#406AFF), with tints derived
        from it. The layout template is Team SafeCare's; the colour is ours. */
@@ -45,7 +52,7 @@
     margin: 0;
     background: #E9EDF1;
     color: var(--ink);
-    font-family: Poppins, "Helvetica Neue", Arial, sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     scroll-snap-type: y mandatory;
     overflow-y: scroll;
@@ -89,10 +96,18 @@
   }
   .pill.solid { background: var(--blue); color: var(--white); }
 
-  h1 { font-size: 7.4cqw; font-weight: 700; letter-spacing: -.03em; line-height: 1; margin: 3cqw 0 0; }
+  /* Plex Serif carries the display line; Plex Sans carries everything that has
+     to be read quickly. Both are cut looser than the geometric sans they
+     replaced: Poppins needed tight tracking to stop looking airy, a serif does
+     not, and dragging it in only muddies the joins at slide scale. */
+  h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-size: 7.1cqw; font-weight: 600; letter-spacing: -.015em; line-height: 1.02; margin: 3cqw 0 0;
+  }
   h2 {
-    font-size: 3.3cqw; font-weight: 700; color: var(--blue);
-    letter-spacing: -.02em; line-height: 1.08; margin: 0 0 1.3cqw;
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-size: 3.2cqw; font-weight: 600; color: var(--blue);
+    letter-spacing: -.008em; line-height: 1.12; margin: 0 0 1.3cqw;
     padding-bottom: 1.2cqw; border-bottom: 1px solid var(--rule);
     text-wrap: balance;
   }
@@ -232,7 +247,7 @@
     display: flex; gap: .5rem;
   }
   .toolbar button {
-    font-family: Poppins, sans-serif; font-size: .78rem; font-weight: 600;
+    font-family: "IBM Plex Sans", sans-serif; font-size: .78rem; font-weight: 600;
     color: var(--white); background: var(--blue); border: none;
     padding: .62rem 1.05rem; border-radius: 6px; cursor: pointer;
     box-shadow: 0 2px 10px rgba(64,106,255,.35);

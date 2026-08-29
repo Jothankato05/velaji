@@ -1,6 +1,14 @@
-/* Velaji design tokens — matched to the NCIHAP reference apps:
-   Inter for UI, Georgia serif for headings, a light cool-green neutral ground,
-   deep green brand. The five status colours are domain-required (NCIHAP §10). */
+/* Velaji design tokens — matched to the NCIHAP reference apps: a light
+   cool-green neutral ground and a deep green brand. The five status colours are
+   domain-required (NCIHAP §10).
+
+   Type is one superfamily, IBM Plex: Sans for UI, Serif for headings, Mono for
+   identifiers. Mono was already here; the other two replace Inter and Georgia.
+   Inter because it is the default sans of machine-generated interfaces and
+   reads as such, Georgia because it was a web-safe fallback standing in for a
+   real display face. Plex is drawn as one system, so the three sit together,
+   and the deck uses the same pair so the pitch and the running product do not
+   look like different companies. */
 
 :root {
   /* neutrals — light cool-green paper (matches the references' #F3F7F5) */
@@ -41,9 +49,9 @@
   --down: #c15b3a;
   --down-bg: #f6e8e1;
 
-  /* type — matched to the references */
-  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-head: Georgia, 'Times New Roman', serif;
+  /* type — one IBM Plex superfamily, see the note at the top of this file */
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-head: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   /* geometry — softer, rounder cards like the references */
