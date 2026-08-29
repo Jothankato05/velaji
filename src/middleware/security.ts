@@ -25,6 +25,12 @@ const APP_CSP = [
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data:",
   "connect-src 'self'",
+  // Without these two the app is not installable and has no offline shell:
+  // under default-src 'none' the browser refuses to fetch the manifest and
+  // refuses to register the service worker, reporting both only to the
+  // console. Nothing else breaks, so it looks like it works.
+  "manifest-src 'self'",
+  "worker-src 'self'",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'"
