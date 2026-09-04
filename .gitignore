@@ -1,5 +1,9 @@
 node_modules/
 dist/
+# Build output: the API serves this, and the Render build regenerates it with
+# `cp -r web/dist web-dist` on every deploy. Committing it would mean a stale
+# UI shadowing a fresh build, which is silent and hard to spot.
+web-dist/
 .env
 *.log
 .mongodb-binaries/
