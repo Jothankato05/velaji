@@ -43,20 +43,27 @@ hypothetical one:
 - Low routine coverage has real consequences: the **2022–2025 diphtheria
   outbreak** reached ~43,700 suspected cases across 37 states, with **Kano alone
   accounting for over half** ([ReliefWeb](https://reliefweb.int/report/nigeria/nigeria-diphtheria-outbreak-operation-update-mdrng037)).
-- NPHCDA's own targets — a **30% cut in zero-dose children by 2025, 50% by
-  2028**, with **100 priority LGAs** — are what a national command view and a
-  facility-level recovery workflow are meant to serve.
+- Published national targets — a **30% cut in zero-dose children by 2025, 50% by
+  2028**, with **100 priority LGAs** — are the kind of objective a national
+  command view and a facility-level recovery workflow would have to support.
+  They are cited here as context, not as a brief: nothing in this repository is
+  commissioned by, affiliated with, or endorsed by any agency.
 - The routine schedule is itself moving: NPHCDA **introduced the
   Measles–Rubella (MR) vaccine in the 2025/26 integrated campaign** — "Africa's
   largest", targeting 100M+ children — alongside nOPV2, malaria (R21) and HPV
   ([WHO Afro](https://www.afro.who.int/countries/nigeria/news/nigeria-intensifies-fight-against-vaccine-preventable-diseases-nationwide-measles-rubella-and-polio), [NPHCDA](https://nphcda.gov.ng/measles-rubella-vaccine/)). The bundled schedule tracks that (`src/data/routine-immunization-schedule.ts`).
 
-- **The zero-dose child and the unregistered child are the same child.** Only
-  **57%** of under-five births are registered with civil authorities (MICS 2021;
-  NPC's own administrative figure is 53%), and Nigeria accounts for **11% of all
-  unregistered children in West Africa**. The distribution mirrors immunisation
-  almost exactly — **Lagos 94% and FCT 87%, against Jigawa 23.6% and Sokoto
-  22.5%** — and for the same documented reason: births at home, without a
+- **The zero-dose child and the unregistered child overlap strongly, and often
+  are the same child.** Only **57%** of under-five births are registered with
+  civil authorities (MICS 2021; the administrative figure is 53%), and Nigeria
+  accounts for **11% of all unregistered children in West Africa**. Measured
+  across all 37 states from the same survey, registration and Penta3 correlate
+  at **r = 0.70** — a strong overlap, not an identity. **Twenty-five of 37
+  states** sit on the same side of the national average on both and **eleven
+  fall below on both**, while **twelve break the pattern**, Katsina (67.9%
+  registered against 41% Penta3) and Bayelsa (28.2% against 70%) most visibly.
+  The extremes line up — **Lagos 94% and FCT 87%, against Jigawa 23.6% and
+  Sokoto 22.5%** — and for the same documented reason: births at home, without a
   skilled attendant, in rural areas ([UNICEF](https://www.unicef.org/nigeria/press-releases/only-43-cent-nigerian-childrens-births-registered-unicef), [MICS 2021](https://www.nigerianstat.gov.ng/download/1241212)).
   This matters beyond identity: BHCPF's Vulnerable Group Fund covers under-fives
   and pregnant women, but enrolment runs on the **social register and the NIN** —
