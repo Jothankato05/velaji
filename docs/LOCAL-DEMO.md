@@ -44,11 +44,16 @@ If that lists a `mongod-*` file, the demo runs fully offline from then on.
 
 The API serves whatever is in `web-dist/`, which is not in git, so build it
 first. The two `VITE_DEMO_*` values are what pre-fill the sign-in form, so a
-reviewer never has to be handed a password out of band:
+reviewer never has to be handed a password out of band.
+
+The password itself is not written here. It is defined in the dev-only seeder,
+`src/scripts/demoSeed.ts`, and printed on every boot, so read it from there — a
+password copied into a committed document outlives the demo it was for:
 
 ```bash
 cd /path/to/ncihap
-VITE_DEMO_USERNAME=admin VITE_DEMO_PASSWORD=admin-demo-pass npm --prefix web run build
+DEMO_PASS=$(grep -oE "hashPassword\('[^']+'\)" src/scripts/demoSeed.ts | head -1 | sed "s/.*('\(.*\)').*//")
+VITE_DEMO_USERNAME=admin VITE_DEMO_PASSWORD="$DEMO_PASS" npm --prefix web run build
 rm -rf web-dist && cp -r web/dist web-dist
 ```
 
@@ -68,7 +73,7 @@ run**, so read them from your own output rather than copying from here:
 ```
 [db] Connected to an EPHEMERAL in-memory MongoDB (ALLOW_IN_MEMORY_DB=true). Data will not persist.
 SEEDED API on 4100
-ADMIN_LOGIN=admin / admin-demo-pass
+ADMIN_LOGIN=admin / <printed here>
 CARD_LINK=http://localhost:4100/mychild/NG-26-03-79569570?t=vkZmqi16WZTp
 USSD_PHONE=+2348010000001
 ```
@@ -122,7 +127,7 @@ End to end, including that an unauthenticated call is properly refused:
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:4100/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin-demo-pass"}' \
+  -d "{\"username\":\"admin\",\"password\":\"$DEMO_PASS\"}" \
   | python -c "import sys,json;print(json.load(sys.stdin)['token'])")
 
 curl -s -o /dev/null -w 'authed   %{http_code}\n' \
