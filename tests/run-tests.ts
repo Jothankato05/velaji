@@ -1161,7 +1161,9 @@ test('§17 duplicate-dose detection: a dose already given cannot be re-recorded'
 });
 
 test('§17 abnormal-activity detection flags impossible throughput; admin-only', async () => {
-  const base = new Date(NOON);
+  // Relative to the real clock: the scan looks back a fixed number of days from
+  // now, so a fixed calendar date here would age out and silently pass nothing.
+  const base = new Date(Date.now() - 60 * 60 * 1000);
   const events = [];
   for (let i = 0; i < VELOCITY_MAX_IN_WINDOW + 3; i++) {
     events.push({
