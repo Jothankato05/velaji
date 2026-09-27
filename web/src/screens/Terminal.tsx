@@ -57,7 +57,7 @@ export function Terminal() {
             onChange={(e) => setValue(e.target.value)}
             autoFocus
           />
-          <button className="btn btn-primary" disabled={busy || !value.trim()}>Verify</button>
+          <button type="submit" className="btn btn-primary" disabled={busy || !value.trim()}>Verify</button>
         </form>
 
         {error && <div className="banner error">{error}</div>}

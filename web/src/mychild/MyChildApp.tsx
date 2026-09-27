@@ -125,7 +125,7 @@ function SignIn({ onCard }: { onCard: (c: Card) => void }) {
         <form onSubmit={submit} className="mc-signin-form">
           <input className="mc-input" placeholder="Scan card QR or paste card link" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
           {error && <div className="mc-error">{error}</div>}
-          <button className="mc-btn mc-btn-primary" disabled={busy || !value.trim()}>{busy ? 'Checking…' : 'Open MyChild'}</button>
+          <button type="submit" className="mc-btn mc-btn-primary" disabled={busy || !value.trim()}>{busy ? 'Checking…' : 'Open MyChild'}</button>
         </form>
       </div>
     </div>
@@ -178,7 +178,7 @@ function Shell({ card, onSignOut }: { card: Card; onSignOut: () => void }) {
           <div className="mc-help-sub">Talk to a health worker anytime.</div>
           <NavLink to="/mychild/doctor" className="mc-btn mc-help-btn">Start a chat</NavLink>
         </div>
-        <button className="mc-emergency" onClick={onSignOut}>◁ Sign out</button>
+        <button type="button" className="mc-emergency" onClick={onSignOut}>◁ Sign out</button>
       </aside>
 
       <main className="mc-main">
@@ -235,7 +235,7 @@ function HomeView() {
         <div className="mc-hero-left">
           <span className={`mc-pill ${data.status}`}>{heroTag(data.status)}</span>
           <h2 className="mc-hero-title">{data.firstName} {data.reassurance}</h2>
-          <button className="mc-listen" onClick={listen}>🔊 Listen</button>
+          <button type="button" className="mc-listen" onClick={listen}>🔊 Listen</button>
         </div>
         {data.nextAppointment && (
           <div className="mc-appt">
@@ -391,6 +391,7 @@ function VaccinesView() {
           <h3 className="mc-band-title">{band}</h3>
           <ul className="mc-doselist">
             {data.doses.filter((d) => d.band === band).map((d, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: vaccine+dose is already unique; the index only guards against duplicate server rows
               <li key={`${d.vaccine}-${d.doseNumber}-${i}`} className="mc-dose">
                 <span className={`mc-dose-dot ${d.state}`} aria-hidden>{d.state === 'done' ? '✓' : ''}</span>
                 <span className="mc-dose-body">
