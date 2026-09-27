@@ -65,8 +65,8 @@ export function Escalations() {
       </div>
 
       <div className="tabs">
-        <button className={`tab${tab === 'open' ? ' active' : ''}`} onClick={() => setTab('open')}>Open</button>
-        <button className={`tab${tab === 'resolved' ? ' active' : ''}`} onClick={() => setTab('resolved')}>Resolved</button>
+        <button type="button" className={`tab${tab === 'open' ? ' active' : ''}`} onClick={() => setTab('open')}>Open</button>
+        <button type="button" className={`tab${tab === 'resolved' ? ' active' : ''}`} onClick={() => setTab('resolved')}>Resolved</button>
       </div>
 
       {err && <div className="banner error">{err}</div>}
@@ -114,7 +114,7 @@ export function Escalations() {
                         </select>
                       </span>
                     ) : (
-                      <button className="btn" onClick={() => { setResolving(e.id); setBarrier(''); }}>Resolve</button>
+                      <button type="button" className="btn" onClick={() => { setResolving(e.id); setBarrier(''); }}>Resolve</button>
                     )
                   )}
                 </span>

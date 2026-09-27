@@ -89,7 +89,7 @@ export function UssdSim() {
                     autoFocus
                     inputMode="numeric"
                   />
-                  <button className="ussd-key" onClick={submitReply}>Send</button>
+                  <button type="button" className="ussd-key" onClick={submitReply}>Send</button>
                 </div>
               )}
               {!open && !busy && <div className="ussd-ended">Session ended</div>}
@@ -103,9 +103,9 @@ export function UssdSim() {
             <input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={started} />
           </label>
           {!started ? (
-            <button className="btn btn-primary ussd-dial" onClick={dial} disabled={!phone.trim()}>Dial {dialCode}</button>
+            <button type="button" className="btn btn-primary ussd-dial" onClick={dial} disabled={!phone.trim()}>Dial {dialCode}</button>
           ) : (
-            <button className="btn ussd-dial" onClick={reset}>End &amp; start over</button>
+            <button type="button" className="btn ussd-dial" onClick={reset}>End &amp; start over</button>
           )}
         </div>
       </div>

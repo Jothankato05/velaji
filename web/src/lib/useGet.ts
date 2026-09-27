@@ -18,6 +18,7 @@ export function useGet<T>(path: string | null): State<T> {
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` is the reload trigger, deliberately not read inside the effect
   useEffect(() => {
     if (!path) return;
     let alive = true;

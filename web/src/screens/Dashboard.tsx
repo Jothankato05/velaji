@@ -155,7 +155,7 @@ export function Dashboard() {
       <nav className="scopebar" aria-label="Geographic scope">
         {crumbs.map((c, i) => (
           <span key={c.label} className="scope-crumb">
-            <button className="scope-link" onClick={() => setFilter(c.f)} disabled={i === crumbs.length - 1}>{c.label}</button>
+            <button type="button" className="scope-link" onClick={() => setFilter(c.f)} disabled={i === crumbs.length - 1}>{c.label}</button>
             {i < crumbs.length - 1 && <span className="scope-sep" aria-hidden>›</span>}
           </span>
         ))}
@@ -237,9 +237,10 @@ export function Dashboard() {
         <section className="card panel span2">
           <div className="panel-head">
             <h2>{LEVEL_LABEL[summary.data.breakdownBy] ?? summary.data.breakdownBy}</h2>
+            {/* biome-ignore lint/a11y/useSemanticElements: a <fieldset> would bring its own border and legend styling to this toolbar */}
             <div className="geo-sort" role="group" aria-label="Sort areas by">
               {GEO_SORTS.map((s) => (
-                <button key={s.key} className={`geo-sort-btn${geoSort === s.key ? ' active' : ''}`} onClick={() => setGeoSort(s.key)}>{s.label}</button>
+                <button type="button" key={s.key} className={`geo-sort-btn${geoSort === s.key ? ' active' : ''}`} onClick={() => setGeoSort(s.key)}>{s.label}</button>
               ))}
             </div>
           </div>
@@ -249,7 +250,7 @@ export function Dashboard() {
             <ul className="geo-list">
               {sortedBreakdown.map((b) => (
                 <li key={b.key}>
-                  <button className="geo-row" onClick={() => drillInto(b.key)} disabled={!canDrill}>
+                  <button type="button" className="geo-row" onClick={() => drillInto(b.key)} disabled={!canDrill}>
                     <span className={`geo-flag ${b.priority}`} aria-hidden title={b.priority} />
                     <span className="geo-key">{b.key}</span>
                     <span className="geo-bar-track"><span className="geo-bar-fill" style={{ width: `${(b.metrics.registered / maxBreak) * 100}%` }} /></span>
@@ -282,6 +283,7 @@ export function Dashboard() {
             activity.data.events.length === 0 ? <Empty>No recent events.</Empty> : (
               <ul className="activity">
                 {activity.data.events.slice(0, 6).map((e, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: a read-only feed replaced wholesale on each fetch, never reordered
                   <li key={i} className="act-row">
                     <span className={`act-dot ${e.kind}`} aria-hidden />
                     <span className="act-body">
@@ -322,6 +324,7 @@ export function Dashboard() {
           ) : (
             <ul className="integrity-list">
               {integrity.data.alerts.map((a, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list replaced wholesale on each fetch, never reordered
                 <li key={i} className="integrity-row">
                   <span className={`integrity-tag ${a.kind}`}>{a.kind === 'velocity' ? 'Throughput' : 'Duplicates'}</span>
                   <div className="integrity-body">

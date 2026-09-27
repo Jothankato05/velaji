@@ -75,11 +75,12 @@ export function Register() {
           </p>
         </div>
 
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: the card is SVG our own API renders from the child record, not user HTML */}
         <div className="issued-card" dangerouslySetInnerHTML={{ __html: issued.card }} />
 
         <div className="issued-actions">
-          <button className="btn btn-primary" onClick={() => window.print()}>Print card</button>
-          <button className="btn" onClick={registerAnother}>Register another child</button>
+          <button type="button" className="btn btn-primary" onClick={() => window.print()}>Print card</button>
+          <button type="button" className="btn" onClick={registerAnother}>Register another child</button>
         </div>
       </div>
     );
@@ -98,25 +99,25 @@ export function Register() {
 
       <form className="reg-form card" onSubmit={onSubmit}>
         <div className="field">
-          <label>Child's full name</label>
-          <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoFocus />
+          <label htmlFor="reg-name">Child's full name</label>
+          <input id="reg-name" className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoFocus />
         </div>
         <div className="reg-row">
           <div className="field">
-            <label>Sex</label>
-            <select className="input" value={sex} onChange={(e) => setSex(e.target.value)}>
+            <label htmlFor="reg-sex">Sex</label>
+            <select id="reg-sex" className="input" value={sex} onChange={(e) => setSex(e.target.value)}>
               <option value="female">Female</option>
               <option value="male">Male</option>
             </select>
           </div>
           <div className="field">
-            <label>Date of birth</label>
-            <input className="input" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
+            <label htmlFor="reg-dob">Date of birth</label>
+            <input id="reg-dob" className="input" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
           </div>
         </div>
         <div className="field">
-          <label>Home facility</label>
-          <select className="input" value={facilityId} onChange={(e) => setFacilityId(e.target.value)} required>
+          <label htmlFor="reg-facility">Home facility</label>
+          <select id="reg-facility" className="input" value={facilityId} onChange={(e) => setFacilityId(e.target.value)} required>
             {facilities.length === 0 && <option value="">No facilities registered</option>}
             {facilities.map((f) => (
               <option key={f._id} value={f._id}>{f.name}, {f.lgaName}, {f.stateName}</option>
@@ -125,16 +126,16 @@ export function Register() {
         </div>
         <div className="reg-row">
           <div className="field">
-            <label>Where was the child born?</label>
-            <select className="input" value={birthSetting} onChange={(e) => setBirthSetting(e.target.value)}>
+            <label htmlFor="reg-birth-setting">Where was the child born?</label>
+            <select id="reg-birth-setting" className="input" value={birthSetting} onChange={(e) => setBirthSetting(e.target.value)}>
               <option value="facility">In a health facility</option>
               <option value="home">At home</option>
               <option value="other">Other</option>
             </select>
           </div>
           <div className="field">
-            <label>Registration channel</label>
-            <select className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
+            <label htmlFor="reg-channel">Registration channel</label>
+            <select id="reg-channel" className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
               <option value="phc">PHC</option>
               <option value="hospital">Hospital</option>
               <option value="chw">Community health worker</option>
@@ -146,18 +147,18 @@ export function Register() {
         </div>
         <div className="reg-row">
           <div className="field">
-            <label>Parent / guardian</label>
-            <input className="input" value={caregiverName} onChange={(e) => setCaregiverName(e.target.value)} required />
+            <label htmlFor="reg-caregiver">Parent / guardian</label>
+            <input id="reg-caregiver" className="input" value={caregiverName} onChange={(e) => setCaregiverName(e.target.value)} required />
           </div>
           <div className="field">
-            <label>Phone</label>
-            <input className="input" value={caregiverPhone} onChange={(e) => setCaregiverPhone(e.target.value)} placeholder="+234…" />
+            <label htmlFor="reg-phone">Phone</label>
+            <input id="reg-phone" className="input" value={caregiverPhone} onChange={(e) => setCaregiverPhone(e.target.value)} placeholder="+234…" />
           </div>
         </div>
 
         {error && <div className="banner error">{error}</div>}
 
-        <button className="btn btn-primary reg-submit" disabled={busy || !facilityId}>
+        <button type="submit" className="btn btn-primary reg-submit" disabled={busy || !facilityId}>
           {busy ? 'Issuing card…' : 'Register & print card'}
         </button>
       </form>
