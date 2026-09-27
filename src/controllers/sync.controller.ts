@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { pullChanges, pushTransactions } from '../services/sync.service';
 import { AppError } from '../utils/AppError';
+import { currentUser } from '../middleware/requireAuth';
 
 /**
  * Offline-first sync (NCIHAP §9). A health-worker device pulls the children it
@@ -16,6 +17,6 @@ export async function getPull(req: Request, res: Response) {
 
 export async function postPush(req: Request, res: Response) {
   const { deviceId, transactions } = req.body ?? {};
-  const summary = await pushTransactions(String(deviceId ?? ''), transactions, { username: req.user!.username });
+  const summary = await pushTransactions(String(deviceId ?? ''), transactions, { username: currentUser(req).username });
   res.json(summary);
 }

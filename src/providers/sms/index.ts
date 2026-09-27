@@ -8,7 +8,6 @@ export function getSmsProvider(): SmsProvider {
   if (cached) return cached;
 
   switch (env.SMS_PROVIDER) {
-    case 'stub':
     default:
       cached = new StubSmsProvider();
       break;

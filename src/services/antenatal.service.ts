@@ -1,4 +1,5 @@
-import { PregnancyModel } from '../models/Pregnancy';
+import type { HydratedDocument } from 'mongoose';
+import { PregnancyModel, type PregnancyDoc } from '../models/Pregnancy';
 import { CaregiverModel } from '../models/Caregiver';
 import { FacilityModel } from '../models/Facility';
 import { ChildModel } from '../models/Child';
@@ -58,7 +59,7 @@ export interface PregnancyView {
   daysToDelivery: number;
 }
 
-async function toView(p: any, now: Date): Promise<PregnancyView> {
+async function toView(p: HydratedDocument<PregnancyDoc>, now: Date): Promise<PregnancyView> {
   const [caregiver, facility] = await Promise.all([
     CaregiverModel.findById(p.caregiverId),
     FacilityModel.findById(p.facilityId)
@@ -124,7 +125,7 @@ export async function recordAncVisit(ancId: string, input: { date?: string | Dat
   pregnancy.visits.push({
     visitNumber: pregnancy.visits.length + 1,
     date,
-    facilityId: (input.facilityId ?? pregnancy.facilityId) as any
+    facilityId: input.facilityId ?? pregnancy.facilityId
   });
   await pregnancy.save();
 
@@ -193,7 +194,7 @@ export async function linkBirth(ancId: string, input: {
   });
 
   pregnancy.status = 'linked';
-  pregnancy.linkedChildId = child._id as any;
+  pregnancy.linkedChildId = child._id;
   pregnancy.linkedChin = chin;
   pregnancy.linkedAt = now;
   await pregnancy.save();
@@ -206,15 +207,18 @@ export async function linkBirth(ancId: string, input: {
  * pregnancy loss is recorded once and then stops generating follow-up work,
  * rather than sitting 'active' in a queue chasing a birth that will not come.
  */
+const CLOSED_REASONS = ['not_a_live_birth', 'moved_away', 'lost_to_followup', 'other'] as const;
+function isClosedReason(reason: string): reason is (typeof CLOSED_REASONS)[number] {
+  return (CLOSED_REASONS as readonly string[]).includes(reason);
+}
+
 export async function closePregnancy(ancId: string, reason: string, now: Date = new Date()): Promise<PregnancyView> {
   const pregnancy = await PregnancyModel.findOne({ ancId: normalizeChin(ancId) });
   if (!pregnancy) throw new AppError(`No antenatal record found with ID ${ancId}`, 404);
   if (pregnancy.status === 'linked') throw new AppError('A linked antenatal record cannot be closed', 409);
 
   pregnancy.status = 'closed';
-  pregnancy.closedReason = (['not_a_live_birth', 'moved_away', 'lost_to_followup', 'other'].includes(reason)
-    ? reason
-    : 'other') as any;
+  pregnancy.closedReason = isClosedReason(reason) ? reason : 'other';
   pregnancy.closedAt = now;
   await pregnancy.save();
 
@@ -280,8 +284,11 @@ export async function antenatalPipeline(weeks = 12, now: Date = new Date()): Pro
     if (edd >= now.getTime() && edd <= horizon) {
       expectedBirths += 1;
       const area = stateById.get(String(p.facilityId)) ?? '(unknown)';
-      if (!byArea.has(area)) byArea.set(area, { expectedBirths: 0, atRisk: 0 });
-      const row = byArea.get(area)!;
+      let row = byArea.get(area);
+      if (!row) {
+        row = { expectedBirths: 0, atRisk: 0 };
+        byArea.set(area, row);
+      }
       row.expectedBirths += 1;
       if (band === 'at_risk') row.atRisk += 1;
     }

@@ -39,7 +39,7 @@ async function json(method: string, path: string, body?: unknown, opts?: { auth?
   const useAuth = opts?.auth !== false; // default: send the staff bearer token
   const headers: Record<string, string> = {};
   if (body) headers['Content-Type'] = 'application/json';
-  if (useAuth && authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  if (useAuth && authToken) headers.Authorization = `Bearer ${authToken}`;
 
   const res = await fetch(`${baseUrl}${path}`, {
     method,

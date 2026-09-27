@@ -219,8 +219,12 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
   for (const c of scoped) {
     accumulate(totals, c);
     const key = c.geo[level];
-    if (!groups.has(key)) groups.set(key, blank());
-    accumulate(groups.get(key)!, c);
+    let group = groups.get(key);
+    if (!group) {
+      group = blank();
+      groups.set(key, group);
+    }
+    accumulate(group, c);
   }
 
   // Vaccine utilisation needs the actual administered doses, re-read here.
@@ -736,7 +740,8 @@ export async function administrationTrend(weeks: number, now: Date = new Date())
       const t = d.administeredDate.getTime();
       if (t < earliest || t > now.getTime()) continue;
       const key = weekStart(t);
-      if (buckets.has(key)) buckets.set(key, buckets.get(key)! + 1);
+      const count = buckets.get(key);
+      if (count !== undefined) buckets.set(key, count + 1);
     }
   }
 
@@ -764,8 +769,12 @@ export async function facilityOutliers(minChildren = 5, now: Date = new Date()):
   const byFacility = new Map<string, { geo: FacilityGeo; m: ReturnType<typeof blank> }>();
   for (const c of facts) {
     const key = c.geo.facilityId || c.geo.facility;
-    if (!byFacility.has(key)) byFacility.set(key, { geo: c.geo, m: blank() });
-    accumulate(byFacility.get(key)!.m, c);
+    let entry = byFacility.get(key);
+    if (!entry) {
+      entry = { geo: c.geo, m: blank() };
+      byFacility.set(key, entry);
+    }
+    accumulate(entry.m, c);
   }
 
   const eligible = [...byFacility.values()]

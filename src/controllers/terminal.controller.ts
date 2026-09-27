@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { terminalLookup, getAccessLog } from '../services/terminal.service';
 import { normalizeChin } from '../services/chin.service';
 import { AppError } from '../utils/AppError';
+import { currentUser } from '../middleware/requireAuth';
 
 /**
  * The authorised verification terminal (NCIHAP §16). Any authenticated staff
@@ -14,10 +15,8 @@ export async function postTerminalLookup(req: Request, res: Response) {
     throw new AppError('Provide either a CHIN (typed) or a QR (scanned)');
   }
 
-  const result = await terminalLookup(
-    { chin, qr },
-    { username: req.user!.username, role: req.user!.role }
-  );
+  const { username, role } = currentUser(req);
+  const result = await terminalLookup({ chin, qr }, { username, role });
   res.json(result);
 }
 

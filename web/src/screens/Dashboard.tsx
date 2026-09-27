@@ -110,6 +110,8 @@ export function Dashboard() {
   const integrity = useGet<FraudAlerts>('/api/fraud/alerts');
   const regMob = useGet<RegMobility>('/api/dashboard/registration-mobility');
   const barriers = useGet<DefaultingReasons>('/api/dashboard/defaulting-reasons');
+  // Bar widths divide by this; the bars only render once there is at least one barrier.
+  const barrierTotal = Math.max(1, barriers.data?.total ?? 0);
   const antenatal = useGet<Antenatal>('/api/dashboard/antenatal?weeks=12');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
@@ -118,7 +120,8 @@ export function Dashboard() {
   const canDrill = summary.data?.breakdownBy !== 'facility';
   function drillInto(key: string) {
     if (!summary.data || !canDrill) return;
-    setFilter((f) => ({ ...f, [summary.data!.breakdownBy]: key }));
+    const level = summary.data.breakdownBy;
+    setFilter((f) => ({ ...f, [level]: key }));
   }
   const crumbs = useMemo(() => {
     const c: Array<{ label: string; f: Filter }> = [{ label: 'Nigeria', f: {} }];
@@ -352,7 +355,7 @@ export function Dashboard() {
               {barriers.data.reasons.map((r) => (
                 <li key={r.barrier} className="regmob-row">
                   <span className="regmob-label">{r.label}</span>
-                  <span className="regmob-track"><span className="regmob-fill barrier" style={{ width: `${(r.count / Math.max(1, barriers.data!.total)) * 100}%` }} /></span>
+                  <span className="regmob-track"><span className="regmob-fill barrier" style={{ width: `${(r.count / barrierTotal) * 100}%` }} /></span>
                   <span className="regmob-num mono">{fmt(r.count)}</span>
                 </li>
               ))}

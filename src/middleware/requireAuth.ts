@@ -28,6 +28,13 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
+/** The signed-in staff user. Only call behind `requireAuth`; it answers 401
+ *  rather than asserting, so a route wired without the guard fails safely. */
+export function currentUser(req: Request): TokenPayload {
+  if (!req.user) throw new AppError('Not authenticated', 401);
+  return req.user;
+}
+
 export function requireRole(...roles: StaffRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) throw new AppError('Not authenticated', 401);

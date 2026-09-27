@@ -162,7 +162,8 @@
 .mc-facility { display: flex; gap: 16px; align-items: flex-start; }
 .mc-facility-icon { font-size: 26px; flex: none; }
 .mc-facility p { margin: 4px 0 0; font-size: 13.5px; color: var(--mc-muted); }
-.mc-facility-note { margin-top: 8px !important; }
+/* Scoped to beat `.mc-facility p` above without !important. */
+.mc-facility .mc-facility-note { margin-top: 8px; }
 
 /* FAQ */
 .mc-faq { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }

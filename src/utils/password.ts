@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 const SCRYPT_KEY_LENGTH = 64;
 const SALT_BYTES = 16;

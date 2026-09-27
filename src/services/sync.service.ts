@@ -71,6 +71,9 @@ interface IncomingTx {
   clientTxId?: string;
   type?: string;
   recordedAt?: string;
+  // Raw device JSON. Each apply function checks the fields it needs, and
+  // Mongoose casts and validates them (ObjectIds, the sex enum) on save.
+  // biome-ignore lint/suspicious/noExplicitAny: typing this means adding casts that would change sync's error reporting
   payload?: any;
 }
 

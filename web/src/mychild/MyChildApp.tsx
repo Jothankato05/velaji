@@ -278,7 +278,7 @@ function HomeView() {
               <span className="mc-ms-mark" aria-hidden>{m.done ? '✓' : m.administered > 0 ? '◐' : '○'}</span>
               <span className="mc-ms-body">
                 <span className="mc-ms-name">{m.name}</span>
-                <span className="mc-ms-sub">{m.done ? `Completed${m.completedAt ? ' ' + fmtDate(m.completedAt) : ''}` : `${m.administered} of ${m.total} done`}</span>
+                <span className="mc-ms-sub">{m.done ? `Completed${m.completedAt ? ` ${fmtDate(m.completedAt)}` : ''}` : `${m.administered} of ${m.total} done`}</span>
               </span>
             </li>
           ))}
@@ -303,7 +303,7 @@ function HomeView() {
                 <span className="mc-reward-what">{r.reward}</span>
                 <span className="mc-reward-state">
                   {r.attained
-                    ? `Earned${r.attainedAt ? ' ' + fmtDate(r.attainedAt) : ''}`
+                    ? `Earned${r.attainedAt ? ` ${fmtDate(r.attainedAt)}` : ''}`
                     : `${r.administered} of ${r.total} done${isNext ? ` · ${r.total - r.administered} to go` : ''}`}
                 </span>
               </div>
