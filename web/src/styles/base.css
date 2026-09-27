@@ -80,5 +80,6 @@ button { font-family: inherit; }
 .banner.ok { color: var(--st-green); background: var(--st-green-bg); border-color: var(--st-green); }
 
 @media (prefers-reduced-motion: reduce) {
+  /* biome-ignore lint/complexity/noImportantStyles: reduced motion has to override every component's transition */
   * { transition: none !important; }
 }

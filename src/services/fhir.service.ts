@@ -77,15 +77,16 @@ export function childToFhirBundle(child: FhirChildInput, now: Date = new Date())
     birthDate: isoDate(child.dateOfBirth)
   };
 
-  const given = child.doses.filter((d) => d.administeredDate);
-  const immunizations = given.map((d, i) => ({
+  // Pair each given dose with its date so the date stays non-null below.
+  const given = child.doses.flatMap((d) => (d.administeredDate ? [{ d, at: d.administeredDate }] : []));
+  const immunizations = given.map(({ d, at }, i) => ({
     resourceType: 'Immunization',
     id: `${patientId}-imm-${i + 1}`,
     meta: { profile: [`${IG}/StructureDefinition/nphcda-immunization`] },
     status: 'completed',
     vaccineCode: { coding: [{ system: SYS_VACCINE, code: d.vaccineCode, display: d.displayName }], text: d.displayName },
     patient: patientRef,
-    occurrenceDateTime: d.administeredDate!.toISOString(),
+    occurrenceDateTime: at.toISOString(),
     primarySource: true,
     protocolApplied: [{ doseNumberPositiveInt: d.doseNumber }],
     ...(child.facilityName ? { location: { display: child.facilityName } } : {})

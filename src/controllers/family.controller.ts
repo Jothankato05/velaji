@@ -68,8 +68,12 @@ export async function familyJourney(req: Request, res: Response) {
   for (const d of doses) {
     const ageDays = (d.dueDate.getTime() - dob.getTime()) / DAY;
     const b = bandFor(ageDays);
-    if (!groups.has(b.key)) groups.set(b.key, { name: b.name, order: b.order, doses: [] });
-    groups.get(b.key)!.doses.push(d);
+    let group = groups.get(b.key);
+    if (!group) {
+      group = { name: b.name, order: b.order, doses: [] };
+      groups.set(b.key, group);
+    }
+    group.doses.push(d);
   }
   const milestones = [...groups.values()]
     .sort((a, b) => a.order - b.order)

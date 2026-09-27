@@ -157,7 +157,9 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
 
   // §20: a few relocations, most cross-state — continuity survives the move.
   const facs = await FacilityModel.find({});
-  const dests = ['Kano', 'FCT', 'Lagos'].map((s) => facs.find((f) => f.stateName === s)!).filter(Boolean);
+  const dests = ['Kano', 'FCT', 'Lagos']
+    .map((s) => facs.find((f) => f.stateName === s))
+    .filter((f): f is NonNullable<typeof f> => Boolean(f));
   const movers = await ChildModel.find({}).limit(7);
   const reasons = ['relocation', 'displacement', 'nomadic', 'migration', 'relocation', 'displacement', 'nomadic'] as const;
   for (let i = 0; i < movers.length; i++) {
@@ -258,5 +260,5 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   }
 
   const token = signChin(cardChild.chin);
-  return { cardChin: cardChild.chin, cardToken: signChin(cardChild.chin), ussdPhone };
+  return { cardChin: cardChild.chin, cardToken: token, ussdPhone };
 }

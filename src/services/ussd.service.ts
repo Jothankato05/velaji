@@ -53,7 +53,7 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
   if (children.length > 1) {
     if (steps.length === 0) {
       return {
-        message: 'NCIHAP\nSelect your child:\n' + children.map((c, i) => `${i + 1}. ${firstNameOf(c.fullName)}`).join('\n'),
+        message: `NCIHAP\nSelect your child:\n${children.map((c, i) => `${i + 1}. ${firstNameOf(c.fullName)}`).join('\n')}`,
         continue: true
       };
     }

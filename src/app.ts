@@ -1,5 +1,5 @@
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 import express from 'express';
 import { apiRouter } from './routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';

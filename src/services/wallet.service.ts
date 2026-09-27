@@ -1,4 +1,5 @@
-import { HealthRecordModel, HEALTH_DOMAINS, type HealthDomain } from '../models/HealthRecord';
+import type { HydratedDocument, Types } from 'mongoose';
+import { HealthRecordModel, HEALTH_DOMAINS, type HealthDomain, type HealthRecordDoc } from '../models/HealthRecord';
 import { FacilityModel } from '../models/Facility';
 import type { StaffRole } from '../utils/token';
 
@@ -37,11 +38,11 @@ export interface AddRecordInput {
   title: string;
   value: string;
   note?: string;
-  facilityId?: any;
+  facilityId?: Types.ObjectId | string | null;
 }
 
 export async function addHealthRecord(
-  child: { _id: any; chin: string; currentFacilityId?: any },
+  child: { _id: Types.ObjectId | string; chin: string; currentFacilityId?: Types.ObjectId | string | null },
   input: AddRecordInput,
   actor: { username: string; role: StaffRole | 'system' },
   now: Date = new Date()
@@ -71,7 +72,7 @@ export async function getHealthRecords(chin: string): Promise<HealthRecordView[]
   return records.map((r) => toView(r, r.facilityId ? nameById.get(String(r.facilityId)) ?? null : null));
 }
 
-function toView(r: any, facilityName: string | null): HealthRecordView {
+function toView(r: HydratedDocument<HealthRecordDoc>, facilityName: string | null): HealthRecordView {
   return {
     id: String(r._id),
     domain: r.domain,

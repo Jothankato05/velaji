@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { listEscalations, resolveEscalation, defaultingReasons, BARRIERS } from '../services/escalation.service';
 import { AppError } from '../utils/AppError';
+import { currentUser } from '../middleware/requireAuth';
 
 const VALID_OUTCOMES = ['immunized', 'reached', 'moved_away', 'unreachable', 'other'];
 
@@ -27,7 +28,7 @@ export async function postResolveEscalation(req: Request, res: Response) {
     throw new AppError(`barrier must be one of: ${BARRIERS.join(', ')}`);
   }
 
-  const resolved = await resolveEscalation(id, req.user!.username, outcome ?? 'other', note ?? '', barrier ?? null);
+  const resolved = await resolveEscalation(id, currentUser(req).username, outcome ?? 'other', note ?? '', barrier ?? null);
   res.json(resolved);
 }
 

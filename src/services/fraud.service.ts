@@ -1,3 +1,4 @@
+import type { Types } from 'mongoose';
 import { DoseAdministrationModel } from '../models/DoseAdministration';
 import type { StaffRole } from '../utils/token';
 
@@ -12,10 +13,10 @@ export const DUPLICATE_ALERT_THRESHOLD = 3;
 
 export interface AdministrationEvent {
   chin: string;
-  childId: any;
+  childId: Types.ObjectId | string;
   vaccineCode: string;
   doseNumber: number;
-  facilityId?: any;
+  facilityId?: Types.ObjectId | string | null;
   recordedBy: string;
   recordedByRole: StaffRole | 'system';
   duplicate?: boolean;

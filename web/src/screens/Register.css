@@ -16,7 +16,9 @@
 @media (max-width: 560px) { .reg-row { grid-template-columns: 1fr; } }
 
 @media print {
+  /* biome-ignore lint/complexity/noImportantStyles: print-only, must strip the app chrome whatever its own rules say */
   .sidebar, .topbar, .reg-head, .issued-actions { display: none !important; }
+  /* biome-ignore lint/complexity/noImportantStyles: print-only, the card prints edge to edge */
   .content { padding: 0 !important; }
   .issued-card { border: none; box-shadow: none; }
 }

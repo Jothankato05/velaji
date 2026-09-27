@@ -17,7 +17,10 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   });
 }
 
-createRoot(document.getElementById('root')!).render(
+const rootEl = document.getElementById('root');
+if (!rootEl) throw new Error('index.html is missing the #root element');
+
+createRoot(rootEl).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>

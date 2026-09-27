@@ -1,4 +1,4 @@
-import { ChildModel } from '../models/Child';
+import { ChildModel, type ChildDoc } from '../models/Child';
 import { FacilityModel } from '../models/Facility';
 import { normalizeChin } from './chin.service';
 import { AppError } from '../utils/AppError';
@@ -39,15 +39,15 @@ export interface BirthRegistrationView {
   registeredAt: Date | null;
 }
 
-function toView(child: any): BirthRegistrationView {
-  const br = child.birthRegistration ?? {};
+function toView(child: Pick<ChildDoc, 'chin' | 'birthRegistration'>): BirthRegistrationView {
+  const br = child.birthRegistration;
   return {
     chin: child.chin,
-    status: (br.status ?? 'not_registered') as BirthRegistrationStatus,
-    registrationNumber: br.registrationNumber ?? '',
-    nin: br.nin ?? '',
-    referredAt: br.referredAt ?? null,
-    registeredAt: br.registeredAt ?? null
+    status: (br?.status ?? 'not_registered') as BirthRegistrationStatus,
+    registrationNumber: br?.registrationNumber ?? '',
+    nin: br?.nin ?? '',
+    referredAt: br?.referredAt ?? null,
+    registeredAt: br?.registeredAt ?? null
   };
 }
 
@@ -125,8 +125,11 @@ export async function identityGap(): Promise<IdentityGap> {
     if (c.birthRegistration?.nin) withNin += 1;
 
     const state = stateById.get(String(c.currentFacilityId)) ?? UNKNOWN;
-    if (!byState.has(state)) byState.set(state, { known: 0, unregistered: 0 });
-    const row = byState.get(state)!;
+    let row = byState.get(state);
+    if (!row) {
+      row = { known: 0, unregistered: 0 };
+      byState.set(state, row);
+    }
     row.known += 1;
     if (status !== 'registered') row.unregistered += 1;
   }

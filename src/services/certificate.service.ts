@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { CertificateModel } from '../models/Certificate';
 import type { ChildHydrated } from '../models/Child';
 import { isScheduleComplete } from './schedule.service';

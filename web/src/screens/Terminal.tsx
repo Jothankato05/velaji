@@ -8,7 +8,18 @@ interface LookupResult {
   status: string;
   method: string;
   tier: string;
-  record: Record<string, any>;
+  record: TerminalRecord;
+}
+
+// What the terminal renders. A verifier gets only the base fields; the
+// optional ones arrive for staff and admin (least-privilege, NCIHAP §24).
+interface TerminalRecord {
+  chin: string;
+  childName: string;
+  nextDue: { vaccine: string; dueDate: string } | null;
+  dateOfBirth?: string;
+  currentFacility?: string | null;
+  caregiver?: { fullName: string; phone: string | null } | null;
 }
 
 export function Terminal() {
