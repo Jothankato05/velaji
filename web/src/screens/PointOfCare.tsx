@@ -56,6 +56,7 @@ export function PointOfCare() {
   }, []);
 
   // A CHIN handed in from the top-bar search loads straight away.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once on mount, then clears the param itself
   useEffect(() => {
     const chin = params.get('chin');
     if (chin) {
@@ -63,7 +64,6 @@ export function PointOfCare() {
       void load(chin);
       setParams({}, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function load(chin: string) {
@@ -133,7 +133,7 @@ export function PointOfCare() {
           onChange={(e) => setValue(e.target.value)}
           autoFocus
         />
-        <button className="btn btn-primary" disabled={busy || !value.trim()}>Look up</button>
+        <button type="submit" className="btn btn-primary" disabled={busy || !value.trim()}>Look up</button>
       </form>
 
       {error && <div className="banner error">{error}</div>}
@@ -164,7 +164,7 @@ export function PointOfCare() {
               <div className="next-meta">
                 dose #{journey.nextDue.doseNumber} · due {journey.nextDue.dueDate.slice(0, 10)}
               </div>
-              <button className="btn btn-primary next-give" onClick={() => void giveNext()} disabled={giving || !hereId}>
+              <button type="button" className="btn btn-primary next-give" onClick={() => void giveNext()} disabled={giving || !hereId}>
                 {giving ? 'Recording…' : 'Record this vaccine'}
               </button>
             </div>

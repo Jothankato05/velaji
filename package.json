@@ -1,7 +1,7 @@
 {
   "name": "velaji",
   "version": "1.0.0",
-  "description": "Velaji — immunisation programme delivery platform (working prototype).",
+  "description": "Velaji \u2014 immunisation programme delivery platform (working prototype).",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "test": "tsx tests/run-tests.ts",
     "seed:demo": "tsx src/scripts/seedDemo.ts",
-    "seed:serve": "tsx src/scripts/serveSeeded.ts"
+    "seed:serve": "tsx src/scripts/serveSeeded.ts",
+    "lint": "biome lint"
   },
   "keywords": [],
   "type": "commonjs",
@@ -21,6 +22,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.14",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "@types/qrcode": "^1.5.6",

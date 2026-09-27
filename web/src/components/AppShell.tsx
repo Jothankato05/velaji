@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </form>
           <div className="topbar-right">
             <span className="topbar-date">{new Date().toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
-            <button className="user-chip" onClick={logout} title="Sign out">
+            <button type="button" className="user-chip" onClick={logout} title="Sign out">
               <span className="user-av">{initials(user?.fullName)}</span>
               <span className="user-meta">
                 <span className="user-name">{user?.fullName}</span>

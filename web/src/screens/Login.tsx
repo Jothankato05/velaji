@@ -101,7 +101,7 @@ export function Login() {
             />
           </div>
 
-          <button className="btn btn-primary login-submit" disabled={busy || !username || !password}>
+          <button type="submit" className="btn btn-primary login-submit" disabled={busy || !username || !password}>
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
 

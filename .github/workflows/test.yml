@@ -56,3 +56,18 @@ jobs:
       - run: npm ci
       # Type-checks and bundles the SPA, the same build the Dockerfile runs.
       - run: npm run build
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      # Biome lints the API, the tests and the web app from the root config.
+      - run: npm run lint
