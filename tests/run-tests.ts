@@ -723,6 +723,32 @@ test('search finds a child by name, caregiver, phone or part of the CHIN', async
   assert((await find('.*')).length === 0, 'regex characters are taken literally');
 });
 
+test('parent lookup by phone finds the family and their children', async () => {
+  const { status, body } = await json('GET', `/api/caregivers/by-phone?phone=${encodeURIComponent('0809 000 0000')}`);
+  assert(status === 200, `expected 200, got ${status}`);
+  const carer = body.caregivers.find((c: { fullName: string }) => c.fullName === 'Terminal Carer');
+  assert(carer, 'finds the parent from a local-format number');
+  assert(carer.children.some((k: { chin: string }) => k.chin === termChin), 'lists their child');
+  const short = await json('GET', '/api/caregivers/by-phone?phone=0809');
+  assert(short.body.caregivers.length === 0, 'a partial number matches nobody');
+  const v = await jsonAs(verifierToken, 'GET', '/api/caregivers/by-phone?phone=08090000000');
+  assert(v.status === 403, `verifier should get 403, got ${v.status}`);
+});
+
+test('a second child can join an existing parent', async () => {
+  const found = await json('GET', '/api/caregivers/by-phone?phone=08090000000');
+  const carer = found.body.caregivers.find((c: { fullName: string }) => c.fullName === 'Terminal Carer');
+  const dob = new Date(NOON.getTime() - 3 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Terminal Sibling', sex: 'female', dateOfBirth: dob, caregiverId: carer._id, homeFacilityId: facilityAId
+  });
+  assert(reg.status === 201, `expected 201, got ${reg.status}`);
+  const again = await json('GET', '/api/caregivers/by-phone?phone=08090000000');
+  const same = again.body.caregivers.filter((c: { fullName: string }) => c.fullName === 'Terminal Carer');
+  assert(same.length === 1, 'still one parent record');
+  assert(same[0].children.length === 2, `both children listed, got ${same[0].children.length}`);
+});
+
 test('search is for staff and admins only', async () => {
   const r = await jsonAs(verifierToken, 'GET', '/api/children/search?q=terminal');
   assert(r.status === 403, `expected 403, got ${r.status}`);

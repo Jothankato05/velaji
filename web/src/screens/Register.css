@@ -11,6 +11,28 @@
 .reg-submit { padding: 11px; font-size: 15px; }
 .reg-dup-actions { margin-top: 8px; }
 
+.reg-radios { border: none; margin: 0; padding: 0; min-width: 0; }
+.reg-radios legend { font-size: 13px; font-weight: 500; color: var(--ink-soft); padding: 0; margin-bottom: 6px; }
+.reg-radio-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.reg-radio {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  border: 1px solid var(--line-strong); border-radius: var(--r); padding: 8px 10px; font-size: 14px; background: var(--surface);
+}
+.reg-radio.checked { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+.reg-radio input { accent-color: var(--brand); margin: 0; }
+.reg-radio:has(input:focus-visible) { box-shadow: var(--focus); }
+.reg-age { font-size: 12.5px; color: var(--muted); min-height: 1.2em; }
+
+.reg-family {
+  border: 1px solid #c9e0d4; background: var(--brand-soft); border-radius: var(--r);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.45;
+}
+.reg-family.linked { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.reg-family-title { font-weight: 600; }
+.reg-family-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.reg-linkbtn { align-self: flex-start; background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: var(--brand); text-decoration: underline; cursor: pointer; }
+.input[readonly] { background: var(--surface-2); color: var(--ink-soft); }
+
 .issued-card {
   border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
   max-width: 520px; background: var(--surface);
@@ -18,7 +40,10 @@
 .issued-card svg { width: 100%; height: auto; display: block; }
 .issued-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-@media (max-width: 560px) { .reg-row { grid-template-columns: 1fr; } }
+@media (max-width: 560px) {
+  .reg-row { grid-template-columns: 1fr; }
+  .reg-family.linked, .reg-family-row { flex-direction: column; align-items: stretch; }
+}
 
 @media print {
   /* biome-ignore lint/complexity/noImportantStyles: print-only, must strip the app chrome whatever its own rules say */

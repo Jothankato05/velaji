@@ -6,7 +6,7 @@ import { rateLimit } from '../middleware/rateLimit';
 import { auditChildAccess } from '../middleware/auditChildAccess';
 import { login, me } from '../controllers/auth.controller';
 import { createFacility, listFacilities, nearestFacility } from '../controllers/facilities.controller';
-import { createCaregiver } from '../controllers/caregivers.controller';
+import { createCaregiver, findCaregiversByPhone } from '../controllers/caregivers.controller';
 import {
   registerChild,
   getChild,
@@ -93,6 +93,7 @@ apiRouter.get('/api/facilities', asyncHandler(listFacilities));
 apiRouter.get('/api/facilities/nearest', asyncHandler(nearestFacility));
 
 apiRouter.post('/api/caregivers', asyncHandler(createCaregiver));
+apiRouter.get('/api/caregivers/by-phone', requireRole('staff', 'admin'), asyncHandler(findCaregiversByPhone));
 
 // An individual child's record is care data, not something every authenticated
 // account may read. Verifiers get the role-scoped, audited §16 headline via the
