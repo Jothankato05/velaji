@@ -35,16 +35,40 @@ const now = Date.now();
 type Id = Types.ObjectId;
 type Profile = 'complete' | 'ontrack' | 'overdue' | 'zero' | 'nearterm';
 
+// Deterministic pseudo-random numbers (mulberry32), so the demo comes out the
+// same on every seed while still looking like a real, uneven population.
+let rngState = 0x5eed;
+function rand(): number {
+  rngState = (rngState + 0x6d2b79f5) | 0;
+  let t = rngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const between = (lo: number, hi: number) => lo + rand() * (hi - lo);
+
+// Age range in days for each profile. Each child gets its own age inside the
+// range, so doses (and the administration trend) spread over real weeks instead
+// of every child in a profile sharing one birthday. Ranges are chosen so the
+// profile still holds against the schedule (birth, 6/10/14 weeks, 9 and 15 months).
+const AGE_DAYS: Record<Profile, [number, number]> = {
+  nearterm: [8, 41], // birth doses given; 6-week doses fall due within ~5 weeks
+  zero: [20, 100], // nothing given yet
+  ontrack: [45, 260], // every dose due so far given; 9-month doses still ahead
+  overdue: [300, 440], // past 9 months with gaps; 15-month dose not yet due
+  complete: [460, 1000] // every scheduled dose given
+};
+
 async function makeChild(facilityId: Id, caregiverId: Id, profile: Profile, name: string) {
-  // 'nearterm' = a ~6-week-old, birth doses given, whose infant-series doses
-  // fall due within the next weeks — real upcoming demand for the §18 plan.
-  const ageMonths = profile === 'complete' ? 30 : profile === 'ontrack' ? 6 : profile === 'overdue' ? 13 : profile === 'nearterm' ? 1.3 : 1.5;
-  const dob = new Date(now - ageMonths * 30.44 * DAY);
+  const [lo, hi] = AGE_DAYS[profile];
+  const dob = new Date(now - Math.round(between(lo, hi)) * DAY);
   const doses = buildDosesForChild(dob);
+  // Given 0-9 days after falling due, never in the future.
+  const given = (due: Date) => new Date(Math.min(due.getTime() + Math.round(between(0, 9)) * DAY, now - 60 * 60 * 1000));
   for (const d of doses) {
     if (d.dueDate.getTime() >= now) continue;
-    if (profile === 'complete' || profile === 'ontrack' || profile === 'nearterm') d.administeredDate = new Date(d.dueDate.getTime() + 2 * DAY);
-    else if (profile === 'overdue' && Math.random() < 0.5) d.administeredDate = new Date(d.dueDate.getTime() + 2 * DAY);
+    if (profile === 'complete' || profile === 'ontrack' || profile === 'nearterm') d.administeredDate = given(d.dueDate);
+    else if (profile === 'overdue' && rand() < 0.5) d.administeredDate = given(d.dueDate);
     // 'zero' → nothing administered
   }
   const chin = generateChin(dob);
@@ -82,6 +106,7 @@ export interface DemoSeedResult {
 }
 
 export async function seedDemoData(): Promise<DemoSeedResult> {
+  rngState = 0x5eed;
 
   await StaffUserModel.create({
     username: 'admin', passwordHash: await hashPassword('admin-demo-pass'), fullName: 'Command Admin', role: 'admin'
@@ -128,7 +153,14 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   // One named MyChild card (in FCT), reusing an on-track child. Give it a
   // dedicated caregiver with a distinct phone so the USSD demo maps that number
   // to exactly this one child.
-  const cardChild = fctChildren.find((c) => c.doses.some((d) => !d.administeredDate)) ?? fctChildren[0];
+  // The card's health records (7.4 kg, sitting and babbling) describe a baby of
+  // about six months, so pick the FCT child closest to that age who still has a
+  // vaccine ahead.
+  const ageDays = (c: (typeof fctChildren)[number]) => (now - c.dateOfBirth.getTime()) / DAY;
+  const cardChild =
+    fctChildren
+      .filter((c) => c.doses.some((d) => !d.administeredDate))
+      .sort((a, b) => Math.abs(ageDays(a) - 185) - Math.abs(ageDays(b) - 185))[0] ?? fctChildren[0];
   const ussdPhone = '+2348010000001';
   const ussdCaregiver = await CaregiverModel.create({ fullName: 'Aisha Bello', phone: ussdPhone });
   await ChildModel.updateOne({ _id: cardChild._id }, { fullName: 'Zara Bello', caregiverId: ussdCaregiver._id });

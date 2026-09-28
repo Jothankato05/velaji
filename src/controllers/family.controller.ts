@@ -23,7 +23,7 @@ const TIPS = [
 function ageLabel(dob: Date, now: Date): string {
   const months = Math.floor((now.getTime() - dob.getTime()) / (30.44 * DAY));
   if (months < 1) return 'newborn';
-  if (months < 24) return `${months} months old`;
+  if (months < 24) return `${months} month${months === 1 ? '' : 's'} old`;
   return `${Math.floor(months / 12)} years old`;
 }
 

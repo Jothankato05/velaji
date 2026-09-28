@@ -347,12 +347,23 @@ function TrendChart({ points }: { points: Array<{ weekStarting: string; dosesAdm
   const max = Math.max(1, ...points.map((p) => p.dosesAdministered));
   return (
     <div className="trend">
-      {points.map((p) => (
-        <div key={p.weekStarting} className="trend-col" title={`${p.weekStarting}: ${p.dosesAdministered}`}>
-          <div className="trend-bar" style={{ height: `${(p.dosesAdministered / max) * 100}%` }} />
-          <div className="trend-x mono">{p.weekStarting.slice(5)}</div>
-        </div>
-      ))}
+      {points.map((p, i) => {
+        // The last week is still in progress, so it's labelled and drawn lighter
+        // rather than reading as a drop.
+        const current = i === points.length - 1;
+        const label = current
+          ? 'This week'
+          : new Date(`${p.weekStarting}T00:00:00Z`).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+        return (
+          <div key={p.weekStarting} className="trend-col" title={`Week starting ${p.weekStarting}: ${fmt(p.dosesAdministered)} doses`}>
+            <span className="trend-n">{fmt(p.dosesAdministered)}</span>
+            <div className="trend-plot">
+              <div className={`trend-bar${current ? ' current' : ''}`} style={{ height: `${(p.dosesAdministered / max) * 100}%` }} />
+            </div>
+            <div className="trend-x">{label}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
