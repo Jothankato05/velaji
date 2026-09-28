@@ -293,7 +293,7 @@ export function Register() {
           {linkedParent ? (
             <div className="reg-family linked">
               <div>
-                <strong>Same family as {linkedParent.children.map((k) => k.fullName.split(' ')[0]).join(', ')}.</strong>{' '}
+                <strong>Same family as {[...new Set(linkedParent.children.map((k) => k.fullName.split(' ')[0]))].join(', ')}.</strong>{' '}
                 This child will be added to {linkedParent.fullName}’s record, with reminders to the same number.
               </div>
               <button type="button" className="btn btn-sm" onClick={unlinkParent}>Not the same parent</button>
