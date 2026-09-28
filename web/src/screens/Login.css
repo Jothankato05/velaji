@@ -2,16 +2,42 @@
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   padding: 32px 16px; background: var(--bg);
 }
+.login-col { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; }
 .login-form {
-  width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 14px;
+  display: flex; flex-direction: column; gap: 14px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
   padding: 28px;
 }
 .login-brand { font-weight: 700; font-size: 18px; color: var(--brand); letter-spacing: -0.01em; }
 .login-form h1 { font-size: 20px; margin-top: 6px; }
 .login-form-sub { margin: -8px 0 2px; font-size: 13.5px; }
-.login-submit { margin-top: 4px; padding: 9px; }
+.login-submit { margin-top: 4px; padding: 10px; }
 .login-note { font-size: 12.5px; margin: 2px 0 0; }
+
+.login-pw { position: relative; }
+.login-pw .input { width: 100%; padding-right: 64px; }
+.login-pw-toggle {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  background: none; border: none; border-radius: var(--r); padding: 4px 8px;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--brand); cursor: pointer;
+}
+.login-pw-toggle:hover { background: var(--brand-soft); }
 
 /* Demo-instance notice: present only when the build carries demo credentials. */
 .banner.demo-note { background: var(--brand-soft); border-color: #c9e0d4; color: var(--ink); font-size: 13px; }
+.login-linkbtn { background: none; border: none; padding: 0; font: inherit; color: var(--brand); font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* Parents who land here are pointed to MyChild, which needs no account. */
+.login-parent {
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 14px 18px; font-size: 13.5px; line-height: 1.45; color: var(--ink); text-decoration: none;
+}
+.login-parent:hover { border-color: var(--line-strong); text-decoration: none; }
+.login-parent-arrow { color: var(--brand); font-size: 18px; }
+.login-credit { font-size: 12px; text-align: center; margin: 4px 0 0; }
+
+@media (max-width: 480px) {
+  .login { align-items: flex-start; padding: 24px 16px; }
+  .login-form { padding: 22px 18px; }
+}
