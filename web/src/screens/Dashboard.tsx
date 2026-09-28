@@ -39,7 +39,11 @@ interface StatePriority {
 interface Coverage { states: StatePriority[]; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
 interface Stock { weeks: number; generatedAt: string; byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[] }>; }
-interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
+interface Outliers {
+  average: number;
+  threshold: number;
+  facilities: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number; outlier: boolean }>;
+}
 interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
 interface Recovery { count: number; children: RecoveryChild[]; }
 
@@ -243,17 +247,13 @@ export function Dashboard() {
         </section>
 
         <section className="card panel">
-          <div className="panel-head"><h2>Dropout outliers</h2><span className="eyebrow">facilities to review</span></div>
-          {outliers.data ? (outliers.data.outliers.length === 0 ? <Empty>No facilities flagged.</Empty> : (
-            <ul className="outlier-list">
-              {outliers.data.outliers.map((o) => (
-                <li key={`${o.facility}-${o.lga}`} className="outlier-row">
-                  <div><div className="outlier-name">{o.facility}</div><div className="muted outlier-loc">{o.lga}, {o.state} · {o.registered} children</div></div>
-                  <span className="outlier-rate mono">{pct(o.dropoutRate)}</span>
-                </li>
-              ))}
-            </ul>
-          )) : <Loading />}
+          <div className="panel-head">
+            <h2>Dropout by facility</h2>
+            {outliers.data && outliers.data.facilities.length > 0 && (
+              <span className="eyebrow">average {pct(outliers.data.average)} · flagged above {pct(outliers.data.threshold)}</span>
+            )}
+          </div>
+          {outliers.data ? (outliers.data.facilities.length === 0 ? <Empty>No facility has enough children to compare yet.</Empty> : <DropoutRanking d={outliers.data} />) : <Loading />}
         </section>
 
       </div>
@@ -340,6 +340,39 @@ function StatusBar({ t }: { t: Metrics }) {
         ))}
       </div>
     </div>
+  );
+}
+
+const DROPOUT_SHOWN = 6;
+
+/** Worst facilities first, each against the average (the tick on every bar).
+ *  Outliers, well above the average, are flagged in red; the rest are shown
+ *  for context so a facility just under the line isn't invisible. */
+function DropoutRanking({ d }: { d: Outliers }) {
+  const shown = d.facilities.slice(0, DROPOUT_SHOWN);
+  return (
+    <>
+      <ul className="dropout-list">
+        {shown.map((f) => (
+          <li key={`${f.facility}-${f.lga}`} className={`dropout-row${f.outlier ? ' outlier' : ''}`}>
+            <div className="dropout-who">
+              <span className="dropout-name">{f.facility}</span>
+              <span className="muted dropout-loc">{f.lga}, {f.state} · {f.registered} children</span>
+            </div>
+            <span className="dropout-track" aria-hidden>
+              <span className="dropout-fill" style={{ width: `${f.dropoutRate * 100}%` }} />
+              <span className="dropout-avg" style={{ left: `${d.average * 100}%` }} />
+            </span>
+            <span className="dropout-rate">{pct(f.dropoutRate)}</span>
+            {f.outlier ? <span className="dropout-flag">Outlier</span> : <span />}
+          </li>
+        ))}
+      </ul>
+      <p className="muted dropout-note">
+        Dropout: children who started vaccines but are now overdue. The line on each bar is the average.
+        {d.facilities.length > DROPOUT_SHOWN && ` Showing the ${DROPOUT_SHOWN} highest of ${d.facilities.length} facilities.`}
+      </p>
+    </>
   );
 }
 

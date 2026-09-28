@@ -4,7 +4,7 @@ import {
   stockForecast,
   supplyPlan,
   administrationTrend,
-  facilityOutliers,
+  facilityDropout,
   recentActivity,
   coverageByState,
   milestoneAttainment,
@@ -48,8 +48,9 @@ export async function getTrend(req: Request, res: Response) {
 }
 
 export async function getOutliers(_req: Request, res: Response) {
-  const outliers = await facilityOutliers();
-  res.json({ count: outliers.length, outliers });
+  const { average, threshold, facilities } = await facilityDropout();
+  const outliers = facilities.filter((f) => f.outlier).map(({ outlier: _outlier, ...f }) => f);
+  res.json({ count: outliers.length, outliers, average, threshold, facilities });
 }
 
 export async function getActivity(_req: Request, res: Response) {

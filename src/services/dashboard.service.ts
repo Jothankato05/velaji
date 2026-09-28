@@ -766,12 +766,23 @@ export interface OutlierFacility {
   dropoutRate: number;
 }
 
+export interface FacilityDropout {
+  /** Mean dropout rate across eligible facilities. */
+  average: number;
+  /** Facilities above this rate (mean + 1 standard deviation) are outliers. */
+  threshold: number;
+  /** Every eligible facility, highest dropout first. */
+  facilities: Array<OutlierFacility & { outlier: boolean }>;
+}
+
 /**
- * Facilities whose dropout rate is an outlier — high relative to the national
- * mean (NCIHAP §11 "facilities with unusual dropout rates"). Flags facilities
- * with enough children and a dropout rate above mean + 1 standard deviation.
+ * Dropout rate for every facility with enough children, ranked, alongside the
+ * mean and the outlier threshold (NCIHAP §11 "facilities with unusual dropout
+ * rates"). A facility is an outlier when its rate is above mean + 1 standard
+ * deviation. Returning the whole ranking, not just the outliers, lets a
+ * reviewer see the ones just under the line too.
  */
-export async function facilityOutliers(minChildren = 5, now: Date = new Date()): Promise<OutlierFacility[]> {
+export async function facilityDropout(minChildren = 5, now: Date = new Date()): Promise<FacilityDropout> {
   const facts = await loadFacts(now);
   const byFacility = new Map<string, { geo: FacilityGeo; m: ReturnType<typeof blank> }>();
   for (const c of facts) {
@@ -788,22 +799,26 @@ export async function facilityOutliers(minChildren = 5, now: Date = new Date()):
     .map(({ geo, m }) => ({ geo, metrics: withRates(m) }))
     .filter((f) => f.metrics.registered >= minChildren);
 
-  if (eligible.length === 0) return [];
+  if (eligible.length === 0) return { average: 0, threshold: 0, facilities: [] };
 
   const rates = eligible.map((f) => f.metrics.dropoutRate);
   const mean = rates.reduce((a, b) => a + b, 0) / rates.length;
   const variance = rates.reduce((a, b) => a + (b - mean) ** 2, 0) / rates.length;
-  const std = Math.sqrt(variance);
-  const threshold = mean + std;
+  const threshold = mean + Math.sqrt(variance);
 
-  return eligible
-    .filter((f) => f.metrics.dropoutRate > threshold && f.metrics.dropoutRate > 0)
-    .map((f) => ({
-      facility: f.geo.facility,
-      state: f.geo.state,
-      lga: f.geo.lga,
-      registered: f.metrics.registered,
-      dropoutRate: f.metrics.dropoutRate
-    }))
-    .sort((a, b) => b.dropoutRate - a.dropoutRate);
+  return {
+    average: round(mean),
+    threshold: round(threshold),
+    facilities: eligible
+      .map((f) => ({
+        facility: f.geo.facility,
+        state: f.geo.state,
+        lga: f.geo.lga,
+        registered: f.metrics.registered,
+        dropoutRate: f.metrics.dropoutRate,
+        outlier: f.metrics.dropoutRate > threshold && f.metrics.dropoutRate > 0
+      }))
+      .sort((a, b) => b.dropoutRate - a.dropoutRate)
+  };
 }
+

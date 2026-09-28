@@ -1097,6 +1097,13 @@ test('outlier detection flags a facility with an unusual dropout rate', async ()
   assert(flagged, 'the struggling facility should be flagged as an outlier');
   assert(flagged.dropoutRate === 1, `expected dropoutRate 1, got ${flagged.dropoutRate}`);
   assert(!body.outliers.some((o: any) => o.facility === 'Healthy PHC 1'), 'a healthy facility must not be flagged');
+  // The full ranking carries every eligible facility, worst first, with the
+  // average and threshold, so the panel can show the ones below the line too.
+  const healthy = body.facilities.find((f: any) => f.facility === 'Healthy PHC 1');
+  assert(healthy && healthy.outlier === false, 'a healthy facility should be ranked but not flagged');
+  assert(body.facilities.find((f: any) => f.facility === 'Struggling PHC')?.outlier === true, 'the struggling facility should be flagged in the ranking');
+  assert(body.facilities.every((f: any, i: number, all: any[]) => i === 0 || all[i - 1].dropoutRate >= f.dropoutRate), 'ranking must be highest dropout first');
+  assert(typeof body.average === 'number' && body.threshold > body.average, `threshold (${body.threshold}) should sit above the average (${body.average})`);
 });
 
 test('coverage by priority state ranks worst-first and flags each state', async () => {
