@@ -99,10 +99,14 @@
 .cbs th.num, .cbs td.num { text-align: right; }
 .cbs tbody td { padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .cbs tbody tr:last-child td { border-bottom: none; }
-.cbs-row { cursor: pointer; transition: background .12s; }
 .cbs-row:hover { background: var(--bg); }
-.cbs-state { font-weight: 600; color: var(--ink); }
-.cbs-overdue { color: var(--st-red); }
+.cbs-state { font: inherit; font-weight: 600; color: var(--ink); background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+.cbs-state:hover { color: var(--brand); text-decoration: underline; }
+.cbs-drill { color: var(--faint); font-weight: 400; }
+.cbs-overdue { color: var(--st-red); font-weight: 600; }
+.cbs-share { font-size: 12px; }
+.cbs-note { font-size: 12px; margin: 12px 0 0; }
+@media (max-width: 640px) { .cbs .hide-sm { display: none; } }
 .cbs-comp { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .cbs-comp-track { width: 64px; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .cbs-comp-fill { display: block; height: 100%; background: var(--st-green); border-radius: 999px; }

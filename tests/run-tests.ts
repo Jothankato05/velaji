@@ -1140,6 +1140,25 @@ test('coverage by priority state ranks worst-first and flags each state', async 
   assert(idx('Zeta-CBS') < idx('Alpha-CBS'), 'the priority state must rank before the healthy one');
 });
 
+test('coverage by priority state ranks by share overdue, not completion', async () => {
+  // Pi: 2 of 4 overdue (50%), the other 2 complete. Qu: 2 of 5 overdue (40%),
+  // the other 3 young and on track, none complete yet. Pi has more of its
+  // children overdue, so it must rank first even though Qu's completion is lower.
+  const pi = await dashFacility('Pi-CBS', 'PI-1', 'W', 'Pi PHC');
+  const qu = await dashFacility('Qu-CBS', 'QU-1', 'W', 'Qu PHC');
+  for (let i = 0; i < 2; i++) {
+    await dashChild(pi, [dashDose('PENTA', 'Pentavalent', 1, -10, false)]);
+    await dashChild(pi, [dashDose('BCG', 'BCG', 1, -60, true)]);
+    await dashChild(qu, [dashDose('PENTA', 'Pentavalent', 1, -10, false)]);
+  }
+  for (let i = 0; i < 3; i++) await dashChild(qu, [dashDose('BCG', 'BCG', 1, -5, true), dashDose('PCV', 'PCV', 1, 30, false)]);
+
+  const { body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/coverage-by-state');
+  const idx = (name: string) => body.states.findIndex((s: any) => s.state === name);
+  assert(idx('Pi-CBS') >= 0 && idx('Qu-CBS') >= 0, 'both test states must appear');
+  assert(idx('Pi-CBS') < idx('Qu-CBS'), `50% overdue should rank above 40% overdue, got order ${JSON.stringify(body.states.map((s: any) => s.state))}`);
+});
+
 test('coverage by priority state is admin-only', async () => {
   const { status } = await jsonAs(staffToken, 'GET', '/api/dashboard/coverage-by-state');
   assert(status === 403, `expected 403 for a non-admin, got ${status}`);

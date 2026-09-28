@@ -288,8 +288,8 @@ export interface CoverageByState {
 
 /**
  * Coverage by priority state (NCIHAP §11): the national triage view a
- * decision-maker opens first — every state ranked worst-first by the pressure
- * it's under (overdue children and how far its schedule completion has fallen),
+ * decision-maker opens first — every state ranked worst-first by the share of
+ * its children who are overdue,
  * each carrying a red / amber / green flag. Unlike the drill-down list this is
  * always national and priority-ordered, so the states that need intervention
  * surface at the top regardless of where the user has drilled.
@@ -314,9 +314,11 @@ export async function coverageByState(now: Date = new Date()): Promise<CoverageB
     };
   });
 
-  // Worst-first: weight overdue pressure and the shortfall from full completion.
-  const score = (s: StatePriority) => s.overdueRate * 2 + (1 - s.completionRate);
-  states.sort((a, b) => score(b) - score(a));
+  // Worst-first by the same measure the flag uses: the share of children
+  // overdue. Completion is not mixed in, because it lags wherever children are
+  // young (see classifyPriority) and would push a state with more children
+  // overdue below one whose children just haven't finished yet.
+  states.sort((a, b) => b.overdueRate - a.overdueRate || b.overdue - a.overdue || a.completionRate - b.completionRate);
 
   return { states, generatedAt: now.toISOString() };
 }

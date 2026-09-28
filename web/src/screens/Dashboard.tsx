@@ -159,44 +159,57 @@ export function Dashboard() {
       <section className="card panel">
         <div className="panel-head">
           <h2>Coverage by priority state</h2>
-          <span className="eyebrow">ranked by children needing action</span>
+          <span className="eyebrow">select a state to drill in</span>
         </div>
         {!coverage.data ? (
           <Loading />
         ) : coverage.data.states.length === 0 ? (
           <Empty>No states registered yet.</Empty>
         ) : (
+          <>
           <div className="cbs-scroll">
             <table className="cbs">
               <thead>
                 <tr>
                   <th>State</th>
-                  <th className="num">Children</th>
-                  <th className="num">Immunised</th>
-                  <th className="num">Overdue</th>
-                  <th className="num">Due this week</th>
                   <th>Status</th>
+                  <th className="num">Overdue</th>
+                  <th className="num hide-sm">Due this week</th>
+                  <th className="num hide-sm">Fully immunised</th>
+                  <th className="num hide-sm">Children</th>
                 </tr>
               </thead>
               <tbody>
                 {coverage.data.states.map((s) => (
-                  <tr key={s.state} className="cbs-row" onClick={() => setFilter({ state: s.state })} title={`Drill into ${s.state}`}>
-                    <td className="cbs-state">{s.state}</td>
-                    <td className="num mono">{fmt(s.registered)}</td>
+                  <tr key={s.state} className="cbs-row">
+                    <td>
+                      <button type="button" className="cbs-state" onClick={() => setFilter({ state: s.state })}>
+                        {s.state} <span className="cbs-drill" aria-hidden>›</span>
+                      </button>
+                    </td>
+                    <td><span className={`cbs-pill ${s.priority}`}>{PRIORITY_LABEL[s.priority]}</span></td>
                     <td className="num">
+                      <span className={s.overdue > 0 ? 'cbs-overdue' : 'muted'}>{fmt(s.overdue)}</span>
+                      {s.overdue > 0 && <span className="muted cbs-share"> {pct(s.overdueRate)}</span>}
+                    </td>
+                    <td className="num hide-sm">{fmt(s.dueThisWeek)}</td>
+                    <td className="num hide-sm">
                       <span className="cbs-comp">
                         <span className="cbs-comp-track"><span className="cbs-comp-fill" style={{ width: `${Math.round(s.completionRate * 100)}%` }} /></span>
-                        <b className="mono">{pct(s.completionRate)}</b>
+                        <span>{pct(s.completionRate)}</span>
                       </span>
                     </td>
-                    <td className="num mono cbs-overdue">{fmt(s.overdue)}</td>
-                    <td className="num mono">{fmt(s.dueThisWeek)}</td>
-                    <td><span className={`cbs-pill ${s.priority}`}>{PRIORITY_LABEL[s.priority]}</span></td>
+                    <td className="num hide-sm">{fmt(s.registered)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="muted cbs-note">
+            Ranked by the share of each state's children who are overdue. Priority: 20% or more overdue; watch: 10% or more.
+            Fully immunised counts children who have had every scheduled dose, so it is naturally low where children are young.
+          </p>
+          </>
         )}
       </section>
       )}
