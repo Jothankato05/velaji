@@ -219,6 +219,26 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
       barrier: barrierMix[i]
   })));
 
+  // Open follow-ups. The reminder engine hands a child to a person after its
+  // reminders go unanswered; the demo has never run it, so give the
+  // longest-overdue children one each. Otherwise the follow-up queue is empty
+  // next to 67 overdue children, which reads as broken.
+  const longOverdue = (await ChildModel.find({}))
+    .map((c) => ({
+      c,
+      dose: c.doses
+        .filter((d) => !d.administeredDate && d.dueDate.getTime() < now - 28 * DAY)
+        .sort((x, y) => x.dueDate.getTime() - y.dueDate.getTime())[0]
+    }))
+    .filter((x): x is { c: typeof x.c; dose: NonNullable<typeof x.dose> } => Boolean(x.dose))
+    .sort((x, y) => x.dose.dueDate.getTime() - y.dose.dueDate.getTime())
+    .slice(0, 12);
+  await EscalationModel.insertMany(longOverdue.map(({ c, dose }, i) => ({
+    childId: c._id, chin: c.chin, doseKey: `${dose.vaccineCode}#${dose.doseNumber}`,
+    reason: i % 3 === 0 ? 'lost_to_followup' : 'max_attempts', remindersSent: 3, status: 'open',
+    raisedAt: new Date(now - (i + 2) * DAY), lastSeenAt: new Date(now - DAY)
+  })));
+
   // §19 extended: the antenatal register — children not yet born. The contact
   // mix is deliberately skewed to mirror reality: NDHS 2023-24 puts ANC at 63%
   // but only 52% reaching four visits, and WHO's recommended eight contacts sits

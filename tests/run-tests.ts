@@ -13,6 +13,7 @@ import { CaregiverModel } from '../src/models/Caregiver';
 import { FacilityModel } from '../src/models/Facility';
 import { ReminderLogModel } from '../src/models/ReminderLog';
 import { EscalationModel } from '../src/models/Escalation';
+import { CertificateModel } from '../src/models/Certificate';
 import { ReminderService } from '../src/services/reminder.service';
 import { issueToken } from '../src/utils/token';
 import { buildVerificationUrl } from '../src/services/card.service';
@@ -809,6 +810,34 @@ test('scoped state summary aggregates exactly, with no individual PII', async ()
   assert(!/CHN-/.test(raw), 'dashboard leaked a CHIN');
   assert(!/Dashboard Child/.test(raw), 'dashboard leaked a child name');
   assert(!/2348060000000/.test(raw), 'dashboard leaked a phone number');
+});
+
+test('summary counts Healthy Start and the follow-up queue within the scope', async () => {
+  // One child in a fresh state gets a certificate and an open follow-up; a
+  // child elsewhere gets a certificate too. The state's cards must show 1 each.
+  const f = await dashFacility('Kpi-State', 'KP-1', 'W', 'Kpi PHC');
+  const other = await dashFacility('Kpi-Other', 'KO-1', 'W', 'Kpi Other PHC');
+  const inState = await dashChild(f, [dashDose('BCG', 'BCG', 1, -60, true)]);
+  await dashChild(f, [dashDose('PENTA', 'Pentavalent', 1, -10, false)]);
+  const elsewhere = await dashChild(other, [dashDose('BCG', 'BCG', 1, -60, true)]);
+  const cert = (c: any, code: string) => ({
+    childId: c._id, chin: c.chin, verificationCode: code, issuedAt: new Date(),
+    coverageStartsAt: new Date(), coverageExpiresAt: new Date(Date.now() + 365 * DAY)
+  });
+  const certs = await CertificateModel.insertMany([cert(inState, 'kpi-test-1'), cert(elsewhere, 'kpi-test-2')]);
+  const esc = await EscalationModel.create({
+    childId: inState._id, chin: inState.chin, doseKey: 'PENTA#1', reason: 'max_attempts', raisedAt: new Date(), lastSeenAt: new Date()
+  });
+  try {
+    const scoped = await jsonAs(adminTokenT, 'GET', '/api/dashboard/summary?state=Kpi-State');
+    assert(scoped.body.healthyStartActive === 1, `scoped healthyStartActive expected 1, got ${scoped.body.healthyStartActive}`);
+    assert(scoped.body.openEscalations === 1, `scoped openEscalations expected 1, got ${scoped.body.openEscalations}`);
+    const national = await jsonAs(adminTokenT, 'GET', '/api/dashboard/summary');
+    assert(national.body.healthyStartActive >= 2, `national healthyStartActive should include both, got ${national.body.healthyStartActive}`);
+  } finally {
+    await EscalationModel.deleteOne({ _id: esc._id });
+    await CertificateModel.deleteMany({ _id: { $in: certs.map((c) => c._id) } });
+  }
 });
 
 test('dashboard drills down State → LGA → Ward', async () => {

@@ -55,6 +55,7 @@ interface FacilityGeo {
 }
 
 interface ChildFacts {
+  childId: string;
   geo: FacilityGeo;
   administeredCount: number;
   status: string;
@@ -168,6 +169,7 @@ async function loadFacts(now: Date): Promise<ChildFacts[]> {
     const overdue = status === 'RED';
 
     facts.push({
+      childId: String(child._id),
       geo,
       administeredCount,
       status,
@@ -206,7 +208,7 @@ export interface DashboardSummary {
   breakdown: Array<{ key: string; metrics: Metrics; priority: PriorityLevel }>;
   vaccineUtilisation: Array<{ vaccineCode: string; administered: number }>;
   openEscalations: number;
-  healthyStartActive: number; // children with active NHIA coverage (national)
+  healthyStartActive: number; // children in scope with active NHIA coverage
   generatedAt: string;
 }
 
@@ -243,8 +245,10 @@ export async function geographicSummary(filter: GeoFilter, now: Date = new Date(
     }
   }
 
-  const openEscalations = await EscalationModel.countDocuments({ status: 'open' });
-  const healthyStartActive = await CertificateModel.countDocuments({ coverageExpiresAt: { $gt: now } });
+  // Both counted for the children in scope, like every other figure here.
+  const inScopeIds = filter.state ? { childId: { $in: scoped.map((c) => c.childId) } } : {};
+  const openEscalations = await EscalationModel.countDocuments({ status: 'open', ...inScopeIds });
+  const healthyStartActive = await CertificateModel.countDocuments({ coverageExpiresAt: { $gt: now }, ...inScopeIds });
 
   const scopeLabel = [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria';
 

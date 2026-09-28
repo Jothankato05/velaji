@@ -8,8 +8,9 @@ import { StaffUserModel } from './models/StaffUser';
  * their old demo data on the next boot instead of keeping it forever.
  *   2: children spread across realistic ages, doses given 0-9 days late.
  *   3: same data; forces a rebuild of demos a timed-out reseed left partial.
+ *   4: open follow-ups for the longest-overdue children.
  */
-export const DEMO_SEED_VERSION = 3;
+export const DEMO_SEED_VERSION = 4;
 
 /** Demo dates are relative to when it was seeded, so the recent weeks empty out
  *  as time passes (nobody records real doses on the demo). Reseed once the data

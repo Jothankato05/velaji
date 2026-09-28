@@ -14,11 +14,8 @@
 /* KPI cards */
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .kpi { padding: 16px; }
-.kpi-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .kpi-label { font-size: 13px; color: var(--muted); }
-.kpi-badge { font-size: 12px; font-weight: 500; padding: 1px 7px; border-radius: var(--r-sm); background: var(--up-bg); color: var(--up); }
-.kpi-badge.down { background: var(--down-bg); color: var(--down); }
-.kpi-value { font-size: 28px; font-weight: 600; color: var(--ink); line-height: 1.05; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.kpi-value { font-size: 28px; font-weight: 600; color: var(--ink); line-height: 1.05; margin-top: 8px; font-variant-numeric: tabular-nums; }
 .kpi-value.kpi-down { color: var(--down); }
 .kpi-value.kpi-up { color: var(--up); }
 .kpi-sub { font-size: 12px; margin-top: 8px; }

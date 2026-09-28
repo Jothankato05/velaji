@@ -133,14 +133,18 @@ export function Dashboard() {
           value={fmt(t.registered)}
           sub={`${fmt(t.onTrack)} on track · ${fmt(t.dueThisWeek)} due this week`}
         />
-        <Kpi label="Doses administered" value={fmt(t.dosesAdministered)} sub="recorded in this scope" />
-        <Kpi label="Children overdue" value={fmt(t.overdue)} tone="down" sub={`${fmt(summary.data.openEscalations)} in the follow-up queue`} />
+        <Kpi label="Doses given" value={fmt(t.dosesAdministered)} sub="all time" />
         <Kpi
-          label="Healthy Start active"
+          label="Children overdue"
+          value={fmt(t.overdue)}
+          tone={t.overdue > 0 ? 'down' : undefined}
+          sub={`${pct(t.registered ? t.overdue / t.registered : 0)} of children · ${fmt(summary.data.openEscalations)} in the follow-up queue`}
+        />
+        <Kpi
+          label="Healthy Start cover"
           value={fmt(summary.data.healthyStartActive)}
           tone="up"
-          sub="12-month NHIA child coverage"
-          badge="coverage"
+          sub={`${pct(t.registered ? summary.data.healthyStartActive / t.registered : 0)} of children · 12 months of NHIA cover`}
         />
       </div>
 
@@ -292,13 +296,10 @@ export function Dashboard() {
   );
 }
 
-function Kpi({ label, value, sub, tone, badge }: { label: string; value: string; sub?: string; tone?: 'up' | 'down'; badge?: string }) {
+function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: 'up' | 'down' }) {
   return (
     <div className="card kpi">
-      <div className="kpi-top">
-        <span className="kpi-label">{label}</span>
-        {badge && <span className={`kpi-badge ${tone ?? ''}`}>{badge}</span>}
-      </div>
+      <div className="kpi-label">{label}</div>
       <div className={`kpi-value${tone ? ` kpi-${tone}` : ''}`}>{value}</div>
       {sub && <div className="kpi-sub muted">{sub}</div>}
     </div>
