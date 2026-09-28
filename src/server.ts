@@ -2,27 +2,12 @@ import { app } from './app';
 import { env } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/db';
 import { startReminderJob, stopReminderJob } from './jobs/reminder.job';
-import { ChildModel } from './models/Child';
+import { seedDemoIfEnabled } from './demo';
 
 async function bootstrap() {
   await connectDatabase();
 
-  // Public demo instances start empty, which makes the Command Centre look
-  // broken rather than new. When DEMO_SEED_ON_BOOT is set we populate the
-  // invented demo dataset — but ONLY if the database has no children, so a
-  // redeploy never duplicates it and it can never overwrite real records.
-  if (process.env.DEMO_SEED_ON_BOOT === 'true') {
-    const existing = await ChildModel.estimatedDocumentCount();
-    if (existing === 0) {
-      const { seedDemoData } = await import('./scripts/demoSeed');
-      const { cardChin, ussdPhone } = await seedDemoData();
-      // eslint-disable-next-line no-console
-      console.log(`[demo] seeded: card CHIN ${cardChin}, USSD ${ussdPhone}`);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(`[demo] skipped: database already holds ${existing} children`);
-    }
-  }
+  await seedDemoIfEnabled();
 
   startReminderJob();
 
