@@ -53,6 +53,10 @@ export const BARRIERS = Object.keys(BARRIER_LABELS);
  * with who the child is, how to reach the caregiver, which vaccine, and how
  * overdue it is — everything needed to go trace the family, in one row.
  */
+export async function countOpenEscalations(): Promise<number> {
+  return EscalationModel.countDocuments({ status: 'open' });
+}
+
 export async function listEscalations(status: 'open' | 'resolved' = 'open'): Promise<EscalationView[]> {
   const escalations = await EscalationModel.find({ status }).sort({ raisedAt: 1 });
   const now = Date.now();

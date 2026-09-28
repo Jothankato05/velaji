@@ -25,7 +25,7 @@ import { verifyChin } from '../controllers/verify.controller';
 import { familyJourney } from '../controllers/family.controller';
 import { handleUssdWebhook } from '../controllers/ussd.controller';
 import { triggerReminderCycle, getChildReminderLog } from '../controllers/reminders.controller';
-import { getEscalations, postResolveEscalation, getDefaultingReasons } from '../controllers/escalations.controller';
+import { getEscalations, getEscalationCount, postResolveEscalation, getDefaultingReasons } from '../controllers/escalations.controller';
 import { postTerminalLookup, getChildAccessLog } from '../controllers/terminal.controller';
 import { getSummary, getStockForecast, getSupplyPlan, getTrend, getOutliers, getActivity, getCoverageByState, getMilestones, getRegistrationMobility } from '../controllers/dashboard.controller';
 import { getPull, postPush } from '../controllers/sync.controller';
@@ -139,8 +139,11 @@ apiRouter.get('/api/antenatal/follow-up', requireRole('staff', 'admin'), asyncHa
 apiRouter.post('/api/reminders/run', requireRole('admin'), asyncHandler(triggerReminderCycle));
 
 // The human-tracing work queue: children the reminder engine gave up texting.
-apiRouter.get('/api/escalations', asyncHandler(getEscalations));
-apiRouter.post('/api/escalations/:id/resolve', asyncHandler(postResolveEscalation));
+// Staff and admins only: it lists caregivers' names and phone numbers, which a
+// card-checking verifier has no need to see.
+apiRouter.get('/api/escalations', requireRole('staff', 'admin'), asyncHandler(getEscalations));
+apiRouter.get('/api/escalations/count', requireRole('staff', 'admin'), asyncHandler(getEscalationCount));
+apiRouter.post('/api/escalations/:id/resolve', requireRole('staff', 'admin'), asyncHandler(postResolveEscalation));
 
 // The authorised verification terminal (NCIHAP §16): look a child up by typed
 // CHIN or scanned QR, role-scoped, every access audited. Admins can review the

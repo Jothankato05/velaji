@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { listEscalations, resolveEscalation, defaultingReasons, BARRIERS } from '../services/escalation.service';
+import { countOpenEscalations, listEscalations, resolveEscalation, defaultingReasons, BARRIERS } from '../services/escalation.service';
 import { AppError } from '../utils/AppError';
 import { currentUser } from '../middleware/requireAuth';
 
@@ -12,6 +12,11 @@ export async function getEscalations(req: Request, res: Response) {
   const status = statusParam === 'resolved' ? 'resolved' : 'open';
   const escalations = await listEscalations(status);
   res.json({ status, count: escalations.length, escalations });
+}
+
+/** Just the number of open cases, for the navigation badge. */
+export async function getEscalationCount(_req: Request, res: Response) {
+  res.json({ open: await countOpenEscalations() });
 }
 
 /** Staff mark an escalation resolved after tracing the family. */

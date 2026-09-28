@@ -722,6 +722,20 @@ test('verifier sees ONLY the status headline, not the medical record (least-priv
   assert(body.record.caregiver === undefined, 'verifier must not see caregiver contact');
 });
 
+test('verifier cannot read the follow-up queue (caregiver contacts)', async () => {
+  const list = await jsonAs(verifierToken, 'GET', '/api/escalations');
+  assert(list.status === 403, `expected 403 for the list, got ${list.status}`);
+  const count = await jsonAs(verifierToken, 'GET', '/api/escalations/count');
+  assert(count.status === 403, `expected 403 for the count, got ${count.status}`);
+});
+
+test('follow-up count matches the open list', async () => {
+  const list = await jsonAs(staffToken, 'GET', '/api/escalations');
+  const { status, body } = await jsonAs(staffToken, 'GET', '/api/escalations/count');
+  assert(status === 200, `expected 200, got ${status}`);
+  assert(body.open === list.body.count, `count ${body.open} should match list ${list.body.count}`);
+});
+
 test('health worker sees the full record needed to continue care', async () => {
   const { status, body } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { chin: termChin });
   assert(status === 200, `expected 200, got ${status}`);

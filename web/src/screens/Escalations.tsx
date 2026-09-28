@@ -4,6 +4,7 @@ import { useGet } from '../lib/useGet';
 import { api, ApiError } from '../lib/api';
 import { Loading, ErrorNote, Empty } from '../components/ui';
 import './Forms.css';
+import { FOLLOW_UPS_CHANGED } from '../components/AppShell';
 
 interface Escalation {
   id: string;
@@ -194,6 +195,7 @@ function ResolveForm({ escalation, onCancel, onDone }: { escalation: Escalation;
     setError('');
     try {
       await api.post(`/api/escalations/${escalation.id}/resolve`, { outcome, barrier: barrier || null, note: note.trim() });
+      window.dispatchEvent(new Event(FOLLOW_UPS_CHANGED));
       onDone();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save. Try again.');
