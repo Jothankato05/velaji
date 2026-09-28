@@ -1485,7 +1485,26 @@ test('§8 USSD: a basic-phone caregiver gets status, next vaccine and rewards by
   const unknown = await json('POST', '/webhooks/ussd', { phoneNumber: '+2340000000000', text: '' }, { auth: false });
   assert(unknown.body.startsWith('END') && /No child is registered/.test(unknown.body), `unknown number must be told to register: ${unknown.body}`);
 
+  // A wrong key shows the menu again instead of ending the call, and the next
+  // key pressed after it still works.
+  const wrong = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '7' }, { auth: false });
+  assert(wrong.body.startsWith('CON') && /Invalid choice/.test(wrong.body) && /1\. Next vaccine/.test(wrong.body), `a wrong key should re-show the menu: ${wrong.body}`);
+  const recovered = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '7*1' }, { auth: false });
+  assert(recovered.body.startsWith('END') && /Next for/.test(recovered.body), `after a wrong key, 1 should still work: ${recovered.body}`);
+
   await ChildModel.updateOne({ chin: reg.body.chin }, { completedAt: NOON });
+});
+
+test('USSD recognises a caregiver whose number was registered in local format', async () => {
+  // Registered as typed at the clinic; the network reports the international form.
+  const dob = new Date(Date.now() - 30 * DAY).toISOString().slice(0, 10);
+  const reg = await json('POST', '/api/children', {
+    fullName: 'Local Format Child', sex: 'male', dateOfBirth: dob, homeFacilityId: facilityAId,
+    caregiver: { fullName: 'Local Format Carer', phone: '0803 555 0199' }
+  });
+  assert(reg.status === 201, `expected child, got ${reg.status}: ${JSON.stringify(reg.body)}`);
+  const menu = await json('POST', '/webhooks/ussd', { phoneNumber: '+2348035550199', text: '' }, { auth: false });
+  assert(menu.body.startsWith('CON') && /Local:/.test(menu.body), `the caregiver should be recognised: ${menu.body}`);
 });
 
 test('the family view carries the staged rewards and the next reward', async () => {

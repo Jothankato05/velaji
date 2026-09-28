@@ -2,16 +2,26 @@ import { useState } from 'react';
 import './UssdSim.css';
 
 /**
- * A feature-phone USSD simulator (NCIHAP §8 demo). It drives the real
- * /webhooks/ussd endpoint exactly as a telecom gateway would — accumulating the
- * caller's key presses into `text` (joined by *) and rendering the CON/END
- * reply — so the basic-phone experience can be shown without a real handset.
+ * A basic-phone USSD simulator (NCIHAP §8). It drives the real /webhooks/ussd
+ * endpoint the way a telecom gateway does: each key press is added to `text`
+ * (joined by *), and the reply's CON / END says whether the session continues.
  */
+
+const DIAL_CODE = '*347#';
+// Numbers from the invented demo data, offered only on the demo instance (the
+// same build-time switch that pre-fills the demo login).
+const IS_DEMO = Boolean(import.meta.env.VITE_DEMO_USERNAME);
+const SAMPLES: Array<{ phone: string; label: string }> = [
+  { phone: '+2348010000001', label: 'Parent of a child who is on track' },
+  { phone: '+2348030000088', label: 'Parent of an overdue child' },
+  { phone: '+2348000000000', label: 'A number with no child registered' }
+];
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+
 export function UssdSim() {
-  const [phone, setPhone] = useState('+2348010000001');
-  const [dialCode] = useState('*347#');
+  const [phone, setPhone] = useState(IS_DEMO ? SAMPLES[0].phone : '');
   const [text, setText] = useState('');
-  const [screen, setScreen] = useState<string>('');
+  const [screen, setScreen] = useState('');
   const [open, setOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [reply, setReply] = useState('');
@@ -23,16 +33,16 @@ export function UssdSim() {
       const res = await fetch('/webhooks/ussd', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, text: nextText })
+        body: JSON.stringify({ phoneNumber: phone.trim(), text: nextText })
       });
       const raw = (await res.text()).trim();
-      const cont = raw.startsWith('CON');
+      if (!res.ok) throw new Error(raw);
       setScreen(raw.replace(/^(CON|END)\s?/, ''));
-      setOpen(cont);
+      setOpen(raw.startsWith('CON'));
       setText(nextText);
       setReply('');
     } catch {
-      setScreen('Network error. Could not reach the USSD service.');
+      setScreen('Connection problem.\nPlease try again.');
       setOpen(false);
     } finally {
       setBusy(false);
@@ -44,11 +54,23 @@ export function UssdSim() {
     void send('');
   }
   function submitReply() {
-    if (!reply.trim()) return;
-    void send(text ? `${text}*${reply.trim()}` : reply.trim());
+    const r = reply.trim();
+    if (!r || busy) return;
+    void send(text ? `${text}*${r}` : r);
   }
-  function reset() {
-    setStarted(false); setOpen(false); setScreen(''); setText(''); setReply('');
+  function hangUp() {
+    setStarted(false);
+    setOpen(false);
+    setScreen('');
+    setText('');
+    setReply('');
+  }
+  function pressKey(k: string) {
+    if (!started) {
+      setPhone((p) => p + k);
+      return;
+    }
+    if (open && !busy) setReply((r) => r + k);
   }
 
   return (
@@ -56,23 +78,36 @@ export function UssdSim() {
       <div className="ussd-intro">
         <h1>USSD access</h1>
         <p className="muted">
-          A caregiver with no smartphone dials a short code and gets the same critical
-          information as the app: child status, the next vaccine and where, and reward
-          progress, identified by their phone number with nothing to type. This drives the
-          real <code>/webhooks/ussd</code> endpoint.
+          Parents without a smartphone dial {DIAL_CODE} from any phone. They are recognised by their phone number,
+          so there's nothing to type in, and they get the same essentials as the app: the child's status, the next
+          vaccine and where to go, and their reward progress.
         </p>
-        <p className="muted ussd-hint">
-          Try a seeded caregiver number (the demo server prints one as <code>USSD_PHONE</code>),
-          then dial. Reply with a menu number and press Send.
-        </p>
+        <p className="muted">This screen works like the phone: dial, then reply with a menu number.</p>
+
+        {IS_DEMO && (
+          <div className="ussd-samples">
+            <div className="ussd-samples-title">Try a demo number</div>
+            {SAMPLES.map((s) => (
+              <button
+                key={s.phone}
+                type="button"
+                className={`ussd-sample${phone === s.phone ? ' active' : ''}`}
+                onClick={() => { hangUp(); setPhone(s.phone); }}
+              >
+                <span className="ussd-sample-phone">{s.phone}</span>
+                <span className="muted">{s.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="ussd-phone">
-        <div className="ussd-screen">
+        <div className="ussd-screen" aria-live="polite">
           {!started ? (
             <div className="ussd-idle">
               <div className="ussd-idle-brand">Velaji</div>
-              <div className="ussd-idle-sub">Dial {dialCode}</div>
+              <div className="ussd-idle-sub">Dial {DIAL_CODE}</div>
             </div>
           ) : (
             <>
@@ -82,13 +117,13 @@ export function UssdSim() {
                   <input
                     className="ussd-input"
                     value={reply}
-                    onChange={(e) => setReply(e.target.value)}
+                    onChange={(e) => setReply(e.target.value.replace(/[^0-9*#]/g, ''))}
                     onKeyDown={(e) => e.key === 'Enter' && submitReply()}
                     placeholder="Reply"
+                    aria-label="Reply"
                     autoFocus
                     inputMode="numeric"
                   />
-                  <button type="button" className="ussd-key" onClick={submitReply}>Send</button>
                 </div>
               )}
               {!open && !busy && <div className="ussd-ended">Session ended</div>}
@@ -96,16 +131,34 @@ export function UssdSim() {
           )}
         </div>
 
-        <div className="ussd-controls">
-          <label className="ussd-field">
-            <span>Phone number</span>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={started} />
-          </label>
+        <label className="ussd-field">
+          <span>Calling from</span>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            disabled={started}
+            placeholder="Phone number"
+          />
+        </label>
+
+        <div className="ussd-calls">
           {!started ? (
-            <button type="button" className="btn btn-primary ussd-dial" onClick={dial} disabled={!phone.trim()}>Dial {dialCode}</button>
+            <button type="button" className="ussd-call" onClick={dial} disabled={!phone.trim()}>Dial {DIAL_CODE}</button>
+          ) : open ? (
+            <button type="button" className="ussd-call" onClick={submitReply} disabled={busy || !reply.trim()}>Send</button>
           ) : (
-            <button type="button" className="btn ussd-dial" onClick={reset}>End &amp; start over</button>
+            <button type="button" className="ussd-call" onClick={dial} disabled={busy}>Dial again</button>
           )}
+          <button type="button" className="ussd-end" onClick={hangUp} disabled={!started}>End</button>
+        </div>
+
+        <div className="ussd-keypad">
+          {KEYS.map((k) => (
+            <button key={k} type="button" className="ussd-keypad-key" onClick={() => pressKey(k)} disabled={started && (!open || busy)}>
+              {k}
+            </button>
+          ))}
         </div>
       </div>
     </div>

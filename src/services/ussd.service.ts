@@ -3,6 +3,7 @@ import { ChildModel } from '../models/Child';
 import { FacilityModel } from '../models/Facility';
 import { computeChildStatus } from './schedule.service';
 import { computeMilestones, nextMilestone } from './milestone.service';
+import { phoneMatchSource } from '../utils/phone';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -34,36 +35,45 @@ function statusHeadline(status: string): string {
   return 'Needs review';
 }
 
-export async function handleUssd(input: { phoneNumber: string; text: string }, now: Date = new Date()): Promise<UssdResult> {
-  const phone = (input.phoneNumber ?? '').replace(/\s+/g, '');
-  const steps = input.text ? input.text.split('*') : [];
+/** Keys 1-9 on the handset, so at most nine children can be offered. */
+const MAX_LISTED = 9;
 
-  const caregivers = await CaregiverModel.find({ phone });
+export async function handleUssd(input: { phoneNumber: string; text: string }, now: Date = new Date()): Promise<UssdResult> {
+  const steps = input.text ? input.text.split('*').map((s) => s.trim()) : [];
+
+  // The network sends +234…; the caregiver's number was stored as typed at
+  // registration (often 0803…, with spaces), so match on the last ten digits.
+  const phoneRegex = phoneMatchSource(input.phoneNumber ?? '');
+  const caregivers = phoneRegex ? await CaregiverModel.find({ phone: { $regex: phoneRegex } }) : [];
   const children = caregivers.length
-    ? await ChildModel.find({ caregiverId: { $in: caregivers.map((c) => c._id) } })
+    ? await ChildModel.find({ caregiverId: { $in: caregivers.map((c) => c._id) } }).sort({ dateOfBirth: -1 }).limit(MAX_LISTED)
     : [];
 
   if (children.length === 0) {
     return { message: 'No child is registered to this phone number.\nVisit your nearest health centre to register.', continue: false };
   }
 
-  // Pick the child. One child → straight in; several → a numbered menu first.
-  let child = children[0];
-  let menuStep: string | undefined = steps[0];
-  if (children.length > 1) {
-    if (steps.length === 0) {
+  // The gateway re-sends every key pressed so far, so walk them in order. A
+  // wrong key shows the same menu again rather than ending the call.
+  let pos = 0;
+  let child = children.length === 1 ? children[0] : null;
+  if (!child) {
+    let invalid = false;
+    for (; pos < steps.length && !child; pos++) {
+      const idx = Number(steps[pos]) - 1;
+      if (Number.isInteger(idx) && idx >= 0 && idx < children.length) child = children[idx];
+      else invalid = true;
+    }
+    if (!child) {
       return {
-        message: `NCIHAP\nSelect your child:\n${children.map((c, i) => `${i + 1}. ${firstNameOf(c.fullName)}`).join('\n')}`,
+        message: `${invalid ? 'Invalid choice.\n' : ''}Velaji\nSelect your child:\n${children.map((c, i) => `${i + 1}. ${firstNameOf(c.fullName)}`).join('\n')}`,
         continue: true
       };
     }
-    const idx = Number(steps[0]) - 1;
-    if (!Number.isInteger(idx) || idx < 0 || idx >= children.length) {
-      return { message: 'Invalid selection. Please dial again.', continue: false };
-    }
-    child = children[idx];
-    menuStep = steps[1];
   }
+  const menuSteps = steps.slice(pos);
+  const menuStep = menuSteps.find((s) => s === '1' || s === '2' || s === '0');
+  const hadInvalid = menuSteps.length > 0 && !menuStep;
 
   const doses = child.doses.map((d) => ({
     vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
@@ -75,7 +85,7 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
   // Child main menu.
   if (!menuStep) {
     return {
-      message: `${first}: ${statusHeadline(status)}\n1. Next vaccine\n2. Reward status\n0. Exit`,
+      message: `${hadInvalid ? 'Invalid choice.\n' : ''}${first}: ${statusHeadline(status)}\n1. Next vaccine\n2. Reward status\n0. Exit`,
       continue: true
     };
   }
@@ -87,9 +97,10 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     }
     const facility = await FacilityModel.findById(child.currentFacilityId);
     const days = Math.round((next.dueDate.getTime() - now.getTime()) / DAY);
-    const when = days >= 0 ? `in ${days} day${days === 1 ? '' : 's'}` : `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} overdue`;
+    const plural = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
+    const when = days > 0 ? `Due in ${plural(days)}` : days === 0 ? 'Due today' : `Overdue by ${plural(-days)}. Please go soon.`;
     return {
-      message: `Next for ${first}:\n${next.displayName}\nDue ${when}\nAt ${facility?.name ?? 'your health centre'}\nBring the card.`,
+      message: `Next for ${first}:\n${next.displayName}\n${when}\nAt ${facility?.name ?? 'your health centre'}\nBring the card.`,
       continue: false
     };
   }
@@ -103,9 +114,5 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     return { message: `${first}'s rewards:\n${earnedLine}${nextLine}`, continue: false };
   }
 
-  if (menuStep === '0') {
-    return { message: 'Thank you. Keep your child protected.', continue: false };
-  }
-
-  return { message: 'Invalid choice.', continue: false };
+  return { message: 'Thank you. Keep your child protected.', continue: false };
 }

@@ -1,28 +1,51 @@
-.ussd { display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start; max-width: 900px; }
+.ussd { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 32px; align-items: start; max-width: 900px; }
 .ussd-intro h1 { margin: 0 0 8px; }
-.ussd-intro p { font-size: 14.5px; line-height: 1.6; margin: 0 0 12px; max-width: 46ch; }
-.ussd-intro code { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12.5px; }
-.ussd-hint { font-size: 13px; }
+.ussd-intro p { font-size: 14px; line-height: 1.6; margin: 0 0 12px; max-width: 50ch; }
 
-/* feature-phone mock */
-.ussd-phone { background: #1c2320; border-radius: 26px; padding: 20px 18px; box-shadow: 0 20px 50px -24px rgba(0,0,0,.6); }
-.ussd-screen { background: #cfe3c8; color: #14241a; border-radius: 8px; min-height: 220px; padding: 16px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap; box-shadow: inset 0 2px 6px rgba(0,0,0,.25); display: flex; flex-direction: column; }
+.ussd-samples { display: flex; flex-direction: column; gap: 6px; max-width: 360px; margin-top: 8px; }
+.ussd-samples-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.ussd-sample {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px;
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.ussd-sample:hover { border-color: var(--line-strong); }
+.ussd-sample.active { border-color: var(--brand); background: var(--brand-soft); }
+.ussd-sample-phone { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* basic-phone mock */
+.ussd-phone { background: #1c2320; border-radius: 24px; padding: 18px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.ussd-screen {
+  background: #cfe3c8; color: #14241a; border-radius: 6px; min-height: 200px; padding: 14px;
+  font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.45; white-space: pre-wrap;
+  display: flex; flex-direction: column;
+}
 .ussd-idle { margin: auto; text-align: center; }
-.ussd-idle-brand { font-family: var(--font-head); font-weight: 700; font-size: 24px; }
-.ussd-idle-sub { margin-top: 8px; font-size: 13px; opacity: .7; }
+.ussd-idle-brand { font-weight: 700; font-size: 22px; font-family: var(--font-ui); }
+.ussd-idle-sub { margin-top: 6px; font-size: 13px; opacity: .7; }
 .ussd-msg { flex: 1; }
-.ussd-input-row { display: flex; gap: 6px; margin-top: 12px; border-top: 1px dashed rgba(0,0,0,.25); padding-top: 10px; }
-.ussd-input { flex: 1; background: #e7f2e2; border: 1px solid #9db597; border-radius: 6px; padding: 7px 9px; font-family: 'Courier New', monospace; font-size: 14px; color: #14241a; }
+.ussd-input-row { margin-top: 10px; border-top: 1px dashed rgba(0,0,0,.25); padding-top: 8px; }
+.ussd-input { width: 100%; background: #e7f2e2; border: 1px solid #9db597; border-radius: 4px; padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 14px; color: #14241a; }
 .ussd-input:focus-visible { outline: none; border-color: #14241a; }
-.ussd-key { background: #14241a; color: #cfe3c8; border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.ussd-ended { margin-top: 12px; font-size: 12px; opacity: .6; text-align: center; }
+.ussd-ended { margin-top: 10px; font-size: 12px; opacity: .6; text-align: center; }
 
-.ussd-controls { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .ussd-field { display: flex; flex-direction: column; gap: 4px; }
-.ussd-field span { font-size: 11px; color: #9fb4a6; }
-.ussd-field input { background: #2a332e; border: 1px solid #3a453f; border-radius: 8px; padding: 9px 11px; color: #eafaf0; font-size: 14px; font-family: var(--font-ui); }
+.ussd-field span { font-size: 12px; color: #9fb4a6; }
+.ussd-field input { background: #2a332e; border: 1px solid #3a453f; border-radius: 6px; padding: 8px 10px; color: #eafaf0; font-size: 14px; font-family: var(--font-ui); }
 .ussd-field input:disabled { opacity: .6; }
-.ussd-dial { width: 100%; justify-content: center; }
-.ussd .btn:not(.btn-primary) { background: #2a332e; color: #eafaf0; border: 1px solid #3a453f; }
 
-@media (max-width: 760px) { .ussd { grid-template-columns: 1fr; } }
+.ussd-calls { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.ussd-call, .ussd-end { border: none; border-radius: 6px; padding: 9px 14px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.ussd-call { background: #2f8f5b; color: #fff; }
+.ussd-end { background: #a3372b; color: #fff; }
+.ussd-call:disabled, .ussd-end:disabled { opacity: .45; cursor: default; }
+
+.ussd-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ussd-keypad-key { background: #2a332e; color: #eafaf0; border: 1px solid #3a453f; border-radius: 6px; padding: 9px 0; font: inherit; font-size: 16px; cursor: pointer; }
+.ussd-keypad-key:hover:not(:disabled) { background: #33403a; }
+.ussd-keypad-key:disabled { opacity: .45; cursor: default; }
+
+@media (max-width: 760px) {
+  .ussd { grid-template-columns: minmax(0, 1fr); }
+  .ussd-phone { max-width: 320px; }
+}

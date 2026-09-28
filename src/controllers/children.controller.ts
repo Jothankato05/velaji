@@ -14,6 +14,7 @@ import { addHealthRecord, getHealthRecords, isHealthDomain } from '../services/w
 import { referForRegistration, recordRegistration } from '../services/birth-registration.service';
 import { childToFhirBundle } from '../services/fhir.service';
 import { AppError } from '../utils/AppError';
+import { phoneKey, phoneMatchSource } from '../utils/phone';
 
 async function findChildOr404(chinParam: string | string[]) {
   const chin = normalizeChin(Array.isArray(chinParam) ? chinParam[0] : chinParam);
@@ -56,11 +57,6 @@ const MAX_AGE_YEARS = 5;
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** The last ten digits, so '+234 803 111 2222' and '08031112222' match. */
-function phoneKey(phone: string): string {
-  return phone.replace(/\D/g, '').slice(-10);
-}
-
 export async function registerChild(req: Request, res: Response) {
   const { fullName, sex, dateOfBirth, caregiverId, caregiver: newCaregiver, homeFacilityId, birthSetting, registrationChannel } = req.body ?? {};
   // The caregiver is either an existing record (caregiverId) or given inline
@@ -99,10 +95,9 @@ export async function registerChild(req: Request, res: Response) {
 
   // The same child registered twice splits their record across two CHINs.
   // Same name, same date of birth and the same caregiver phone is that child.
-  const phone = String(newCaregiver?.phone ?? caregiver?.phone ?? '');
-  if (phoneKey(phone).length === 10) {
-    // Phones are stored as typed, so allow spaces or dashes between the digits.
-    const carers = await CaregiverModel.find({ phone: { $regex: `${phoneKey(phone).split('').join('\\D*')}\\D*$` } }, { _id: 1 });
+  const phoneRegex = phoneMatchSource(String(newCaregiver?.phone ?? caregiver?.phone ?? ''));
+  if (phoneRegex) {
+    const carers = await CaregiverModel.find({ phone: { $regex: phoneRegex } }, { _id: 1 });
     const dayStart = new Date(Date.UTC(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()));
     const existing = carers.length
       ? await ChildModel.findOne({

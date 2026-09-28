@@ -47,6 +47,9 @@ function rand(): number {
 }
 const between = (lo: number, hi: number) => lo + rand() * (hi - lo);
 
+/** Gives each demo parent a distinct number (+2348030000001, …). */
+let phoneSeq = 0;
+
 // Age range in days for each profile. Each child gets its own age inside the
 // range, so doses (and the administration trend) spread over real weeks instead
 // of every child in a profile sharing one birthday. Ranges are chosen so the
@@ -59,7 +62,7 @@ const AGE_DAYS: Record<Profile, [number, number]> = {
   complete: [460, 1000] // every scheduled dose given
 };
 
-async function makeChild(facilityId: Id, caregiverId: Id, profile: Profile, name: string) {
+async function makeChild(facilityId: Id, caregiver: { fullName: string; phone: string }, profile: Profile, name: string) {
   const [lo, hi] = AGE_DAYS[profile];
   const dob = new Date(now - Math.round(between(lo, hi)) * DAY);
   const doses = buildDosesForChild(dob);
@@ -72,9 +75,12 @@ async function makeChild(facilityId: Id, caregiverId: Id, profile: Profile, name
     // 'zero' → nothing administered
   }
   const chin = generateChin(dob);
+  // Created after the random draws above, so parallel children still take
+  // their random numbers in order.
+  const carer = await CaregiverModel.create(caregiver);
   const child = await ChildModel.create({
     chin, fullName: name, sex: 'female', dateOfBirth: dob,
-    caregiverId, homeFacilityId: facilityId, currentFacilityId: facilityId, doses
+    caregiverId: carer._id, homeFacilityId: facilityId, currentFacilityId: facilityId, doses
   });
   await maybeIssueCertificate(child);
   return child;
@@ -88,14 +94,17 @@ async function seedFacility(
     name: facName, wardName: ward, lgaName: lga, stateName: state, location: { lat: 9, lng: 7 },
     coldChainStatus: infra.cold ?? 'functional', accessibility: infra.access ?? 'accessible'
   });
-  const caregiver = await CaregiverModel.create({ fullName: `${ward} Caregiver`, phone: '+2348030000000' });
   // Written in parallel: makeChild draws its random age and delays before its
   // first await, so they're still taken in this order and the data is the same.
   const pending: ReturnType<typeof makeChild>[] = [];
   for (const profile of Object.keys(mix) as Profile[]) {
     for (let i = 0; i < (mix[profile] ?? 0); i++) {
-      // Numbered across the whole clinic, so no two children share a name.
-      pending.push(makeChild(facility._id, caregiver._id, profile, `${ward} Child ${pending.length + 1}`));
+      // Numbered across the whole clinic, so no two children share a name, and
+      // each has its own parent and phone number (as USSD and follow-up need).
+      const n = pending.length + 1;
+      phoneSeq += 1;
+      const caregiver = { fullName: `${ward} Parent ${n}`, phone: `+23480300${String(phoneSeq).padStart(5, '0')}` };
+      pending.push(makeChild(facility._id, caregiver, profile, `${ward} Child ${n}`));
     }
   }
   return Promise.all(pending);
@@ -110,6 +119,7 @@ export interface DemoSeedResult {
 
 export async function seedDemoData(): Promise<DemoSeedResult> {
   rngState = 0x5eed;
+  phoneSeq = 0;
 
   await StaffUserModel.create({
     username: 'admin', passwordHash: await hashPassword('admin-demo-pass'), fullName: 'Command Admin', role: 'admin'
