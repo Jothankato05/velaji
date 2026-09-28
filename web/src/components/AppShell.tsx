@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
+import { SearchBox } from './SearchBox';
 import './AppShell.css';
 
 type Role = 'admin' | 'staff' | 'verifier';
@@ -33,9 +34,7 @@ export const FOLLOW_UPS_CHANGED = 'velaji:follow-ups-changed';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-  const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [followUps, setFollowUps] = useState<number | null>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -80,17 +79,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [menuOpen]);
 
-  function onSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const v = search.trim();
-    if (!v) return;
-    // A CHIN goes straight to point of care; a verifier, who can't use point of
-    // care, gets the verification check instead.
-    const screen = role === 'verifier' ? '/terminal' : '/care';
-    navigate(`${screen}?chin=${encodeURIComponent(v.toUpperCase())}`);
-    setSearch('');
-  }
-
   return (
     <div className="shell">
       <aside id="sidebar" ref={sidebar} className={`sidebar${menuOpen ? ' open' : ''}`} aria-label="Main menu">
@@ -133,15 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="menu-icon" aria-hidden />
             Menu
           </button>
-          <form className="search" onSubmit={onSearch}>
-            <input
-              className="search-input"
-              placeholder="Find a child by CHIN"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Find a child by CHIN"
-            />
-          </form>
+          <SearchBox canSearchRecords={seesFollowUps} />
           <span className="topbar-date">{new Date().toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
         </header>
         <main className="content">{children}</main>

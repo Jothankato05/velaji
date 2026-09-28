@@ -14,6 +14,7 @@ import { addHealthRecord, getHealthRecords, isHealthDomain } from '../services/w
 import { referForRegistration, recordRegistration } from '../services/birth-registration.service';
 import { childToFhirBundle } from '../services/fhir.service';
 import { AppError } from '../utils/AppError';
+import { searchChildren } from '../services/child-search.service';
 import { phoneKey, phoneMatchSource } from '../utils/phone';
 
 async function findChildOr404(chinParam: string | string[]) {
@@ -143,6 +144,12 @@ export async function registerChild(req: Request, res: Response) {
   });
 
   res.status(201).json(toChildView(child));
+}
+
+/** Find a child by part of the CHIN, a name, or the caregiver's phone. */
+export async function getChildSearch(req: Request, res: Response) {
+  const q = typeof req.query.q === 'string' ? req.query.q.slice(0, 80) : '';
+  res.json(await searchChildren(q));
 }
 
 export async function getChild(req: Request, res: Response) {

@@ -10,6 +10,7 @@ import { createCaregiver } from '../controllers/caregivers.controller';
 import {
   registerChild,
   getChild,
+  getChildSearch,
   recordDose,
   getCard,
   getCertificate,
@@ -102,6 +103,8 @@ apiRouter.post('/api/caregivers', asyncHandler(createCaregiver));
 const childRecord = [auditChildAccess, requireRole('staff', 'admin')];
 
 apiRouter.post('/api/children', requireRole('staff', 'admin'), asyncHandler(registerChild));
+// Registered before /api/children/:chin so "search" isn't read as a CHIN.
+apiRouter.get('/api/children/search', requireRole('staff', 'admin'), asyncHandler(getChildSearch));
 apiRouter.get('/api/children/:chin', ...childRecord, asyncHandler(getChild));
 apiRouter.post('/api/children/:chin/doses', ...childRecord, asyncHandler(recordDose));
 apiRouter.get('/api/children/:chin/card.svg', ...childRecord, asyncHandler(getCard));

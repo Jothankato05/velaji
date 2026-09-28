@@ -709,6 +709,25 @@ test('terminal setup: register an overdue child for verification', async () => {
   termChin = reg.body.chin;
 });
 
+test('search finds a child by name, caregiver, phone or part of the CHIN', async () => {
+  const find = async (q: string) => (await json('GET', `/api/children/search?q=${encodeURIComponent(q)}`)).body.results as Array<{ chin: string }>;
+  const has = (rs: Array<{ chin: string }>) => rs.some((r) => r.chin === termChin);
+  assert(has(await find('terminal child')), 'by child name, any case');
+  assert(has(await find('child  TERMINAL')), 'by name words in any order');
+  assert(has(await find('Terminal Carer')), 'by caregiver name');
+  assert(has(await find('0809 000 0000')), 'by caregiver phone in local format');
+  assert(has(await find(termChin.slice(-6))), 'by the last digits of the CHIN');
+  const exact = await find(termChin.toLowerCase());
+  assert(exact[0]?.chin === termChin, 'exact CHIN comes first');
+  assert((await find('t')).length === 0, 'one character returns nothing');
+  assert((await find('.*')).length === 0, 'regex characters are taken literally');
+});
+
+test('search is for staff and admins only', async () => {
+  const r = await jsonAs(verifierToken, 'GET', '/api/children/search?q=terminal');
+  assert(r.status === 403, `expected 403, got ${r.status}`);
+});
+
 test('verifier sees ONLY the status headline, not the medical record (least-privilege)', async () => {
   const { status, body } = await jsonAs(verifierToken, 'POST', '/api/terminal/lookup', { chin: termChin });
   assert(status === 200, `expected 200, got ${status}: ${JSON.stringify(body)}`);

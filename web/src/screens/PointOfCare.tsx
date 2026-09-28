@@ -117,8 +117,9 @@ export function PointOfCare() {
     if (own) setHereId(own._id);
   }, [journey, facilities]);
 
-  // A CHIN handed in from the top-bar search loads straight away.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once on mount, then clears the param itself
+  // A CHIN handed in from the top-bar search loads straight away, including
+  // when this screen is already open.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reacts to the URL only; clears the param itself
   useEffect(() => {
     const chin = params.get('chin');
     if (chin) {
@@ -126,7 +127,7 @@ export function PointOfCare() {
       void load(chin);
       setParams({}, { replace: true });
     }
-  }, []);
+  }, [params]);
 
   async function load(chin: string, keepNotice = false) {
     setError('');
