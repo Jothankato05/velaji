@@ -1082,6 +1082,14 @@ test('administration trend returns one point per week', async () => {
   assert(status === 200, `expected 200, got ${status}`);
   assert(Array.isArray(body.points) && body.points.length === 8, `expected 8 weekly points, got ${body.points?.length}`);
   assert(body.points.every((p: any) => p.weekStarting && typeof p.dosesAdministered === 'number'), 'malformed trend point');
+
+  // Scoped to the dashboard fixture state: A's OPV (30 days ago) and C's BCG
+  // (40 days ago) fall inside 8 weeks; A's BCG (60 days ago) does not.
+  const scoped = await jsonAs(adminTokenT, 'GET', `/api/dashboard/trend?weeks=8&state=${encodeURIComponent(ST)}`);
+  const total = scoped.body.points.reduce((a: number, p: any) => a + p.dosesAdministered, 0);
+  assert(total === 2, `scoped trend expected 2 doses, got ${total}`);
+  const empty = await jsonAs(adminTokenT, 'GET', '/api/dashboard/trend?weeks=8&state=No-Such-State');
+  assert(empty.body.points.length === 8 && empty.body.points.every((p: any) => p.dosesAdministered === 0), 'an empty area should give 8 zero weeks');
 });
 
 test('outlier detection flags a facility with an unusual dropout rate', async () => {

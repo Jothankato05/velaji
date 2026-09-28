@@ -735,7 +735,7 @@ export interface AdministrationTrend {
 
 /** Doses administered per week over the last `weeks` weeks — a real trend from
  * administeredDate (NCIHAP §11 "performance trends"). */
-export async function administrationTrend(weeks: number, now: Date = new Date()): Promise<AdministrationTrend> {
+export async function administrationTrend(weeks: number, filter: GeoFilter = {}, now: Date = new Date()): Promise<AdministrationTrend> {
   const buckets = new Map<string, number>();
   // Seed the last `weeks` week-start keys so quiet weeks still show as 0.
   const weekStart = (t: number) => {
@@ -749,7 +749,11 @@ export async function administrationTrend(weeks: number, now: Date = new Date())
   const earliest = now.getTime() - weeks * 7 * DAY;
 
   const children = await ChildModel.find({});
+  const facilities = await FacilityModel.find({});
+  const geoById = new Map(facilities.map((f) => [String(f._id), { state: f.stateName, lga: f.lgaName, ward: f.wardName || UNSPECIFIED_WARD, facility: f.name, facilityId: String(f._id) }]));
   for (const child of children) {
+    const geo = geoById.get(String(child.currentFacilityId)) ?? { state: UNKNOWN, lga: UNKNOWN, ward: UNSPECIFIED_WARD, facility: UNKNOWN, facilityId: '' };
+    if (!inScope(geo, filter)) continue;
     for (const d of child.doses) {
       if (!d.administeredDate) continue;
       const t = d.administeredDate.getTime();

@@ -72,7 +72,7 @@ export function Dashboard() {
   const [filter, setFilter] = useState<Filter>({});
   const [geoSort, setGeoSort] = useState<GeoSort>('overdue');
   const summary = useGet<Summary>(`/api/dashboard/summary${qs(filter)}`);
-  const trend = useGet<Trend>('/api/dashboard/trend?weeks=8');
+  const trend = useGet<Trend>(`/api/dashboard/trend?weeks=8${qs(filter).replace('?', '&')}`);
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${qs(filter).replace('?', '&')}`);
   const outliers = useGet<Outliers>(`/api/dashboard/outliers${qs(filter)}`);
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
@@ -251,7 +251,7 @@ export function Dashboard() {
         )}
 
         <section className="card panel span2">
-          <div className="panel-head"><h2>Doses administered</h2><span className="eyebrow">last 8 weeks</span></div>
+          <div className="panel-head"><h2>Doses administered</h2><span className="eyebrow">{trend.data ? `${fmt(trend.data.points.reduce((n, p) => n + p.dosesAdministered, 0))} in the last 8 weeks` : 'last 8 weeks'}</span></div>
           {trend.data ? <TrendChart points={trend.data.points} /> : <Loading />}
         </section>
 

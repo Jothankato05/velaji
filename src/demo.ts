@@ -10,6 +10,12 @@ import { StaffUserModel } from './models/StaffUser';
  */
 export const DEMO_SEED_VERSION = 2;
 
+/** Demo dates are relative to when it was seeded, so the recent weeks empty out
+ *  as time passes (nobody records real doses on the demo). Reseed once the data
+ *  is this old, so charts like "doses administered" always show recent weeks. */
+export const DEMO_REFRESH_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const META = 'demo_meta';
 const META_ID = 'seed';
 
@@ -27,20 +33,23 @@ async function holdsDemoSeed(): Promise<boolean> {
  * Public demo instances start empty, which makes the overview look broken
  * rather than new. When DEMO_SEED_ON_BOOT is set we populate the invented demo
  * dataset if the database is empty, or replace it if it holds an older version
- * of the demo seed. A database holding anything else is never touched.
+ * of the demo seed or one more than DEMO_REFRESH_DAYS old. A database holding
+ * anything else is never touched.
  */
 export async function seedDemoIfEnabled(): Promise<void> {
   if (process.env.DEMO_SEED_ON_BOOT !== 'true') return;
   const db = mongoose.connection.db;
   if (!db) return;
-  const meta = db.collection<{ _id: string; version: number | null }>(META);
+  const meta = db.collection<{ _id: string; version: number | null; seededAt?: Date }>(META);
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - DEMO_REFRESH_DAYS * DAY_MS);
 
   const existing = await ChildModel.estimatedDocumentCount();
   if (existing > 0) {
     const current = await meta.findOne({ _id: META_ID });
-    if (current?.version === DEMO_SEED_VERSION) {
+    if (current?.version === DEMO_SEED_VERSION && current.seededAt && current.seededAt >= staleBefore) {
       // eslint-disable-next-line no-console
-      console.log(`[demo] skipped: demo data is already version ${DEMO_SEED_VERSION}`);
+      console.log(`[demo] skipped: demo data is version ${DEMO_SEED_VERSION}, seeded ${current.seededAt.toISOString()}`);
       return;
     }
     if (!current && !(await holdsDemoSeed())) {
@@ -53,7 +62,11 @@ export async function seedDemoIfEnabled(): Promise<void> {
   // Claim the (re)seed atomically so concurrent cold starts don't both run it:
   // whoever loses gets a duplicate-key error from the upsert and backs off.
   try {
-    await meta.updateOne({ _id: META_ID, version: { $ne: DEMO_SEED_VERSION } }, { $set: { version: DEMO_SEED_VERSION } }, { upsert: true });
+    await meta.updateOne(
+      { _id: META_ID, $or: [{ version: { $ne: DEMO_SEED_VERSION } }, { seededAt: { $exists: false } }, { seededAt: { $lt: staleBefore } }] },
+      { $set: { version: DEMO_SEED_VERSION, seededAt: now } },
+      { upsert: true }
+    );
   } catch (err) {
     if ((err as { code?: number }).code === 11000) return;
     throw err;

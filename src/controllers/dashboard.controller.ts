@@ -44,7 +44,7 @@ export async function getTrend(req: Request, res: Response) {
   if (!Number.isInteger(weeks) || weeks < 1 || weeks > 52) {
     throw new AppError('weeks must be an integer between 1 and 52');
   }
-  res.json(await administrationTrend(weeks));
+  res.json(await administrationTrend(weeks, readFilter(req)));
 }
 
 export async function getOutliers(req: Request, res: Response) {
