@@ -51,25 +51,80 @@ function toChildView(child: Awaited<ReturnType<typeof findChildOr404>>) {
 const BIRTH_SETTINGS = ['facility', 'home', 'other'];
 const REGISTRATION_CHANNELS = ['phc', 'hospital', 'chw', 'mobile_team', 'outreach', 'npc', 'antenatal'];
 
+/** Velaji follows children under five. */
+const MAX_AGE_YEARS = 5;
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The last ten digits, so '+234 803 111 2222' and '08031112222' match. */
+function phoneKey(phone: string): string {
+  return phone.replace(/\D/g, '').slice(-10);
+}
+
 export async function registerChild(req: Request, res: Response) {
-  const { fullName, sex, dateOfBirth, caregiverId, homeFacilityId, birthSetting, registrationChannel } = req.body ?? {};
-  if (!fullName || !sex || !dateOfBirth || !caregiverId || !homeFacilityId) {
-    throw new AppError('fullName, sex, dateOfBirth, caregiverId, homeFacilityId are required');
+  const { fullName, sex, dateOfBirth, caregiverId, caregiver: newCaregiver, homeFacilityId, birthSetting, registrationChannel } = req.body ?? {};
+  // The caregiver is either an existing record (caregiverId) or given inline
+  // ({ fullName, phone }) and only created once every check below has passed,
+  // so a rejected registration doesn't leave an orphan caregiver behind.
+  if (!fullName || !sex || !dateOfBirth || (!caregiverId && !newCaregiver) || !homeFacilityId) {
+    throw new AppError('fullName, sex, dateOfBirth, homeFacilityId and a caregiver (caregiverId, or caregiver with fullName and phone) are required');
+  }
+  if (newCaregiver && (!String(newCaregiver.fullName ?? '').trim() || phoneKey(String(newCaregiver.phone ?? '')).length < 10)) {
+    throw new AppError("The parent or guardian's name and a full phone number are required.");
   }
   // §19: home births and non-PHC channels are first-class. Default to the
   // facility path when unspecified, but never reject a home birth.
   const setting = birthSetting && BIRTH_SETTINGS.includes(birthSetting) ? birthSetting : 'facility';
   const channel = registrationChannel && REGISTRATION_CHANNELS.includes(registrationChannel) ? registrationChannel : 'phc';
+  const tidy = (s: unknown) => String(s ?? '').trim().replace(/\s+/g, ' ');
+  const name = tidy(fullName);
 
   const [caregiver, facility] = await Promise.all([
-    CaregiverModel.findById(caregiverId),
+    caregiverId ? CaregiverModel.findById(caregiverId) : Promise.resolve(null),
     FacilityModel.findById(homeFacilityId)
   ]);
-  if (!caregiver) throw new AppError('caregiverId does not match a known caregiver', 404);
+  if (caregiverId && !caregiver) throw new AppError('caregiverId does not match a known caregiver', 404);
   if (!facility) throw new AppError('homeFacilityId does not match a known facility', 404);
 
   const dob = new Date(dateOfBirth);
   if (Number.isNaN(dob.getTime())) throw new AppError('dateOfBirth is not a valid date');
+  // A day's grace either way of "today" covers time zones.
+  const DAY = 24 * 60 * 60 * 1000;
+  if (dob.getTime() > Date.now() + DAY) throw new AppError("The date of birth can't be in the future.");
+  const oldest = new Date();
+  oldest.setFullYear(oldest.getFullYear() - MAX_AGE_YEARS);
+  if (dob.getTime() < oldest.getTime() - DAY) {
+    throw new AppError(`Velaji registers children under ${MAX_AGE_YEARS}; this date of birth is more than ${MAX_AGE_YEARS} years ago.`);
+  }
+
+  // The same child registered twice splits their record across two CHINs.
+  // Same name, same date of birth and the same caregiver phone is that child.
+  const phone = String(newCaregiver?.phone ?? caregiver?.phone ?? '');
+  if (phoneKey(phone).length === 10) {
+    // Phones are stored as typed, so allow spaces or dashes between the digits.
+    const carers = await CaregiverModel.find({ phone: { $regex: `${phoneKey(phone).split('').join('\\D*')}\\D*$` } }, { _id: 1 });
+    const dayStart = new Date(Date.UTC(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()));
+    const existing = carers.length
+      ? await ChildModel.findOne({
+          caregiverId: { $in: carers.map((c) => c._id) },
+          fullName: { $regex: `^\\s*${escapeRegex(name).replace(/ /g, '\\s+')}\\s*$`, $options: 'i' },
+          dateOfBirth: { $gte: new Date(dayStart.getTime() - DAY), $lt: new Date(dayStart.getTime() + 2 * DAY) }
+        })
+      : null;
+    if (existing) {
+      res.status(409).json({
+        error: `${existing.fullName} is already registered with this date of birth and phone number (CHIN ${existing.chin}). Open that record instead of creating a second one.`,
+        existingChin: existing.chin
+      });
+      return;
+    }
+  }
+
+  const carer = caregiver ?? (await CaregiverModel.create({
+    fullName: tidy(newCaregiver.fullName),
+    phone: String(newCaregiver.phone).trim(),
+    relationship: newCaregiver.relationship
+  }));
 
   // Astronomically unlikely to collide (8 base32 chars = 40 bits of entropy)
   // but a health ID system doesn't get to shrug at "unlikely" — retry on the
@@ -81,10 +136,10 @@ export async function registerChild(req: Request, res: Response) {
 
   const child = await ChildModel.create({
     chin,
-    fullName,
+    fullName: name,
     sex,
     dateOfBirth: dob,
-    caregiverId,
+    caregiverId: carer._id,
     homeFacilityId,
     currentFacilityId: homeFacilityId,
     birthSetting: setting,

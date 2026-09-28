@@ -177,6 +177,46 @@ test('register a child issues a valid CHIN and a full dose schedule', async () =
   chin = body.chin;
 });
 
+test('registration checks the details before creating anything', async () => {
+  const carersBefore = await CaregiverModel.countDocuments();
+  const base = { sex: 'male', homeFacilityId: facilityAId };
+  const dayAgo = new Date(Date.now() - 20 * DAY).toISOString().slice(0, 10);
+
+  // A caregiver given inline is created with the child.
+  const ok = await json('POST', '/api/children', {
+    ...base, fullName: 'Inline  Carer Child', dateOfBirth: dayAgo, caregiver: { fullName: 'Hauwa Musa', phone: '+234 803 555 0101' }
+  });
+  assert(ok.status === 201, `inline caregiver registration expected 201, got ${ok.status}: ${JSON.stringify(ok.body)}`);
+  assert((await CaregiverModel.countDocuments()) === carersBefore + 1, 'the inline caregiver should be created once');
+  assert(ok.body.fullName === 'Inline Carer Child', `extra spaces in the name should be tidied, got ${JSON.stringify(ok.body.fullName)}`);
+
+  // Rejected registrations leave no caregiver behind.
+  const noPhone = await json('POST', '/api/children', { ...base, fullName: 'No Phone', dateOfBirth: dayAgo, caregiver: { fullName: 'Nobody', phone: '' } });
+  assert(noPhone.status === 400 && /phone/i.test(noPhone.body.error), `missing phone expected 400 about the phone, got ${noPhone.status}: ${noPhone.body.error}`);
+  const future = await json('POST', '/api/children', {
+    ...base, fullName: 'Not Born Yet', dateOfBirth: new Date(Date.now() + 10 * DAY).toISOString().slice(0, 10), caregiver: { fullName: 'Early', phone: '+2348035550102' }
+  });
+  assert(future.status === 400 && /future/i.test(future.body.error), `future DOB expected 400, got ${future.status}: ${future.body.error}`);
+  const tooOld = await json('POST', '/api/children', {
+    ...base, fullName: 'Too Old', dateOfBirth: '2015-01-01', caregiver: { fullName: 'Late', phone: '+2348035550103' }
+  });
+  assert(tooOld.status === 400 && /under 5/.test(tooOld.body.error), `DOB over 5 years ago expected 400, got ${tooOld.status}: ${tooOld.body.error}`);
+
+  // The same child again (name in another case and spacing, phone in local
+  // format) is refused with the existing CHIN.
+  const dup = await json('POST', '/api/children', {
+    ...base, fullName: 'inline carer child', dateOfBirth: dayAgo, caregiver: { fullName: 'Hauwa Musa', phone: '08035550101' }
+  });
+  assert(dup.status === 409 && dup.body.existingChin === ok.body.chin, `duplicate expected 409 with ${ok.body.chin}, got ${dup.status}: ${JSON.stringify(dup.body)}`);
+  assert((await CaregiverModel.countDocuments()) === carersBefore + 1, 'rejected registrations must not create caregivers');
+
+  // A twin (same caregiver and birthday, different name) is not a duplicate.
+  const twin = await json('POST', '/api/children', {
+    ...base, fullName: 'Inline Carer Twin', dateOfBirth: dayAgo, caregiver: { fullName: 'Hauwa Musa', phone: '08035550101' }
+  });
+  assert(twin.status === 201, `a twin should register, got ${twin.status}: ${JSON.stringify(twin.body)}`);
+});
+
 test('a tampered CHIN fails format validation', async () => {
   const tampered = chin.slice(0, -1) + (chin.slice(-1) === '0' ? '1' : '0');
   assert(!isValidChinFormat(tampered), 'tampered CHIN should fail check digit');

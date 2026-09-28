@@ -1,17 +1,22 @@
-.reg { display: flex; flex-direction: column; gap: 20px; max-width: 620px; }
+.reg { display: flex; flex-direction: column; gap: 16px; max-width: 640px; }
 .reg-head h1 { margin: 0; }
-.reg-sub { max-width: 56ch; margin: 8px 0 0; font-size: 14px; }
+.reg-sub { max-width: 60ch; margin: 6px 0 0; font-size: 14px; }
+.reg-chin { color: var(--ink); font-variant-numeric: tabular-nums; }
 
-.reg-form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.reg-form { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.reg-section { border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.reg-section legend { font-weight: 600; font-size: 14px; padding: 0; margin-bottom: 10px; }
 .reg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.reg-submit { margin-top: 6px; padding: 12px; font-size: 15px; }
+.reg-hint { font-size: 12.5px; margin: -4px 0 0; }
+.reg-submit { padding: 11px; font-size: 15px; }
+.reg-dup-actions { margin-top: 8px; }
 
 .issued-card {
   border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
-  box-shadow: var(--shadow-lg); max-width: 520px;
+  max-width: 520px; background: var(--surface);
 }
 .issued-card svg { width: 100%; height: auto; display: block; }
-.issued-actions { display: flex; gap: 10px; }
+.issued-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 @media (max-width: 560px) { .reg-row { grid-template-columns: 1fr; } }
 
@@ -20,5 +25,5 @@
   .sidebar, .topbar, .reg-head, .issued-actions { display: none !important; }
   /* biome-ignore lint/complexity/noImportantStyles: print-only, the card prints edge to edge */
   .content { padding: 0 !important; }
-  .issued-card { border: none; box-shadow: none; }
+  .issued-card { border: none; }
 }
