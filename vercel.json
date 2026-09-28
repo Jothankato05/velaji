@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci && npm --prefix web ci",
+  "buildCommand": "npm run build && npm --prefix web run build",
+  "outputDirectory": "web/dist",
+  "functions": {
+    "api/index.js": { "maxDuration": 60, "includeFiles": "dist/**" }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/webhooks/:path*", "destination": "/api/index" },
+    { "source": "/health", "destination": "/api/index" },
+    { "source": "/ready", "destination": "/api/index" },
+    { "source": "/deck", "destination": "/deck.html" },
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
+}
