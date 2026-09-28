@@ -1392,6 +1392,8 @@ test('recovery list returns the overdue children in scope, worst-first, staff/ad
   assert(adminRes.body.count === 2, `expected 2 overdue children, got ${adminRes.body.count}`);
   assert(adminRes.body.children[0].mostOverdueDays >= adminRes.body.children[1].mostOverdueDays, 'recovery list must be worst-first');
   assert(adminRes.body.children[0].chin && adminRes.body.children[0].overdueVaccines.length > 0, 'each row carries a CHIN and overdue vaccines');
+  const codes = adminRes.body.children[0].overdueCodes;
+  assert(Array.isArray(codes) && codes.length > 0 && new Set(codes).size === codes.length, `overdueCodes should be distinct vaccine codes, got ${JSON.stringify(codes)}`);
 
   const staffRes = await jsonAs(staffToken, 'GET', '/api/recovery?state=Rec-State');
   assert(staffRes.status === 200, 'staff may view the recovery list');

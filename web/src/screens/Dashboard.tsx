@@ -44,7 +44,7 @@ interface Outliers {
   threshold: number;
   facilities: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number; outlier: boolean }>;
 }
-interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
+interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; overdueCodes: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
 interface Recovery { count: number; children: RecoveryChild[]; }
 
 type Filter = { state?: string; lga?: string; ward?: string };
@@ -262,38 +262,15 @@ export function Dashboard() {
       {filter.ward && (
         <section className="card panel">
           <div className="panel-head">
-            <h2>Overdue children: recovery list</h2>
-            <span className="eyebrow">{summary.data.scope.label} · {recovery.data ? `${recovery.data.count} to reach` : '…'}</span>
+            <h2>Overdue children to contact</h2>
+            <span className="eyebrow">{summary.data.scope.label} · {recovery.data ? `${recovery.data.count} children` : '…'}</span>
           </div>
           {!recovery.data ? (
             <Loading />
           ) : recovery.data.children.length === 0 ? (
             <Empty>No overdue children here. Nothing to recover.</Empty>
           ) : (
-            <div className="rec-scroll">
-              <table className="rec">
-                <thead>
-                  <tr><th>Child</th><th>Overdue for</th><th className="num">Days late</th><th>Caregiver</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {recovery.data.children.map((c) => (
-                    <tr key={c.chin} className="rec-row">
-                      <td>
-                        <div className="rec-name">{c.fullName}</div>
-                        <div className="muted rec-sub mono">{c.chin} · {c.ageMonths}mo</div>
-                      </td>
-                      <td className="rec-vax">{c.overdueVaccines.slice(0, 3).join(', ')}{c.overdueVaccines.length > 3 ? ` +${c.overdueVaccines.length - 3}` : ''}</td>
-                      <td className="num mono rec-late">{c.mostOverdueDays}d</td>
-                      <td>
-                        <div>{c.caregiverName ?? '-'}</div>
-                        {c.caregiverPhone && <a className="rec-phone mono" href={`tel:${c.caregiverPhone}`}>{c.caregiverPhone}</a>}
-                      </td>
-                      <td className="num"><Link to={`/care?chin=${encodeURIComponent(c.chin)}`} className="btn btn-sm">Open</Link></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RecoveryTable rows={recovery.data.children} />
           )}
         </section>
       )}
@@ -340,6 +317,54 @@ function StatusBar({ t }: { t: Metrics }) {
         ))}
       </div>
     </div>
+  );
+}
+
+const RECOVERY_SHOWN = 8;
+
+/** Most overdue first. Missed doses are summarised as a count plus vaccine
+ *  codes (the full names are in the tooltip), and only the first few children
+ *  show until asked, so a busy ward stays scannable. */
+function RecoveryTable({ rows }: { rows: RecoveryChild[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? rows : rows.slice(0, RECOVERY_SHOWN);
+  return (
+    <>
+      <div className="rec-scroll">
+        <table className="rec">
+          <thead>
+            <tr><th>Child</th><th>Missed</th><th className="num">Days late</th><th>Caregiver</th><th></th></tr>
+          </thead>
+          <tbody>
+            {shown.map((c) => (
+              <tr key={c.chin} className="rec-row">
+                <td>
+                  <div className="rec-name">{c.fullName}</div>
+                  <div className="muted rec-sub">{c.chin} · {c.ageMonths} mo</div>
+                </td>
+                <td className="rec-vax" title={c.overdueVaccines.join(', ')}>
+                  <div>{c.overdueVaccines.length} dose{c.overdueVaccines.length === 1 ? '' : 's'}</div>
+                  <div className="muted rec-sub">
+                    {c.overdueCodes.slice(0, 5).join(', ')}{c.overdueCodes.length > 5 ? ` +${c.overdueCodes.length - 5}` : ''}
+                  </div>
+                </td>
+                <td className="num rec-late">{c.mostOverdueDays}</td>
+                <td>
+                  <div className="rec-carer">{c.caregiverName ?? '-'}</div>
+                  {c.caregiverPhone && <a className="rec-phone" href={`tel:${c.caregiverPhone}`}>{c.caregiverPhone}</a>}
+                </td>
+                <td className="num"><Link to={`/care?chin=${encodeURIComponent(c.chin)}`} className="btn btn-sm">Open</Link></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > RECOVERY_SHOWN && (
+        <button type="button" className="btn btn-sm rec-more" onClick={() => setAll((v) => !v)}>
+          {all ? `Show the ${RECOVERY_SHOWN} most overdue` : `Show all ${rows.length}`}
+        </button>
+      )}
+    </>
   );
 }
 

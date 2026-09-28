@@ -1,4 +1,5 @@
 .dash { display: flex; flex-direction: column; gap: 18px; }
+.dash > * { min-width: 0; }
 .dash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .dash-head h1 { margin: 0; }
 .dash-tagline { margin: 6px 0 0; font-size: 14px; }
@@ -39,7 +40,7 @@
 .span2 { grid-column: 1 / -1; }
 .dash-grid > * { min-width: 0; }
 .panel { padding: 16px; }
-.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 10px; margin-bottom: 14px; flex-wrap: wrap; }
 
 /* geographic drill list */
 .geo-list { list-style: none; margin: 0; padding: 0; }
@@ -111,7 +112,7 @@
 .cbs-pill.green { background: var(--st-green-bg); color: var(--st-green); }
 
 /* ---- Drill-down triage: sort control + per-row priority flag ---- */
-.geo-sort { display: inline-flex; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 2px; }
+.geo-sort { display: inline-flex; max-width: 100%; overflow-x: auto; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 2px; }
 .geo-sort-btn { border: none; background: none; font: inherit; font-size: 12px; color: var(--muted); padding: 4px 10px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap; }
 .geo-sort-btn:hover { color: var(--ink); }
 .geo-sort-btn.active { background: var(--card, #fff); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
@@ -124,13 +125,15 @@
 .rec thead th { text-align: left; font-size: 12.5px; color: var(--muted); font-weight: 500; padding: 0 12px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .rec th.num, .rec td.num { text-align: right; }
 /* biome-ignore lint/style/noDescendingSpecificity: .rec and .cbs are different tables; these rules never meet */
-.rec tbody td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rec tbody td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .rec tbody tr:last-child td { border-bottom: none; }
 .rec-row:hover { background: var(--bg); }
 .rec-name { font-weight: 600; color: var(--ink); }
 .rec-sub { font-size: 12px; }
-.rec-vax { color: var(--ink-soft); max-width: 22ch; }
-.rec-late { color: var(--st-red); font-weight: 600; }
+.rec-vax { color: var(--ink-soft); white-space: nowrap; }
+.rec-late { color: var(--st-red); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rec-carer { white-space: nowrap; }
+.rec-more { margin-top: 12px; }
 .rec-phone { display: inline-block; font-size: 12.5px; color: var(--brand, var(--st-green)); text-decoration: none; }
 .rec-phone:hover { text-decoration: underline; }
 
@@ -155,4 +158,20 @@
   .dropout-row { grid-template-columns: minmax(0, 1fr) 40px 54px; row-gap: 6px; }
   .dropout-who { grid-column: 1 / -1; }
   .dropout-name, .dropout-loc { white-space: normal; }
+}
+
+/* Recovery list on phones: each child becomes a small card instead of a
+   five-column row: name and days late, then missed doses, then who to call. */
+@media (max-width: 640px) {
+  .rec thead { display: none; }
+  .rec, .rec tbody { display: block; }
+  .rec tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .rec tbody tr:last-child { border-bottom: none; }
+  .rec tbody td { display: block; padding: 0; border-bottom: none; }
+  .rec td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .rec td:nth-child(3) { grid-column: 2; grid-row: 1; }
+  .rec td:nth-child(3)::after { content: ' days late'; font-weight: 400; font-size: 12px; }
+  .rec td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
+  .rec td:nth-child(4) { grid-column: 1; grid-row: 3; }
+  .rec td:nth-child(5) { grid-column: 2; grid-row: 3; align-self: end; }
 }

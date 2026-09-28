@@ -355,6 +355,8 @@ export interface RecoveryChild {
   fullName: string;
   ageMonths: number;
   overdueVaccines: string[];
+  /** Distinct vaccine codes among the overdue doses, most overdue first. */
+  overdueCodes: string[];
   mostOverdueDays: number;
   caregiverName: string | null;
   caregiverPhone: string | null;
@@ -381,7 +383,7 @@ export async function overdueChildren(filter: GeoFilter, now: Date = new Date())
     const geo = { state: g?.state ?? UNKNOWN, lga: g?.lga ?? UNKNOWN, ward: g?.ward ?? UNSPECIFIED_WARD, facility: '', facilityId: '' };
     if (!inScope(geo, filter)) continue;
 
-    const doses = child.doses.map((d) => ({ displayName: d.displayName, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }));
+    const doses = child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }));
     const status = computeChildStatus(
       child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null })),
       { now, needsReconciliation: child.needsReconciliation }
@@ -398,6 +400,7 @@ export async function overdueChildren(filter: GeoFilter, now: Date = new Date())
       fullName: child.fullName,
       ageMonths: Math.floor((now.getTime() - child.dateOfBirth.getTime()) / (30.44 * DAY)),
       overdueVaccines: overdue.map((d) => d.displayName),
+      overdueCodes: [...new Set(overdue.map((d) => d.vaccineCode))],
       mostOverdueDays: overdue.length ? Math.round((now.getTime() - overdue[0].dueDate.getTime()) / DAY) : 0,
       caregiverName: caregiver?.fullName ?? null,
       caregiverPhone: caregiver?.phone || null,
