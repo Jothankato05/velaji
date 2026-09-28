@@ -28,11 +28,27 @@ interface HealthRecordEntry { id: string; domain: string; domainLabel: string; t
 
 
 type Card = { chin: string; token: string };
-const CARD_KEY = 'ncihap.card'; // { chin, token }
+// Remembered on the device, so a parent doesn't have to rescan the card every
+// time the browser is closed. Storage can be unavailable (private mode), so
+// every access is guarded and the app still works for the visit.
+const CARD_KEY = 'velaji.mychild.card';
 
 function readCard(): Card | null {
-  const raw = sessionStorage.getItem(CARD_KEY);
-  return raw ? JSON.parse(raw) : null;
+  try {
+    const c = JSON.parse(localStorage.getItem(CARD_KEY) ?? 'null');
+    return c?.chin && c?.token ? { chin: c.chin, token: c.token } : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCard(c: Card | null) {
+  try {
+    if (c) localStorage.setItem(CARD_KEY, JSON.stringify(c));
+    else localStorage.removeItem(CARD_KEY);
+  } catch {
+    // Not remembered on this device; the card still works for this visit.
+  }
 }
 
 function parseCard(input: string): Card | null {
@@ -62,24 +78,34 @@ function cardFromUrl(): Card | null {
 }
 
 export function MyChildApp() {
-  const [card, setCard] = useState<Card | null>(() => readCard() ?? cardFromUrl());
+  // A scanned card wins over a remembered one: a parent with two children
+  // switches by scanning the other child's card.
+  const [card, setCard] = useState<Card | null>(() => cardFromUrl() ?? readCard());
+  const [notice, setNotice] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const fromUrl = cardFromUrl();
-    if (fromUrl && !readCard()) {
-      sessionStorage.setItem(CARD_KEY, JSON.stringify(fromUrl));
+    if (fromUrl) {
+      saveCard(fromUrl);
       setCard(fromUrl);
       navigate('/mychild', { replace: true });
     }
   }, [navigate]);
 
-  if (!card) return <SignIn onCard={(c) => { sessionStorage.setItem(CARD_KEY, JSON.stringify(c)); setCard(c); navigate('/mychild'); }} />;
+  function signOut(message = '') {
+    saveCard(null);
+    setCard(null);
+    setNotice(message);
+    navigate('/mychild');
+  }
+
+  if (!card) return <SignIn notice={notice} onCard={(c) => { saveCard(c); setCard(c); setNotice(''); navigate('/mychild'); }} />;
 
   return (
     <Routes>
       <Route
-        element={<Shell card={card} onSignOut={() => { sessionStorage.removeItem(CARD_KEY); setCard(null); navigate('/mychild'); }} />}
+        element={<Shell card={card} onSignOut={signOut} />}
       >
         <Route index element={<HomeView />} />
         <Route path="vaccines" element={<VaccinesView />} />
@@ -92,7 +118,7 @@ export function MyChildApp() {
   );
 }
 
-function SignIn({ onCard }: { onCard: (c: Card) => void }) {
+function SignIn({ onCard, notice }: { onCard: (c: Card) => void; notice: string }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -116,10 +142,13 @@ function SignIn({ onCard }: { onCard: (c: Card) => void }) {
       <div className="mc-signin-panel">
         <div className="mc-logo"><span className="mc-heart" aria-hidden>♥</span> MyChild</div>
         <p className="mc-signin-sub">powered by Velaji</p>
-        <h1>Your child’s health, in your hand.</h1>
-        <p className="mc-signin-desc">Scan the QR on your child’s card, or paste the card link, to see their vaccines and next visit.</p>
+        <h1>Your child’s vaccines and next visit</h1>
+        <p className="mc-signin-desc">
+          Point your phone’s camera at the QR code on your child’s card and open the link. Or paste the card link here.
+        </p>
+        {notice && <div className="mc-error">{notice}</div>}
         <form onSubmit={submit} className="mc-signin-form">
-          <input className="mc-input" placeholder="Scan card QR or paste card link" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+          <input className="mc-input" placeholder="Paste the card link" aria-label="Card link" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
           {error && <div className="mc-error">{error}</div>}
           <button type="submit" className="mc-btn mc-btn-primary" disabled={busy || !value.trim()}>{busy ? 'Checking…' : 'Open MyChild'}</button>
         </form>
@@ -128,27 +157,39 @@ function SignIn({ onCard }: { onCard: (c: Card) => void }) {
   );
 }
 
-const NAV: Array<{ to: string; label: string; end?: boolean }> = [
-  { to: '/mychild', label: 'Home', end: true },
-  { to: '/mychild/vaccines', label: 'Vaccines' },
-  { to: '/mychild/appointments', label: 'Appointments' },
-  { to: '/mychild/doctor', label: 'Doctor' },
+// `tab` is the short label for the bottom bar on phones, where Emergency
+// instead gets its own always-visible button at the top.
+const NAV: Array<{ to: string; label: string; tab?: string; end?: boolean }> = [
+  { to: '/mychild', label: 'Home', tab: 'Home', end: true },
+  { to: '/mychild/vaccines', label: 'Vaccines', tab: 'Vaccines' },
+  { to: '/mychild/appointments', label: 'Next visit', tab: 'Visit' },
+  { to: '/mychild/doctor', label: 'Questions', tab: 'Questions' },
   { to: '/mychild/emergency', label: 'Emergency' },
-  { to: '/mychild/more', label: 'More' }
+  { to: '/mychild/more', label: 'Card and account', tab: 'More' }
 ];
 
 type Ctx = { data: Family; listen: () => void };
 
-function Shell({ card, onSignOut }: { card: Card; onSignOut: () => void }) {
+function Shell({ card, onSignOut }: { card: Card; onSignOut: (message?: string) => void }) {
   const [data, setData] = useState<Family | null>(null);
   const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is only a retry trigger
   useEffect(() => {
+    setError('');
     fetch(`/api/family/${encodeURIComponent(card.chin)}?t=${encodeURIComponent(card.token)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(setData)
-      .catch(() => setError('Could not load your child’s record.'));
-  }, [card]);
+      .then(async (r) => {
+        // A card the server no longer accepts: back to the scan screen, saying why.
+        if (r.status === 401 || r.status === 404) {
+          onSignOut('That card link no longer works. Scan the card again, or ask your clinic to reprint it.');
+          return;
+        }
+        if (!r.ok) throw new Error();
+        setData(await r.json());
+      })
+      .catch(() => setError('Could not load your child’s record. Check your connection and try again.'));
+  }, [card, attempt]);
 
   function listen() {
     if (!data) return;
@@ -169,16 +210,27 @@ function Shell({ card, onSignOut }: { card: Card; onSignOut: () => void }) {
             <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mc-nav-link${isActive ? ' active' : ''}`}>{n.label}</NavLink>
           ))}
         </nav>
-        <div className="mc-help">
-          <div className="mc-help-title">Need help?</div>
-          <div className="mc-help-sub">Talk to a health worker anytime.</div>
-          <NavLink to="/mychild/doctor" className="mc-btn mc-help-btn">Start a chat</NavLink>
-        </div>
-        <button type="button" className="mc-emergency" onClick={onSignOut}>◁ Sign out</button>
+        <button type="button" className="mc-emergency" onClick={() => onSignOut()}>Sign out</button>
       </aside>
 
+      {/* Phones: a slim top bar with Emergency always one tap away, and the
+          sections in a bottom tab bar instead of a menu filling the screen. */}
+      <header className="mc-phonebar">
+        <div className="mc-logo"><span className="mc-heart" aria-hidden>♥</span> MyChild</div>
+        <NavLink to="/mychild/emergency" className="mc-phonebar-sos">Emergency</NavLink>
+      </header>
+      <nav className="mc-tabbar" aria-label="Sections">
+        {NAV.filter((n) => n.tab).map((n) => (
+          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mc-tab${isActive ? ' active' : ''}`}>{n.tab}</NavLink>
+        ))}
+      </nav>
+
       <main className="mc-main">
-        {error && <div className="mc-error">{error}</div>}
+        {error && (
+          <div className="mc-error">
+            {error} <button type="button" className="mc-retry" onClick={() => setAttempt((a) => a + 1)}>Try again</button>
+          </div>
+        )}
         {!data ? (
           <div className="mc-loading">Loading your child’s record…</div>
         ) : (
@@ -186,7 +238,6 @@ function Shell({ card, onSignOut }: { card: Card; onSignOut: () => void }) {
             <div className="mc-top">
               <span className="mc-date">{new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
               <div className="mc-top-right">
-                <span className="mc-lang">◎ English</span>
                 {data.parentName && (
                   <span className="mc-parent">
                     <span className="mc-parent-av">{data.parentName.split(' ').map((p) => p[0]).slice(0, 2).join('')}</span>
@@ -240,7 +291,7 @@ function HomeView() {
               <span className="mc-appt-day">{new Date(data.nextAppointment.date).getDate()}</span>
               <span className="mc-appt-mon">{new Date(data.nextAppointment.date).toLocaleDateString('en-NG', { month: 'short' }).toUpperCase()}</span>
             </div>
-            <div className="mc-appt-when">{data.nextAppointment.dueInDays >= 0 ? `in ${data.nextAppointment.dueInDays} days` : 'overdue'}</div>
+            <div className="mc-appt-when">{whenLabel(data.nextAppointment.dueInDays)}</div>
             <div className="mc-appt-place">◎ {data.nextAppointment.facility}</div>
           </div>
         )}
@@ -248,10 +299,10 @@ function HomeView() {
 
       <div className="mc-actions">
         {[
-          { title: 'Vaccines', sub: 'See every dose', to: '/mychild/vaccines' },
-          { title: 'Appointments', sub: 'View & reschedule', to: '/mychild/appointments' },
-          { title: 'Ask a health worker', sub: 'Health worker online', to: '/mychild/doctor' },
-          { title: 'Emergency', sub: 'Get urgent help', to: '/mychild/emergency' }
+          { title: 'Vaccines', sub: 'Every dose, given and due', to: '/mychild/vaccines' },
+          { title: 'Next visit', sub: 'When and where to go', to: '/mychild/appointments' },
+          { title: 'Questions', sub: 'Answers from health workers', to: '/mychild/doctor' },
+          { title: 'Emergency', sub: 'Danger signs and 112', to: '/mychild/emergency' }
         ].map((a) => (
           <NavLink key={a.title} to={a.to} className="mc-action">
             <span className="mc-action-title">{a.title}</span>
@@ -410,13 +461,13 @@ function AppointmentsView() {
   const next = data.nextAppointment;
   return (
     <>
-      <ViewHead data={data} title="Appointments" sub="You never have to remember the next date. The system does it for you." />
+      <ViewHead data={data} title="Next visit" sub="When the next vaccines are due and where to go." />
       {next ? (
         <section className="mc-card mc-appt-card">
           <div className="mc-appt-big">
             <span className="mc-appt-big-day">{new Date(next.date).getDate()}</span>
             <span className="mc-appt-big-mon">{new Date(next.date).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })}</span>
-            <span className={`mc-appt-big-when${next.dueInDays < 0 ? ' overdue' : ''}`}>{next.dueInDays >= 0 ? `in ${next.dueInDays} days` : `${Math.abs(next.dueInDays)} days overdue`}</span>
+            <span className={`mc-appt-big-when${next.dueInDays < 0 ? ' overdue' : ''}`}>{whenLabel(next.dueInDays)}</span>
           </div>
           <div className="mc-appt-detail">
             <div className="mc-appt-detail-label">Vaccines due</div>
@@ -432,7 +483,7 @@ function AppointmentsView() {
       )}
       <section className="mc-card mc-note">
         <div className="mc-rem-head">How reminders work</div>
-        <p>When a dose is due, Velaji sends a reminder to {data.parentName ? `${data.parentName.split(' ')[0]}’s` : 'your'} phone. Just bring the card to {next?.facility ?? 'any health centre'}, and any facility in Nigeria can give the next dose. Need a different day? Visit the facility and the schedule adjusts automatically.</p>
+        <p>When a dose is due, Velaji sends a reminder to {data.parentName ? `${data.parentName.split(' ')[0]}’s` : 'your'} phone. Bring the card to {next?.facility ?? 'any health centre'}; any health centre in Nigeria can give the next dose. Can’t make that day? Go when you can: the schedule catches up.</p>
       </section>
     </>
   );
@@ -448,7 +499,7 @@ function DoctorView() {
   const { data } = useFamily();
   return (
     <>
-      <ViewHead data={data} title="Ask a health worker" sub="Common questions, and where to reach the people who care for your child." />
+      <ViewHead data={data} title="Questions" sub="Answers health workers give most often, and where to go for more." />
       {data.facility && (
         <section className="mc-card mc-facility">
           <div>
@@ -522,7 +573,7 @@ function MoreView() {
   const { data } = useFamily();
   return (
     <>
-      <ViewHead data={data} title="More" sub="Card, coverage and account." />
+      <ViewHead data={data} title="Card and account" sub="Your child’s details, cover and the card." />
       <section className="mc-card">
         <h3 className="mc-band-title">Child</h3>
         <dl className="mc-kv">
@@ -543,11 +594,22 @@ function MoreView() {
         </section>
       )}
       <section className="mc-card mc-note">
+        <div className="mc-rem-head">Another child?</div>
+        <p>Scan that child’s card with your phone camera and MyChild switches to them.</p>
+      </section>
+      <section className="mc-card mc-note">
         <div className="mc-rem-head">Keep the card safe</div>
         <p>The card is the key. It works at any health facility in Nigeria. You never have to remember which vaccine is next or when. If you lose it, visit your home facility to reprint it.</p>
       </section>
     </>
   );
+}
+
+/** "today", "in 3 days", "12 days overdue". */
+function whenLabel(days: number): string {
+  if (days === 0) return 'today';
+  if (days > 0) return `in ${days} day${days === 1 ? '' : 's'}`;
+  return `${-days} day${days === -1 ? '' : 's'} overdue`;
 }
 
 function heroTag(status: string): string {

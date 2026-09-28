@@ -40,18 +40,14 @@
 .mc-nav-link { display: block; padding: 11px 14px; border-radius: 14px; color: #bcd8cd; font-size: 15px; font-weight: 500; text-decoration: none; }
 .mc-nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
 .mc-nav-link.active { background: #fff; color: var(--mc-green); font-weight: 600; }
-.mc-help { margin-top: auto; background: rgba(255,255,255,.06); border-radius: 18px; padding: 16px; text-align: center; }
-.mc-help-title { font-weight: 600; color: #fff; font-size: 14px; }
-.mc-help-sub { font-size: 12px; color: #9ec7ba; margin: 4px 0 12px; }
-.mc-help-btn { background: var(--mc-accent); color: #06231c; width: 100%; font-size: 13.5px; padding: 10px; display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
-.mc-emergency { margin-top: 12px; background: none; border: none; color: #9ec7ba; font: inherit; font-size: 13px; cursor: pointer; padding: 8px; text-align: left; }
+.mc-emergency { margin-top: auto; background: none; border: none; color: #9ec7ba; font: inherit; font-size: 13px; cursor: pointer; padding: 8px; text-align: left; }
 .mc-emergency:hover { color: #fff; }
 
 .mc-main { padding: 30px 40px; max-width: 900px; }
+.mc-retry { margin-left: 8px; background: none; border: 1px solid currentColor; border-radius: 999px; color: inherit; font: inherit; font-size: 13px; font-weight: 600; padding: 3px 12px; cursor: pointer; }
 .mc-loading { padding: 40px 0; color: var(--mc-muted); }
 .mc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .mc-date { font-size: 13.5px; color: var(--mc-muted); }
-.mc-lang { font-size: 13px; color: var(--mc-muted); background: #fff; border-radius: 999px; padding: 6px 14px; border: 1px solid var(--mc-line); }
 .mc-top-right { display: flex; align-items: center; gap: 12px; }
 .mc-parent { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--mc-line); border-radius: 999px; padding: 4px 12px 4px 4px; }
 .mc-parent-av { width: 30px; height: 30px; border-radius: 50%; background: #e7f3ed; color: var(--mc-green); display: grid; place-items: center; font-size: 12px; font-weight: 600; }
@@ -188,11 +184,33 @@
 .mc-kv dt { color: var(--mc-muted); font-size: 13.5px; margin: 0; }
 .mc-kv dd { margin: 0; font-weight: 600; font-size: 14px; text-align: right; }
 
+/* Phone layout: a slim top bar and a bottom tab bar replace the side rail. */
+.mc-phonebar, .mc-tabbar { display: none; }
+
 @media (max-width: 760px) {
-  .mc { grid-template-columns: 1fr; }
-  .mc-side { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 12px; }
-  .mc-nav { flex-direction: row; flex-wrap: wrap; } .mc-help, .mc-logo-sub { display: none; }
-  .mc-main { padding: 20px; } .mc-hero { flex-direction: column; }
+  .mc { grid-template-columns: minmax(0, 1fr); align-content: start; }
+  .mc-side { display: none; }
+  .mc-phonebar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--mc-green-deep); padding: 10px 16px; position: sticky; top: 0; z-index: 5;
+  }
+  .mc-phonebar .mc-logo { color: #fff; font-size: 19px; }
+  .mc-phonebar-sos { background: #c2432f; color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 14px; }
+  .mc-phonebar-sos:hover { text-decoration: none; }
+  .mc-phonebar-sos.active { background: #fff; color: #b03a2e; }
+  .mc-tabbar {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: #fff; border-top: 1px solid var(--mc-line);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .mc-tab { text-align: center; padding: 9px 2px; border-radius: 12px; color: var(--mc-muted); font-size: 12.5px; font-weight: 500; text-decoration: none; }
+  .mc-tab:hover { text-decoration: none; color: var(--mc-green); }
+  .mc-tab.active { background: #e9f6ef; color: var(--mc-green); font-weight: 600; }
+  .mc-main { padding: 16px 16px calc(84px + env(safe-area-inset-bottom)); min-width: 0; }
+  .mc-hero { flex-direction: column; padding: 22px; }
+  .mc-hello { font-size: 26px; }
+  .mc-top { flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 }
 
 /* ---- staged rewards (§14) ---- */

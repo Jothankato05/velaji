@@ -4,7 +4,9 @@ import { signChin } from './verification-token.service';
 
 export function buildVerificationUrl(chin: string): string {
   const token = signChin(chin);
-  return `${env.APP_BASE_URL}/api/verify/${encodeURIComponent(chin)}?t=${token}`;
+  // Opens MyChild, so a parent scanning with a phone camera lands in the app.
+  // Staff screens read the CHIN and token from any card link.
+  return `${env.APP_BASE_URL}/mychild/${encodeURIComponent(chin)}?t=${token}`;
 }
 
 export async function generateQrPngDataUrl(chin: string): Promise<string> {

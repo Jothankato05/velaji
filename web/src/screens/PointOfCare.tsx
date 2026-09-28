@@ -153,8 +153,15 @@ export function PointOfCare() {
     e.preventDefault();
     const v = value.trim();
     if (!v) return;
-    // A scanned QR is a URL ending in the CHIN; a typed value is the CHIN.
-    const chin = /\/verify\//.test(v) ? decodeURIComponent(v.split('/verify/')[1].split('?')[0]) : v.toUpperCase();
+    // A scanned QR is a card link ending in the CHIN; a typed value is the CHIN.
+    let chin = v.toUpperCase();
+    if (/^https?:\/\//i.test(v)) {
+      try {
+        chin = decodeURIComponent(new URL(v).pathname.split('/').filter(Boolean).pop() ?? '').toUpperCase();
+      } catch {
+        // Not a usable link: look it up as typed and let the server say so.
+      }
+    }
     void load(chin);
   }
 
