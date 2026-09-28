@@ -732,7 +732,8 @@ test('lookup by scanned QR works and is marked as a QR access', async () => {
 test('a forged QR token is rejected', async () => {
   const forged = buildVerificationUrl(termChin).replace(/t=.*$/, 't=forgedtoken00');
   const { status } = await jsonAs(staffToken, 'POST', '/api/terminal/lookup', { qr: forged });
-  assert(status === 401, `expected 401 for a forged QR, got ${status}`);
+  // 403 rather than 401: a 401 tells the app the user's own session is invalid.
+  assert(status === 403, `expected 403 for a forged QR, got ${status}`);
 });
 
 test('a mistyped CHIN is caught before it hits the database', async () => {

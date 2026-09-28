@@ -22,8 +22,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     e.preventDefault();
     const v = search.trim();
     if (!v) return;
-    // A CHIN goes straight to point of care; the system does the rest.
-    navigate(`/care?chin=${encodeURIComponent(v.toUpperCase())}`);
+    // A CHIN goes straight to point of care; a verifier, who can't use point of
+    // care, gets the verification check instead.
+    const screen = user?.role === 'verifier' ? '/terminal' : '/care';
+    navigate(`${screen}?chin=${encodeURIComponent(v.toUpperCase())}`);
     setSearch('');
   }
 

@@ -11,9 +11,19 @@ import { UssdSim } from './screens/UssdSim';
 import { MyChildApp } from './mychild/MyChildApp';
 import type { ReactNode } from 'react';
 
+const STAFF = ['staff', 'admin'];
+
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+/** Screens a role can't use send it home rather than showing a page whose
+ *  data calls would all be refused (the same roles the menu shows them to). */
+function RoleRoute({ roles, children }: { roles: string[]; children: ReactNode }) {
+  const { user } = useAuth();
+  if (!user || !roles.includes(user.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -42,12 +52,12 @@ export function App() {
             <AppShell>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/care" element={<PointOfCare />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/care" element={<RoleRoute roles={STAFF}><PointOfCare /></RoleRoute>} />
+                <Route path="/register" element={<RoleRoute roles={STAFF}><Register /></RoleRoute>} />
+                <Route path="/dashboard" element={<RoleRoute roles={['admin']}><Dashboard /></RoleRoute>} />
                 <Route path="/terminal" element={<Terminal />} />
-                <Route path="/escalations" element={<Escalations />} />
-                <Route path="/ussd" element={<UssdSim />} />
+                <Route path="/escalations" element={<RoleRoute roles={STAFF}><Escalations /></RoleRoute>} />
+                <Route path="/ussd" element={<RoleRoute roles={STAFF}><UssdSim /></RoleRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AppShell>

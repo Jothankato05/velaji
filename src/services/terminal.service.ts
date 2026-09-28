@@ -53,8 +53,10 @@ function resolveChin(input: { chin?: string; qr?: string }): { chin: string; met
     }
     if (!chin || !token) throw new AppError('QR content is missing the CHIN or token', 400);
     const normalized = normalizeChin(chin);
+    // 403, not 401: the staff member's own login is fine, it's the card that
+    // fails. A 401 would make the app sign them out mid-check.
     if (!verifyChinToken(normalized, token)) {
-      throw new AppError('QR verification token is invalid; the card may be forged', 401);
+      throw new AppError("This card's QR code failed verification. The card may be forged or altered; check the child's details another way.", 403);
     }
     return { chin: normalized, method: 'qr' };
   }

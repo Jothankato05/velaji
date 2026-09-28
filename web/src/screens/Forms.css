@@ -31,18 +31,21 @@
 .reg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* terminal */
-.term-panel { max-width: 620px; }
+.term-panel { max-width: 640px; }
 .term-result { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 16px; }
-.term-headline { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: var(--r); margin-bottom: 16px; }
-.term-headline.ok { background: var(--st-green-bg); }
-.term-headline.attn { background: var(--st-amber-bg); }
-.term-headline-label { font-size: 12.5px; color: var(--muted); }
-.term-headline-value { font-family: var(--font-head); font-size: 22px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+.term-headline { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--r); margin-bottom: 16px; border-left: 3px solid; }
+.term-headline.ok { background: var(--st-green-bg); border-color: var(--st-green); }
+.term-headline.attn { background: var(--st-amber-bg); border-color: var(--st-amber); }
+.term-headline-value { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.term-reason { font-size: 14px; color: var(--ink-soft); }
 .term-fields { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
-.term-fields > div { display: flex; flex-direction: column; gap: 2px; }
+.term-fields > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .term-fields dt { font-size: 12.5px; color: var(--muted); }
-.term-fields dd { margin: 0; font-size: 14.5px; }
-.term-tier { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.term-fields dd { margin: 0; font-size: 14.5px; overflow-wrap: anywhere; }
+.term-chin { font-variant-numeric: tabular-nums; }
+.term-actions { margin-top: 16px; }
+.term-note { font-size: 12.5px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+@media (max-width: 560px) { .term-fields { grid-template-columns: 1fr; } }
 
 /* tabs */
 .tabs { display: flex; gap: 4px; }
