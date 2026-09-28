@@ -94,7 +94,11 @@ export async function listEscalations(status: 'open' | 'resolved' = 'open'): Pro
     });
   }
 
-  return views;
+  // Open cases: longest overdue first, the order they should be traced in.
+  // Resolved: most recently closed first.
+  return status === 'open'
+    ? views.sort((a, b) => (b.daysOverdue ?? -1) - (a.daysOverdue ?? -1))
+    : views.sort((a, b) => (b.resolvedAt?.getTime() ?? 0) - (a.resolvedAt?.getTime() ?? 0));
 }
 
 export async function resolveEscalation(
@@ -107,6 +111,17 @@ export async function resolveEscalation(
   const escalation = await EscalationModel.findById(id);
   if (!escalation) throw new AppError('Escalation not found', 404);
   if (escalation.status === 'resolved') throw new AppError('Escalation is already resolved', 409);
+  // "Immunized" must match the child's record. The case closes itself when the
+  // dose is recorded, so claiming it by hand while the dose is still missing
+  // would leave the queue and the record disagreeing.
+  if (outcome === 'immunized') {
+    const child = await ChildModel.findById(escalation.childId);
+    const [code, num] = escalation.doseKey.split('#');
+    const dose = child?.doses.find((d) => d.vaccineCode === code && d.doseNumber === Number(num));
+    if (!dose?.administeredDate) {
+      throw new AppError('This vaccine is not recorded yet. Record it at point of care and the case closes by itself.', 409);
+    }
+  }
 
   escalation.status = 'resolved';
   escalation.resolvedAt = new Date();

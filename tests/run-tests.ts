@@ -602,6 +602,8 @@ test('staff can resolve an escalation, and it leaves the open queue', async () =
   assert(body.outcome === 'reached', 'outcome not recorded');
 
   const openList = await json('GET', '/api/escalations');
+  const days = openList.body.escalations.map((e: any) => e.daysOverdue ?? -1);
+  assert(days.every((d: number, i: number) => i === 0 || days[i - 1] >= d), `open queue should be longest-overdue first, got ${JSON.stringify(days)}`);
   assert(!openList.body.escalations.some((e: any) => e.id === escId), 'resolved item still in open queue');
 
   const resolvedList = await json('GET', '/api/escalations?status=resolved');
@@ -624,6 +626,14 @@ test('recording the dose auto-resolves its escalation', async () => {
   await svc.runCycle();
   let open = await EscalationModel.countDocuments({ childId, status: 'open' });
   assert(open === 1, `expected 1 open escalation before recording, got ${open}`);
+
+  // Claiming 'immunized' by hand while the dose is still missing is refused,
+  // and the case stays open.
+  const esc = await EscalationModel.findOne({ childId, status: 'open' });
+  const claim = await json('POST', `/api/escalations/${esc?._id}/resolve`, { outcome: 'immunized' });
+  assert(claim.status === 409, `manual 'immunized' without the dose expected 409, got ${claim.status}`);
+  open = await EscalationModel.countDocuments({ childId, status: 'open' });
+  assert(open === 1, `the case should still be open after a refused claim, got open=${open}`);
 
   // Record the dose over real HTTP — this should auto-close the escalation.
   const rec = await json('POST', `/api/children/${encodeURIComponent(chin)}/doses`, {

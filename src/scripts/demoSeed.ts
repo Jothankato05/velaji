@@ -94,7 +94,8 @@ async function seedFacility(
   const pending: ReturnType<typeof makeChild>[] = [];
   for (const profile of Object.keys(mix) as Profile[]) {
     for (let i = 0; i < (mix[profile] ?? 0); i++) {
-      pending.push(makeChild(facility._id, caregiver._id, profile, `${ward} Child ${i + 1}`));
+      // Numbered across the whole clinic, so no two children share a name.
+      pending.push(makeChild(facility._id, caregiver._id, profile, `${ward} Child ${pending.length + 1}`));
     }
   }
   return Promise.all(pending);
