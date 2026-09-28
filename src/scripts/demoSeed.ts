@@ -89,13 +89,15 @@ async function seedFacility(
     coldChainStatus: infra.cold ?? 'functional', accessibility: infra.access ?? 'accessible'
   });
   const caregiver = await CaregiverModel.create({ fullName: `${ward} Caregiver`, phone: '+2348030000000' });
-  const children: Awaited<ReturnType<typeof makeChild>>[] = [];
+  // Written in parallel: makeChild draws its random age and delays before its
+  // first await, so they're still taken in this order and the data is the same.
+  const pending: ReturnType<typeof makeChild>[] = [];
   for (const profile of Object.keys(mix) as Profile[]) {
     for (let i = 0; i < (mix[profile] ?? 0); i++) {
-      children.push(await makeChild(facility._id, caregiver._id, profile, `${ward} Child ${i + 1}`));
+      pending.push(makeChild(facility._id, caregiver._id, profile, `${ward} Child ${i + 1}`));
     }
   }
-  return children;
+  return Promise.all(pending);
 }
 
 
@@ -181,11 +183,12 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
 
   // §19: a share of children are home births via non-PHC channels — inclusion.
   const sample = await ChildModel.find({}).limit(40);
-  for (let i = 0; i < sample.length; i++) {
-    if (i % 4 === 0) await ChildModel.updateOne({ _id: sample[i]._id }, { birthSetting: 'home', registrationChannel: i % 8 === 0 ? 'chw' : 'mobile_team' });
-    else if (i % 5 === 0) await ChildModel.updateOne({ _id: sample[i]._id }, { registrationChannel: 'outreach' });
-    else if (i % 7 === 0) await ChildModel.updateOne({ _id: sample[i]._id }, { registrationChannel: 'hospital' });
-  }
+  await Promise.all(sample.map((c, i) => {
+    if (i % 4 === 0) return ChildModel.updateOne({ _id: c._id }, { birthSetting: 'home', registrationChannel: i % 8 === 0 ? 'chw' : 'mobile_team' });
+    if (i % 5 === 0) return ChildModel.updateOne({ _id: c._id }, { registrationChannel: 'outreach' });
+    if (i % 7 === 0) return ChildModel.updateOne({ _id: c._id }, { registrationChannel: 'hospital' });
+    return null;
+  }));
 
   // §20: a few relocations, most cross-state — continuity survives the move.
   const facs = await FacilityModel.find({});
@@ -194,30 +197,27 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
     .filter((f): f is NonNullable<typeof f> => Boolean(f));
   const movers = await ChildModel.find({}).limit(7);
   const reasons = ['relocation', 'displacement', 'nomadic', 'migration', 'relocation', 'displacement', 'nomadic'] as const;
-  for (let i = 0; i < movers.length; i++) {
+  await Promise.all(movers.map(async (m, i) => {
     const to = dests[i % dests.length];
-    if (String(to._id) === String(movers[i].currentFacilityId)) continue;
+    if (String(to._id) === String(m.currentFacilityId)) return;
     await FacilityHandoffModel.create({
-      childId: movers[i]._id, fromFacilityId: movers[i].currentFacilityId, toFacilityId: to._id,
+      childId: m._id, fromFacilityId: m.currentFacilityId, toFacilityId: to._id,
       reportedLocation: { lat: 9, lng: 7 }, reason: '', reasonCategory: reasons[i], handoffAt: new Date(now - (i + 1) * 3 * DAY)
     });
-    await ChildModel.updateOne({ _id: movers[i]._id }, { currentFacilityId: to._id });
-  }
+    await ChildModel.updateOne({ _id: m._id }, { currentFacilityId: to._id });
+  }));
 
   // A few traced-and-resolved cases with the barrier recorded, so the "Why
   // children default" view has data. The mix mirrors the documented drivers —
   // hesitancy leads, then access/awareness, with insecurity in the north-east.
   const traced = await ChildModel.find({}).limit(14);
   const barrierMix = ['hesitancy', 'hesitancy', 'hesitancy', 'hesitancy', 'distance', 'distance', 'distance', 'unaware', 'unaware', 'insecurity', 'insecurity', 'financial', 'no_session', 'other'] as const;
-  for (let i = 0; i < traced.length; i++) {
-    const c = traced[i];
-    await EscalationModel.create({
+  await EscalationModel.insertMany(traced.map((c, i) => ({
       childId: c._id, chin: c.chin, doseKey: `PENTA#1`, reason: i % 2 === 0 ? 'lost_to_followup' : 'max_attempts',
       remindersSent: 3, status: 'resolved', raisedAt: new Date(now - (i + 5) * DAY), lastSeenAt: new Date(now - (i + 5) * DAY),
       resolvedAt: new Date(now - (i + 1) * DAY), resolvedBy: 'nurse.amina', outcome: i % 3 === 0 ? 'immunized' : 'reached',
       barrier: barrierMix[i]
-    });
-  }
+  })));
 
   // §19 extended: the antenatal register — children not yet born. The contact
   // mix is deliberately skewed to mirror reality: NDHS 2023-24 puts ANC at 63%
@@ -228,17 +228,17 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   if (ancFacilities.length && ancCarers.length) {
     // visitCounts below 4 are the at-risk band; a few reach 4-7 and one reaches 8.
     const visitCounts = [0, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 6, 8, 2, 1, 0, 3, 2];
-    for (let i = 0; i < visitCounts.length; i++) {
+    await Promise.all(visitCounts.map((visitCount, i) => {
       const fac = ancFacilities[i % ancFacilities.length];
       const carer = ancCarers[i % ancCarers.length];
       // Spread due dates: mostly ahead, a few already past so the follow-up
       // list has the "birth never reported" cases that matter most.
       const offsetDays = i < 3 ? -(20 + i * 8) : (i - 2) * 9;
       const visits = [];
-      for (let v = 0; v < visitCounts[i]; v++) {
-        visits.push({ visitNumber: v + 1, date: new Date(now - (visitCounts[i] - v) * 21 * DAY), facilityId: fac._id });
+      for (let v = 0; v < visitCount; v++) {
+        visits.push({ visitNumber: v + 1, date: new Date(now - (visitCount - v) * 21 * DAY), facilityId: fac._id });
       }
-      await PregnancyModel.create({
+      return PregnancyModel.create({
         ancId: generateAncId(),
         caregiverId: carer._id,
         facilityId: fac._id,
@@ -246,12 +246,11 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
         visits,
         status: 'active'
       });
-    }
+    }));
     // A handful that already converted to child records, so the funnel shows a
     // real conversion rate rather than 0%.
     const linkedChildren = await ChildModel.find({ registrationChannel: 'phc' }).limit(5);
-    for (let i = 0; i < linkedChildren.length; i++) {
-      const c = linkedChildren[i];
+    await Promise.all(linkedChildren.map(async (c) => {
       await ChildModel.updateOne({ _id: c._id }, { registrationChannel: 'antenatal' });
       await PregnancyModel.create({
         ancId: generateAncId(),
@@ -261,7 +260,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
         visits: [1, 2, 3, 4].map((v) => ({ visitNumber: v, date: new Date(c.dateOfBirth.getTime() - (5 - v) * 28 * DAY), facilityId: c.homeFacilityId })),
         status: 'linked', linkedChildId: c._id, linkedChin: c.chin, linkedAt: c.dateOfBirth
       });
-    }
+    }));
   }
 
   // §4 civil registration. Deliberately skewed to the real distribution: only
@@ -270,8 +269,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   // home births and CHW/mobile channels are the least likely to be registered,
   // which is exactly the population BHCPF cannot enrol.
   const idChildren = await ChildModel.find({});
-  for (let i = 0; i < idChildren.length; i++) {
-    const c = idChildren[i];
+  await Promise.all(idChildren.map(async (c, i) => {
     const homeBirth = c.birthSetting === 'home';
     // Facility births register far more often than home births.
     const registered = homeBirth ? i % 5 === 0 : i % 10 < 7;
@@ -289,7 +287,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
         'birthRegistration.referredAt': new Date(now - (i + 1) * DAY)
       });
     }
-  }
+  }));
 
   const token = signChin(cardChild.chin);
   return { cardChin: cardChild.chin, cardToken: token, ussdPhone };

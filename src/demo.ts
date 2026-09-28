@@ -7,14 +7,18 @@ import { StaffUserModel } from './models/StaffUser';
  * Bump when the demo dataset changes shape, so public demo instances replace
  * their old demo data on the next boot instead of keeping it forever.
  *   2: children spread across realistic ages, doses given 0-9 days late.
+ *   3: same data; forces a rebuild of demos a timed-out reseed left partial.
  */
-export const DEMO_SEED_VERSION = 2;
+export const DEMO_SEED_VERSION = 3;
 
 /** Demo dates are relative to when it was seeded, so the recent weeks empty out
  *  as time passes (nobody records real doses on the demo). Reseed once the data
  *  is this old, so charts like "doses administered" always show recent weeks. */
 export const DEMO_REFRESH_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** A (re)seed holds a lock this long. If the process dies mid-seed (a
+ *  serverless timeout), the lock lapses and the next boot tries again. */
+const LOCK_MS = 5 * 60 * 1000;
 
 const META = 'demo_meta';
 const META_ID = 'seed';
@@ -40,7 +44,7 @@ export async function seedDemoIfEnabled(): Promise<void> {
   if (process.env.DEMO_SEED_ON_BOOT !== 'true') return;
   const db = mongoose.connection.db;
   if (!db) return;
-  const meta = db.collection<{ _id: string; version: number | null; seededAt?: Date }>(META);
+  const meta = db.collection<{ _id: string; version: number | null; seededAt?: Date; lockedUntil?: Date | null }>(META);
   const now = new Date();
   const staleBefore = new Date(now.getTime() - DEMO_REFRESH_DAYS * DAY_MS);
 
@@ -59,12 +63,21 @@ export async function seedDemoIfEnabled(): Promise<void> {
     }
   }
 
-  // Claim the (re)seed atomically so concurrent cold starts don't both run it:
-  // whoever loses gets a duplicate-key error from the upsert and backs off.
+  // Claim the (re)seed atomically so concurrent cold starts don't both run it.
+  // The claim only takes a lock; the seed counts as done (version + seededAt)
+  // once it has finished, so a reseed cut off part-way is retried rather than
+  // left half-built. Whoever loses the claim gets a duplicate-key error from
+  // the upsert and backs off.
   try {
     await meta.updateOne(
-      { _id: META_ID, $or: [{ version: { $ne: DEMO_SEED_VERSION } }, { seededAt: { $exists: false } }, { seededAt: { $lt: staleBefore } }] },
-      { $set: { version: DEMO_SEED_VERSION, seededAt: now } },
+      {
+        _id: META_ID,
+        $and: [
+          { $or: [{ version: { $ne: DEMO_SEED_VERSION } }, { seededAt: { $exists: false } }, { seededAt: { $lt: staleBefore } }] },
+          { $or: [{ lockedUntil: { $exists: false } }, { lockedUntil: null }, { lockedUntil: { $lt: now } }] }
+        ]
+      },
+      { $set: { lockedUntil: new Date(now.getTime() + LOCK_MS) } },
       { upsert: true }
     );
   } catch (err) {
@@ -74,17 +87,16 @@ export async function seedDemoIfEnabled(): Promise<void> {
 
   try {
     if (existing > 0) {
-      for (const c of await db.collections()) {
-        if (c.collectionName !== META) await c.deleteMany({});
-      }
+      await Promise.all((await db.collections()).filter((c) => c.collectionName !== META).map((c) => c.deleteMany({})));
     }
     const { seedDemoData } = await import('./scripts/demoSeed');
     const { cardChin, ussdPhone } = await seedDemoData();
+    await meta.updateOne({ _id: META_ID }, { $set: { version: DEMO_SEED_VERSION, seededAt: new Date(), lockedUntil: null } });
     // eslint-disable-next-line no-console
-    console.log(`[demo] seeded version ${DEMO_SEED_VERSION}: card CHIN ${cardChin}, USSD ${ussdPhone}`);
+    console.log(`[demo] seeded version ${DEMO_SEED_VERSION} in ${Date.now() - now.getTime()} ms: card CHIN ${cardChin}, USSD ${ussdPhone}`);
   } catch (err) {
-    // Release the claim so the next boot retries rather than keeping half a dataset.
-    await meta.updateOne({ _id: META_ID }, { $set: { version: null } });
+    // Release the lock so the next boot retries straight away.
+    await meta.updateOne({ _id: META_ID }, { $set: { lockedUntil: null } });
     throw err;
   }
 }
