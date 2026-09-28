@@ -822,6 +822,9 @@ test('stock forecast counts upcoming demand per vaccine', async () => {
   assert(pcv && pcv.dueCount === 1, `PCV forecast expected 1, got ${pcv?.dueCount}`);
   assert(measles && measles.dueCount === 1, `Measles forecast expected 1, got ${measles?.dueCount}`);
   assert(!body.byVaccine.some((v: any) => v.vaccineCode === 'PENTA'), 'overdue PENTA must not be in the forecast');
+  // Weekly split: Measles (+3d) falls in week 1, PCV (+20d) in week 3.
+  assert(JSON.stringify(measles.byWeek) === '[1,0,0,0]', `Measles byWeek expected [1,0,0,0], got ${JSON.stringify(measles.byWeek)}`);
+  assert(JSON.stringify(pcv.byWeek) === '[0,0,1,0]', `PCV byWeek expected [0,0,1,0], got ${JSON.stringify(pcv.byWeek)}`);
 });
 
 test('§18 supply plan turns demand into cold-chain, staffing and deployment', async () => {

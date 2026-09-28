@@ -38,7 +38,7 @@ interface StatePriority {
 }
 interface Coverage { states: StatePriority[]; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
-interface Stock { byVaccine: Array<{ vaccineCode: string; dueCount: number }>; }
+interface Stock { weeks: number; generatedAt: string; byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[] }>; }
 interface Outliers { outliers: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number }>; }
 interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
 interface Recovery { count: number; children: RecoveryChild[]; }
@@ -68,7 +68,7 @@ export function Dashboard() {
   const [geoSort, setGeoSort] = useState<GeoSort>('overdue');
   const summary = useGet<Summary>(`/api/dashboard/summary${qs(filter)}`);
   const trend = useGet<Trend>('/api/dashboard/trend?weeks=8');
-  const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${filter.state ? `&state=${encodeURIComponent(filter.state)}` : ''}`);
+  const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${qs(filter).replace('?', '&')}`);
   const outliers = useGet<Outliers>('/api/dashboard/outliers');
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
   // Only fetched once drilled to a facility (ward scope) — this carries names
@@ -238,8 +238,8 @@ export function Dashboard() {
         </section>
 
         <section className="card panel">
-          <div className="panel-head"><h2>Stock pressure</h2><span className="eyebrow">next 4 weeks</span></div>
-          {stock.data ? (stock.data.byVaccine.length === 0 ? <Empty>No doses fall due in this window.</Empty> : <ForecastBars items={stock.data.byVaccine} />) : <Loading />}
+          <div className="panel-head"><h2>Doses needed</h2><span className="eyebrow">per vaccine, by week starting</span></div>
+          {stock.data ? (stock.data.byVaccine.length === 0 ? <Empty>No doses fall due in this window.</Empty> : <DemandByWeek stock={stock.data} />) : <Loading />}
         </section>
 
         <section className="card panel">
@@ -357,18 +357,50 @@ function TrendChart({ points }: { points: Array<{ weekStarting: string; dosesAdm
   );
 }
 
-function ForecastBars({ items }: { items: Array<{ vaccineCode: string; dueCount: number }> }) {
-  const max = Math.max(1, ...items.map((i) => i.dueCount));
+/** Vaccines given at the same visit (Penta, OPV, PCV, Rota at 6/10/14 weeks)
+ *  have identical demand, so they share a row rather than repeating it. Each
+ *  cell is shaded by its share of the busiest week, so the weeks that need
+ *  delivering stand out. */
+function DemandByWeek({ stock }: { stock: Stock }) {
+  const rows: Array<{ codes: string[]; byWeek: number[]; total: number }> = [];
+  for (const v of stock.byVaccine) {
+    const same = rows.find((r) => r.byWeek.join() === v.byWeek.join());
+    if (same) same.codes.push(v.vaccineCode);
+    else rows.push({ codes: [v.vaccineCode], byWeek: v.byWeek, total: v.dueCount });
+  }
+  const peak = Math.max(1, ...rows.flatMap((r) => r.byWeek));
+  const start = new Date(stock.generatedAt);
+  const weekLabel = (i: number) =>
+    new Date(start.getTime() + i * 7 * 86400000).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+
   return (
-    <ul className="forecast">
-      {items.map((i) => (
-        <li key={i.vaccineCode} className="forecast-row">
-          <span className="forecast-code mono">{i.vaccineCode}</span>
-          <span className="forecast-track"><span className="forecast-fill" style={{ width: `${(i.dueCount / max) * 100}%` }} /></span>
-          <span className="forecast-num mono">{fmt(i.dueCount)}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="cbs-scroll">
+      <table className="demand">
+        <thead>
+          <tr>
+            <th>Vaccine</th>
+            {stock.byVaccine[0].byWeek.map((_, i) => <th key={weekLabel(i)} className="num">{weekLabel(i)}</th>)}
+            <th className="num">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.codes.join()}>
+              <td className="demand-codes">
+                {r.codes.join(', ')}
+                {r.codes.length > 1 && <div className="muted demand-note">Given at the same visit</div>}
+              </td>
+              {r.byWeek.map((n, i) => (
+                <td key={weekLabel(i)} className="num demand-cell" style={{ background: n ? `rgba(154, 107, 18, ${0.08 + 0.42 * (n / peak)})` : undefined }}>
+                  {n ? fmt(n) : <span className="muted">–</span>}
+                </td>
+              ))}
+              <td className="num demand-total">{fmt(r.total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

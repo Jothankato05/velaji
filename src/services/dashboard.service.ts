@@ -530,7 +530,8 @@ export async function recentActivity(limit = 12): Promise<ActivityEvent[]> {
 export interface StockForecast {
   weeks: number;
   scope: string;
-  byVaccine: Array<{ vaccineCode: string; dueCount: number }>;
+  /** byWeek[i] is the doses due in week i+1 of the window (week 1 starts now). */
+  byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[] }>;
   generatedAt: string;
 }
 
@@ -545,7 +546,7 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
   const facilities = await FacilityModel.find({});
   const geoById = new Map(facilities.map((f) => [String(f._id), { state: f.stateName, lga: f.lgaName, ward: f.wardName || UNSPECIFIED_WARD, facility: f.name, facilityId: String(f._id) }]));
 
-  const byVaccine = new Map<string, number>();
+  const byVaccine = new Map<string, number[]>();
   for (const child of children) {
     const geo = geoById.get(String(child.currentFacilityId)) ?? { state: UNKNOWN, lga: UNKNOWN, ward: UNSPECIFIED_WARD, facility: UNKNOWN, facilityId: '' };
     if (!inScope(geo, filter)) continue;
@@ -553,7 +554,13 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
       if (d.administeredDate) continue;
       const due = d.dueDate.getTime();
       if (due >= now.getTime() && due <= horizon) {
-        byVaccine.set(d.vaccineCode, (byVaccine.get(d.vaccineCode) ?? 0) + 1);
+        let perWeek = byVaccine.get(d.vaccineCode);
+        if (!perWeek) {
+          perWeek = new Array(weeks).fill(0);
+          byVaccine.set(d.vaccineCode, perWeek);
+        }
+        // The horizon is inclusive, so a dose due at its very end lands in the last week.
+        perWeek[Math.min(weeks - 1, Math.floor((due - now.getTime()) / (7 * DAY)))]++;
       }
     }
   }
@@ -562,7 +569,7 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
     weeks,
     scope: [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria',
     byVaccine: [...byVaccine.entries()]
-      .map(([vaccineCode, dueCount]) => ({ vaccineCode, dueCount }))
+      .map(([vaccineCode, byWeek]) => ({ vaccineCode, dueCount: byWeek.reduce((a, b) => a + b, 0), byWeek }))
       .sort((a, b) => b.dueCount - a.dueCount),
     generatedAt: now.toISOString()
   };
