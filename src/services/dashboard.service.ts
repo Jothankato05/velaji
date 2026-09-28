@@ -35,6 +35,7 @@ export interface Metrics {
   registered: number;
   dosesAdministered: number;
   onTrack: number; // status GREEN
+  dueSoon: number; // status AMBER
   dueThisWeek: number; // upcoming un-administered dose within 7 days
   overdue: number; // status RED
   zeroDose: number; // registered but no dose administered yet
@@ -70,6 +71,7 @@ function blank(): Omit<Metrics, 'completionRate' | 'dropoutRate'> {
     registered: 0,
     dosesAdministered: 0,
     onTrack: 0,
+    dueSoon: 0,
     dueThisWeek: 0,
     overdue: 0,
     zeroDose: 0,
@@ -83,6 +85,7 @@ function accumulate(m: ReturnType<typeof blank>, c: ChildFacts) {
   m.registered += 1;
   m.dosesAdministered += c.administeredCount;
   if (c.status === 'GREEN') m.onTrack += 1;
+  if (c.status === 'AMBER') m.dueSoon += 1;
   if (c.dueThisWeek) m.dueThisWeek += 1;
   if (c.overdue) m.overdue += 1;
   if (c.zeroDose) m.zeroDose += 1;

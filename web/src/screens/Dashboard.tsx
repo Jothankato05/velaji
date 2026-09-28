@@ -8,6 +8,7 @@ interface Metrics {
   registered: number;
   dosesAdministered: number;
   onTrack: number;
+  dueSoon: number;
   dueThisWeek: number;
   overdue: number;
   zeroDose: number;
@@ -291,10 +292,12 @@ function Kpi({ label, value, sub, tone, badge }: { label: string; value: string;
   );
 }
 
+/** Each child has exactly one status, so the segments partition the registered
+ *  children and always add up to the total. */
 function StatusBar({ t }: { t: Metrics }) {
   const segs = [
     { key: 'On track', n: t.onTrack, cls: 'GREEN' },
-    { key: 'Due soon', n: t.dueThisWeek, cls: 'AMBER' },
+    { key: 'Due soon', n: t.dueSoon, cls: 'AMBER' },
     { key: 'Overdue', n: t.overdue, cls: 'RED' },
     { key: 'Completed', n: t.completed, cls: 'BLUE' },
     { key: 'Needs review', n: t.needsReconciliation, cls: 'GREY' }

@@ -759,8 +759,9 @@ test('dashboard setup: build a controlled state dataset', async () => {
   await dashChild(f1, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]);
   // B: zero-dose, on track (GREEN) — due in 20d
   await dashChild(f1, [dashDose('PCV', 'PCV', 1, 20, false)]);
-  // C: dropout (started then overdue, RED) — 1 administered + 1 overdue
-  await dashChild(f2, [dashDose('BCG', 'BCG', 1, -40, true), dashDose('PENTA', 'Pentavalent', 1, -10, false)]);
+  // C: dropout (started then overdue, RED) — 1 administered + 1 overdue, plus
+  // another dose due in 3 days: overdue AND due this week, but only one status.
+  await dashChild(f2, [dashDose('BCG', 'BCG', 1, -40, true), dashDose('PENTA', 'Pentavalent', 1, -10, false), dashDose('OPV', 'OPV', 2, 3, false)]);
   // D: due this week (AMBER), zero-dose — due in 3d
   await dashChild(f3, [dashDose('MEASLES', 'Measles', 1, 3, false)]);
   // E: overdue (RED), zero-dose — never started
@@ -781,7 +782,13 @@ test('scoped state summary aggregates exactly, with no individual PII', async ()
   assert(t.completed === 1, `completed expected 1, got ${t.completed}`);
   assert(t.overdue === 2, `overdue expected 2, got ${t.overdue}`);
   assert(t.zeroDose === 3, `zeroDose expected 3, got ${t.zeroDose}`);
-  assert(t.dueThisWeek === 1, `dueThisWeek expected 1, got ${t.dueThisWeek}`);
+  // dueThisWeek counts any child with a dose due within 7 days (D and C); the
+  // status counts are exclusive, one per child, and partition the registered.
+  assert(t.dueThisWeek === 2, `dueThisWeek expected 2, got ${t.dueThisWeek}`);
+  assert(t.onTrack === 1, `onTrack expected 1, got ${t.onTrack}`);
+  assert(t.dueSoon === 1, `dueSoon expected 1 (D only; C is overdue), got ${t.dueSoon}`);
+  const byStatus = t.onTrack + t.dueSoon + t.overdue + t.completed + t.needsReconciliation;
+  assert(byStatus === t.registered, `status counts should add up to registered (${t.registered}), got ${byStatus}`);
   assert(t.dropout === 1, `dropout expected 1, got ${t.dropout}`);
   assert(t.completionRate === 0.2, `completionRate expected 0.2, got ${t.completionRate}`);
   assert(t.dropoutRate === 0.5, `dropoutRate expected 0.5, got ${t.dropoutRate}`);
