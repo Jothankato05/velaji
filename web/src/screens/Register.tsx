@@ -89,11 +89,9 @@ export function Register() {
   return (
     <div className="reg">
       <div className="reg-head">
-        <div className="eyebrow">Registry · birth &amp; first contact</div>
         <h1>Register a child</h1>
         <p className="muted reg-sub">
-          Registering issues the child's Child Health ID and prints their card: the start of the record
-          that follows them for life.
+          Creates the child's Child Health ID (CHIN) and prints their card.
         </p>
       </div>
 

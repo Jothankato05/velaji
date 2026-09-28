@@ -110,8 +110,8 @@ export function PointOfCare() {
     <div className="poc">
       <div className="poc-head">
         <div>
-          <div className="eyebrow">Point of care</div>
-          <h1>Present the card. The system remembers the rest.</h1>
+          <h1>Point of care</h1>
+          <p className="muted poc-sub">Scan the child's card or enter their CHIN to see what's due.</p>
         </div>
         {facilities.length > 0 && (
           <label className="poc-here">
@@ -159,7 +159,7 @@ export function PointOfCare() {
           {/* the ONE next action, or the payoff */}
           {journey.nextDue ? (
             <div className="next card">
-              <div className="eyebrow">Next vaccine: the system chose this, not the parent</div>
+              <div className="eyebrow">Next vaccine</div>
               <div className="next-vaccine">{journey.nextDue.vaccine}</div>
               <div className="next-meta">
                 dose #{journey.nextDue.doseNumber} · due {journey.nextDue.dueDate.slice(0, 10)}
@@ -185,7 +185,7 @@ function ProgressTrack({ progress, complete }: { progress: Journey['progress']; 
         <div className={`track-fill${complete ? ' done' : ''}`} style={{ width: `${pct}%` }} />
         <div className="track-flag" title="Completion → NHIA coverage">◈</div>
       </div>
-      <div className="track-label mono">
+      <div className="track-label">
         {progress.administered} of {progress.total} vaccines
         <span className="muted"> · {complete ? 'schedule complete' : `${progress.remaining} to go before coverage`}</span>
       </div>
@@ -196,9 +196,8 @@ function ProgressTrack({ progress, complete }: { progress: Journey['progress']; 
 function CoveragePayoff({ coverage }: { coverage: Coverage }) {
   return (
     <div className="payoff card">
-      <div className="payoff-badge">◈</div>
       <div className="payoff-body">
-        <div className="eyebrow">Immunisation complete · NCIHAP §12</div>
+        <div className="eyebrow">Immunisation complete</div>
         <h2 className="payoff-title">NHIA “{coverage.programme}” coverage unlocked</h2>
         <p className="payoff-desc">
           {coverage.months} months of sponsored child health coverage, from{' '}

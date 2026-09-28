@@ -26,10 +26,6 @@ interface Family {
 interface MilestoneReward { key: string; title: string; reward: string; blurb: string; total: number; administered: number; attained: boolean; attainedAt: string | null; }
 interface HealthRecordEntry { id: string; domain: string; domainLabel: string; title: string; value: string; note: string; facility: string | null; recordedAt: string; }
 
-const DOMAIN_ICON: Record<string, string> = {
-  growth: '📏', vitamin_a: '💊', nutrition: '🍎', malaria: '🦟', sickle_cell: '🩸',
-  newborn_screening: '👶', development: '🧩', referral: '↪️', lab: '🔬', school_health: '🏫'
-};
 
 type Card = { chin: string; token: string };
 const CARD_KEY = 'ncihap.card'; // { chin, token }
@@ -227,15 +223,15 @@ function HomeView() {
 
   return (
     <>
-      <p className="mc-greet">{greet}{data.parentName ? `, ${data.parentName.split(' ')[0]}` : ''} 👋</p>
-      <h1 className="mc-hello">Let’s keep {data.firstName} healthy.</h1>
+      <p className="mc-greet">{greet}{data.parentName ? `, ${data.parentName.split(' ')[0]}` : ''}</p>
+      <h1 className="mc-hello">Overview</h1>
       <ChildChip data={data} />
 
       <section className={`mc-hero ${data.status}`}>
         <div className="mc-hero-left">
           <span className={`mc-pill ${data.status}`}>{heroTag(data.status)}</span>
           <h2 className="mc-hero-title">{data.firstName} {data.reassurance}</h2>
-          <button type="button" className="mc-listen" onClick={listen}>🔊 Listen</button>
+          <button type="button" className="mc-listen" onClick={listen}>Read aloud</button>
         </div>
         {data.nextAppointment && (
           <div className="mc-appt">
@@ -252,13 +248,12 @@ function HomeView() {
 
       <div className="mc-actions">
         {[
-          { icon: '💉', title: 'My vaccines', sub: 'See every dose', to: '/mychild/vaccines' },
-          { icon: '📅', title: 'Appointments', sub: 'View & reschedule', to: '/mychild/appointments' },
-          { icon: '💬', title: 'Ask a doctor', sub: 'Health worker online', to: '/mychild/doctor' },
-          { icon: '🚑', title: 'Emergency', sub: 'Get urgent help', to: '/mychild/emergency' }
+          { title: 'Vaccines', sub: 'See every dose', to: '/mychild/vaccines' },
+          { title: 'Appointments', sub: 'View & reschedule', to: '/mychild/appointments' },
+          { title: 'Ask a health worker', sub: 'Health worker online', to: '/mychild/doctor' },
+          { title: 'Emergency', sub: 'Get urgent help', to: '/mychild/emergency' }
         ].map((a) => (
           <NavLink key={a.title} to={a.to} className="mc-action">
-            <span className="mc-action-icon" aria-hidden>{a.icon}</span>
             <span className="mc-action-title">{a.title}</span>
             <span className="mc-action-sub">{a.sub}</span>
           </NavLink>
@@ -333,7 +328,6 @@ function HomeView() {
           <ul className="mc-wallet-list">
             {data.healthRecords.map((r) => (
               <li key={r.id} className="mc-wallet-item">
-                <span className="mc-wallet-icon" aria-hidden>{DOMAIN_ICON[r.domain] ?? '📋'}</span>
                 <span className="mc-wallet-body">
                   <span className="mc-wallet-title">{r.title} <span className="mc-wallet-domain">{r.domainLabel}</span></span>
                   <span className="mc-wallet-value">{r.value}{r.note ? `: ${r.note}` : ''}</span>
@@ -346,9 +340,8 @@ function HomeView() {
       </section>
 
       <section className="mc-card mc-tip">
-        <span className="mc-tip-icon" aria-hidden>☀</span>
         <div>
-          <div className="mc-tip-label">Today’s simple health tip</div>
+          <div className="mc-tip-label">Health tip</div>
           <div className="mc-tip-body">{data.tip}</div>
         </div>
       </section>
@@ -427,7 +420,7 @@ function AppointmentsView() {
           </div>
           <div className="mc-appt-detail">
             <div className="mc-appt-detail-label">Vaccines due</div>
-            <ul className="mc-appt-vax">{next.vaccines.map((v) => <li key={v}>💉 {v}</li>)}</ul>
+            <ul className="mc-appt-vax">{next.vaccines.map((v) => <li key={v}>{v}</li>)}</ul>
             <div className="mc-appt-detail-place">◎ {next.facility}</div>
           </div>
         </section>
@@ -458,7 +451,6 @@ function DoctorView() {
       <ViewHead data={data} title="Ask a health worker" sub="Common questions, and where to reach the people who care for your child." />
       {data.facility && (
         <section className="mc-card mc-facility">
-          <span className="mc-facility-icon" aria-hidden>🏥</span>
           <div>
             <h3>{data.facility.name}</h3>
             <p>{data.facility.ward} ward · {data.facility.lga} LGA · {data.facility.state}</p>
@@ -504,19 +496,18 @@ function EmergencyView() {
           <div className="mc-emergency-num">112</div>
           <p>Free, 24 hours, from any phone in Nigeria.</p>
         </div>
-        <a href="tel:112" className="mc-btn mc-btn-primary mc-call-btn">📞 Call 112</a>
+        <a href="tel:112" className="mc-btn mc-btn-primary mc-call-btn">Call 112</a>
       </section>
 
       <section className="mc-card">
         <h3 className="mc-band-title">Go to a facility straight away if {data.firstName} has:</h3>
         <ul className="mc-danger">
-          {DANGER_SIGNS.map((s) => <li key={s}><span aria-hidden>⚠️</span> {s}</li>)}
+          {DANGER_SIGNS.map((s) => <li key={s}>{s}</li>)}
         </ul>
       </section>
 
       {data.facility && (
         <section className="mc-card mc-facility">
-          <span className="mc-facility-icon" aria-hidden>🏥</span>
           <div>
             <h3>Nearest known facility</h3>
             <p>{data.facility.name}, {data.facility.ward}, {data.facility.lga}, {data.facility.state}</p>

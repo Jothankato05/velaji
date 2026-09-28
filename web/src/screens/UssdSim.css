@@ -1,5 +1,5 @@
 .ussd { display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start; max-width: 900px; }
-.ussd-intro h1 { font-family: var(--font-head); font-size: 26px; color: var(--ink); margin: 6px 0 12px; }
+.ussd-intro h1 { margin: 0 0 8px; }
 .ussd-intro p { font-size: 14.5px; line-height: 1.6; margin: 0 0 12px; max-width: 46ch; }
 .ussd-intro code { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12.5px; }
 .ussd-hint { font-size: 13px; }
@@ -8,7 +8,7 @@
 .ussd-phone { background: #1c2320; border-radius: 26px; padding: 20px 18px; box-shadow: 0 20px 50px -24px rgba(0,0,0,.6); }
 .ussd-screen { background: #cfe3c8; color: #14241a; border-radius: 8px; min-height: 220px; padding: 16px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap; box-shadow: inset 0 2px 6px rgba(0,0,0,.25); display: flex; flex-direction: column; }
 .ussd-idle { margin: auto; text-align: center; }
-.ussd-idle-brand { font-family: var(--font-head); font-weight: 700; font-size: 24px; letter-spacing: .05em; }
+.ussd-idle-brand { font-family: var(--font-head); font-weight: 700; font-size: 24px; }
 .ussd-idle-sub { margin-top: 8px; font-size: 13px; opacity: .7; }
 .ussd-msg { flex: 1; }
 .ussd-input-row { display: flex; gap: 6px; margin-top: 12px; border-top: 1px dashed rgba(0,0,0,.25); padding-top: 10px; }
@@ -19,7 +19,7 @@
 
 .ussd-controls { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .ussd-field { display: flex; flex-direction: column; gap: 4px; }
-.ussd-field span { font-size: 11px; color: #9fb4a6; letter-spacing: .04em; text-transform: uppercase; }
+.ussd-field span { font-size: 11px; color: #9fb4a6; }
 .ussd-field input { background: #2a332e; border: 1px solid #3a453f; border-radius: 8px; padding: 9px 11px; color: #eafaf0; font-size: 14px; font-family: var(--font-ui); }
 .ussd-field input:disabled { opacity: .6; }
 .ussd-dial { width: 100%; justify-content: center; }

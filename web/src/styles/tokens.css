@@ -1,33 +1,29 @@
-/* Velaji design tokens — matched to the NCIHAP reference apps: a light
-   cool-green neutral ground and a deep green brand. The five status colours are
-   domain-required (NCIHAP §10).
+/* Velaji design tokens. A working tool for clinic staff and programme
+   managers: neutral grey ground, one brand green used sparingly, status
+   colours reserved for status (the five-colour model, NCIHAP §10).
 
-   Type is one superfamily, IBM Plex: Sans for UI, Serif for headings, Mono for
-   identifiers. Mono was already here; the other two replace Inter and Georgia.
-   Inter because it is the default sans of machine-generated interfaces and
-   reads as such, Georgia because it was a web-safe fallback standing in for a
-   real display face. Plex is drawn as one system, so the three sit together,
-   and the deck uses the same pair so the pitch and the running product do not
-   look like different companies. */
+   One typeface, IBM Plex Sans, for everything. Plex Mono is kept only for
+   identifiers (CHINs, codes), where fixed-width digits help people read them
+   back. */
 
 :root {
-  /* neutrals — light cool-green paper (matches the references' #F3F7F5) */
-  --bg: #f3f7f5;
+  /* neutrals */
+  --bg: #f5f6f5;
   --surface: #ffffff;
-  --surface-2: #f7faf8;
-  --ink: #112b28;
-  --ink-soft: #33403a;
-  --muted: #5b6b66;
-  --faint: #8b9793;
-  --line: #e4eae6;
-  --line-strong: #d3ddd8;
+  --surface-2: #f8f9f8;
+  --ink: #16201d;
+  --ink-soft: #37423e;
+  --muted: #5f6a66;
+  --faint: #8c9591;
+  --line: #e3e6e4;
+  --line-strong: #cfd5d2;
 
   /* brand */
   --brand: #0e5c46;
   --brand-ink: #0e5c46;
   --brand-2: #12795c;
   --brand-deep: #073b3a; /* MyChild-style deep teal-green */
-  --brand-soft: #e4f0ea;
+  --brand-soft: #e7f1ec;
   --gold: #9a6b12;
   --gold-soft: #f3ead4;
 
@@ -49,21 +45,20 @@
   --down: #c15b3a;
   --down-bg: #f6e8e1;
 
-  /* type — one IBM Plex superfamily, see the note at the top of this file */
+  /* type: see the note at the top of this file */
   --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-head: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --font-head: var(--font-ui);
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  /* geometry — softer, rounder cards like the references */
-  --r-sm: 8px;
-  --r: 12px;
-  --r-lg: 16px;
-  --shadow: 0 1px 2px rgba(16, 43, 40, 0.04), 0 6px 20px -12px rgba(16, 43, 40, 0.14);
-  --shadow-lg: 0 2px 5px rgba(16, 43, 40, 0.06), 0 18px 44px -22px rgba(16, 43, 40, 0.24);
+  /* geometry: flat, bordered, small radii */
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 8px;
+  --shadow: none;
+  --shadow-lg: 0 8px 24px -12px rgba(16, 32, 29, 0.25);
 
   --focus: 0 0 0 3px rgba(18, 121, 92, 0.32);
   color-scheme: light;
 }
 
-/* The NCIHAP reference apps are a single light identity; velaji matches it
-   regardless of the viewer's OS theme. */
+/* Light only: clinic devices vary and the status colours are tuned for a light ground. */

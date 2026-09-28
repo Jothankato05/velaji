@@ -1,5 +1,5 @@
 .page { display: flex; flex-direction: column; gap: 20px; }
-.page-head h1 { margin-top: 6px; }
+.page-head h1 { margin: 0; }
 .page-sub { max-width: 60ch; margin: 8px 0 0; font-size: 14px; }
 .panel { padding: 20px 22px; }
 .panel h2 { margin-bottom: 14px; }
@@ -36,11 +36,11 @@
 .term-headline { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: var(--r); margin-bottom: 16px; }
 .term-headline.ok { background: var(--st-green-bg); }
 .term-headline.attn { background: var(--st-amber-bg); }
-.term-headline-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.term-headline-label { font-size: 12.5px; color: var(--muted); }
 .term-headline-value { font-family: var(--font-head); font-size: 22px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
 .term-fields { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
 .term-fields > div { display: flex; flex-direction: column; gap: 2px; }
-.term-fields dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-family: var(--font-mono); }
+.term-fields dt { font-size: 12.5px; color: var(--muted); }
 .term-fields dd { margin: 0; font-size: 14.5px; }
 .term-tier { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 
@@ -56,7 +56,7 @@
   display: grid; grid-template-columns: 1.4fr 1.1fr 1.6fr 0.7fr 1.2fr 0.9fr;
   gap: 12px; align-items: center; padding: 11px 4px;
 }
-.esc-head { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--line-strong); }
+.esc-head { font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--line-strong); }
 .esc-row { border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .esc-row:last-child { border-bottom: none; }
 .esc-name { font-weight: 500; }

@@ -1,10 +1,11 @@
 .poc { display: flex; flex-direction: column; gap: 20px; max-width: 760px; }
 .poc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.poc-head h1 { margin-top: 6px; max-width: 18ch; }
+.poc-head h1 { margin: 0; }
+.poc-sub { margin: 4px 0 0; }
 .poc-here { display: flex; flex-direction: column; gap: 5px; min-width: 200px; }
 
 .poc-scan { display: flex; gap: 10px; }
-.poc-scan-input { flex: 1; padding: 13px 14px; font-size: 15px; }
+.poc-scan-input { flex: 1; padding: 10px 12px; font-size: 15px; }
 
 .journey { display: flex; flex-direction: column; gap: 16px; }
 .journey-child { padding: 18px 20px; }
@@ -23,8 +24,8 @@
 
 /* the next-vaccine hero */
 .next { padding: 24px; border: 1px solid var(--line); border-left: 4px solid var(--brand-2); }
-.next-vaccine { font-family: var(--font-head); font-size: 30px; font-weight: 600; color: var(--brand-ink); margin: 8px 0 4px; line-height: 1.1; }
-.next-meta { font-family: var(--font-mono); font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.next-vaccine { font-size: 24px; font-weight: 600; color: var(--brand-ink); margin: 8px 0 4px; line-height: 1.1; }
+.next-meta { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
 .next-give { padding: 12px 22px; font-size: 15px; }
 
 /* coverage payoff */

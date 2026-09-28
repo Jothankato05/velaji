@@ -56,11 +56,10 @@ export function Escalations() {
   return (
     <div className="page">
       <div className="page-head">
-        <div className="eyebrow">Continued default · NCIHAP §7</div>
         <h1>Follow-up queue</h1>
         <p className="muted page-sub">
-          Children the reminder engine has handed to a human. The caregiver isn't
-          responding, or there's no way to reach them. Go trace the family.
+          Children whose caregivers haven't responded to reminders, or can't be
+          reached. These need someone to trace the family.
         </p>
       </div>
 

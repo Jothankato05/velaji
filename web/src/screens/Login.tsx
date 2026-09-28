@@ -48,73 +48,52 @@ export function Login() {
 
   return (
     <div className="login">
-      <section className="login-brand">
-        <div className="login-mark" aria-hidden>◈</div>
-        <h1>Velaji</h1>
-        <p className="login-tagline">
-          One child. One record. Every vaccine. Everywhere.
+      <form className="login-form" onSubmit={onSubmit}>
+        <div className="login-brand">Velaji</div>
+        <h1>Sign in</h1>
+        <p className="muted login-form-sub">
+          Child immunisation records for NCIHAP facility staff and programme administrators.
         </p>
-        <p className="login-desc">
-          The platform delivering NCIHAP, Nigeria&rsquo;s National Child
-          Immunisation &amp; Health Assurance Programme: a lifelong, verifiable
-          immunisation record for every child.
+
+        {IS_DEMO && (
+          <div className="banner demo-note">
+            This is a demo with invented children. The login is filled in, so press <strong>Sign in</strong>.
+          </div>
+        )}
+
+        {error && <div className="banner error" role="alert">{error}</div>}
+
+        <div className="field">
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            className="input"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <button type="submit" className="btn btn-primary login-submit" disabled={busy || !username || !password}>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </button>
+
+        <p className="login-note muted">
+          Accounts are issued by a programme administrator. Built by Team Primers.
         </p>
-      </section>
-
-      <section className="login-form-wrap">
-        <form className="login-form" onSubmit={onSubmit}>
-          <div className="eyebrow">Authorised access</div>
-          <h2>Sign in to the registry</h2>
-          <p className="muted login-form-sub">
-            For registered facility staff and programme administrators.
-          </p>
-
-          {IS_DEMO && (
-            <div className="banner demo-note">
-              <strong>Demo instance.</strong> Credentials are filled in, so just
-              press Sign in. Every child in this dataset is invented.
-            </div>
-          )}
-
-          {error && <div className="banner error" role="alert">{error}</div>}
-
-          <div className="field">
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              className="input"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary login-submit" disabled={busy || !username || !password}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-
-          <p className="login-note muted">
-            No self-registration. Accounts are issued by a programme administrator.
-          </p>
-          {/* Maker credit, kept small and singular: the product is Velaji, the
-              team is Primers, and only one of those belongs in a product header. */}
-          <p className="muted login-built-by">
-            Built by Team Primers.
-          </p>
-        </form>
-      </section>
+      </form>
     </div>
   );
 }

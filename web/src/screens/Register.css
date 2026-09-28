@@ -1,5 +1,5 @@
 .reg { display: flex; flex-direction: column; gap: 20px; max-width: 620px; }
-.reg-head h1 { margin-top: 6px; }
+.reg-head h1 { margin: 0; }
 .reg-sub { max-width: 56ch; margin: 8px 0 0; font-size: 14px; }
 
 .reg-form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }

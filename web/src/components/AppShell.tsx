@@ -4,18 +4,13 @@ import { useAuth } from '../lib/auth';
 import './AppShell.css';
 
 const OPERATIONS = [
-  { to: '/dashboard', label: 'Command Centre', roles: ['admin'] },
-  { to: '/care', label: 'Point of Care', roles: ['staff', 'admin'] },
-  { to: '/register', label: 'Child Registry', roles: ['staff', 'admin'] },
-  { to: '/terminal', label: 'Verify Card', roles: ['verifier', 'staff', 'admin'] },
-  { to: '/escalations', label: 'Follow-up Queue', roles: ['staff', 'admin'] },
-  { to: '/ussd', label: 'USSD Access', roles: ['staff', 'admin'] }
+  { to: '/dashboard', label: 'Overview', roles: ['admin'] },
+  { to: '/care', label: 'Point of care', roles: ['staff', 'admin'] },
+  { to: '/register', label: 'Register a child', roles: ['staff', 'admin'] },
+  { to: '/terminal', label: 'Verify a card', roles: ['verifier', 'staff', 'admin'] },
+  { to: '/escalations', label: 'Follow-up queue', roles: ['staff', 'admin'] },
+  { to: '/ussd', label: 'USSD access', roles: ['staff', 'admin'] }
 ] as const;
-
-function initials(name?: string) {
-  if (!name) return '··';
-  return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
-}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -35,15 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden>◈</span>
-          <div>
-            <div className="brand-name">Velaji</div>
-            <div className="brand-sub">National Health Network</div>
-          </div>
-        </div>
-
-        <div className="nav-section">Operations</div>
+        <div className="brand">Velaji</div>
         <nav className="nav">
           {ops.map((n) => (
             <NavLink key={n.to} to={n.to} className="nav-link">
@@ -51,38 +38,26 @@ export function AppShell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
-
-        <div className="status-card">
-          <div className="status-dot" aria-hidden />
-          <div>
-            <div className="status-title">National Registry</div>
-            <div className="status-sub">All services operational</div>
-          </div>
-        </div>
-        <div className="sidebar-foot-note">Federal health infrastructure · Authorised access only</div>
       </aside>
 
       <div className="main">
         <header className="topbar">
           <form className="search" onSubmit={onSearch}>
-            <span className="search-icon" aria-hidden>⌕</span>
             <input
               className="search-input"
-              placeholder="Search CHIN, child or guardian…"
+              placeholder="Find a child by CHIN"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search"
+              aria-label="Find a child by CHIN"
             />
           </form>
           <div className="topbar-right">
             <span className="topbar-date">{new Date().toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
-            <button type="button" className="user-chip" onClick={logout} title="Sign out">
-              <span className="user-av">{initials(user?.fullName)}</span>
-              <span className="user-meta">
-                <span className="user-name">{user?.fullName}</span>
-                <span className="user-role">{user?.role}</span>
-              </span>
-            </button>
+            <span className="user-meta">
+              <span className="user-name">{user?.fullName}</span>
+              <span className="user-role">{user?.role}</span>
+            </span>
+            <button type="button" className="btn btn-sm" onClick={logout}>Sign out</button>
           </div>
         </header>
         <main className="content">{children}</main>

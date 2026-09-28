@@ -131,14 +131,14 @@ export async function familyJourney(req: Request, res: Response) {
     status,
     reassurance:
       status === 'BLUE'
-        ? 'is fully protected. You did a wonderful job.'
+        ? 'has had every routine vaccine.'
         : status === 'GREEN'
-          ? 'is protected and on track. You’re doing a wonderful job.'
+          ? 'is up to date with vaccines.'
           : status === 'AMBER'
-            ? 'has a vaccine coming up. A quick visit keeps them protected.'
+            ? 'has a vaccine due soon.'
             : status === 'RED'
-              ? 'has missed a vaccine. Please visit the health centre soon.'
-              : 'has a record to reconcile. A health worker will help.',
+              ? 'has missed a vaccine. Please visit the health centre.'
+              : 'has a record a health worker needs to check.',
     progress: { administered, total: doses.length, pct: doses.length ? Math.round((administered / doses.length) * 100) : 0 },
     milestones,
     doses: doseList,

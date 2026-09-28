@@ -54,8 +54,7 @@ export function UssdSim() {
   return (
     <div className="ussd">
       <div className="ussd-intro">
-        <div className="eyebrow">Multi-channel access · §8</div>
-        <h1>USSD: the basic-phone channel</h1>
+        <h1>USSD access</h1>
         <p className="muted">
           A caregiver with no smartphone dials a short code and gets the same critical
           information as the app: child status, the next vaccine and where, and reward

@@ -1,51 +1,17 @@
-.login { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100vh; }
-
-.login-brand {
-  background: var(--brand);
-  color: #e9f1ec;
-  padding: 56px 60px;
-  display: flex; flex-direction: column; justify-content: center;
-  position: relative;
+.login {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 32px 16px; background: var(--bg);
 }
-/* a quiet, non-gradient texture: fine concentric rings, low opacity */
-.login-brand::after {
-  content: ''; position: absolute; inset: 0; opacity: 0.06; pointer-events: none;
-  background: radial-gradient(circle at 82% 18%, #ffffff 0 1px, transparent 1.5px) 0 0 / 26px 26px;
+.login-form {
+  width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 28px;
 }
-.login-mark { font-size: 40px; color: #7fd3ac; margin-bottom: 18px; }
-.login-brand h1 { font-size: 46px; color: #fff; margin-bottom: 14px; }
-.login-tagline { font-family: var(--font-head); font-style: italic; font-size: 19px; color: #bfe0d0; margin: 0 0 24px; max-width: 22ch; }
-.login-desc { font-size: 15px; line-height: 1.65; color: #a9cbbb; max-width: 42ch; margin: 0; }
-
-.login-form-wrap { display: flex; align-items: center; justify-content: center; padding: 40px; background: var(--bg); }
-.login-form { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
-.login-form h2 { margin: 4px 0 0; }
-.login-form-sub { margin: -6px 0 6px; font-size: 13.5px; }
-.login-submit { margin-top: 6px; padding: 11px; font-size: 15px; }
-.login-note { font-size: 12.5px; margin: 4px 0 0; }
-
-@media (max-width: 760px) {
-  .login { grid-template-columns: 1fr; }
-  .login-brand { padding: 40px 28px; }
-  .login-brand h1 { font-size: 34px; }
-}
+.login-brand { font-weight: 700; font-size: 18px; color: var(--brand); letter-spacing: -0.01em; }
+.login-form h1 { font-size: 20px; margin-top: 6px; }
+.login-form-sub { margin: -8px 0 2px; font-size: 13.5px; }
+.login-submit { margin-top: 4px; padding: 9px; }
+.login-note { font-size: 12.5px; margin: 2px 0 0; }
 
 /* Demo-instance notice: present only when the build carries demo credentials. */
-.banner.demo-note {
-  background: rgba(15, 92, 87, .08);
-  border: 1px solid rgba(15, 92, 87, .28);
-  border-left: 3px solid #0F5C57;
-  color: inherit;
-  font-size: .84rem;
-  line-height: 1.5;
-  margin-bottom: 1rem;
-}
-
-/* Maker credit under the sign-in form: present, but never competing with the
-   product mark above it. */
-.login-built-by {
-  margin-top: .45rem;
-  font-size: .74rem;
-  letter-spacing: .01em;
-  opacity: .75;
-}
+.banner.demo-note { background: var(--brand-soft); border-color: #c9e0d4; color: var(--ink); font-size: 13px; }

@@ -131,11 +131,12 @@ export function Dashboard() {
     return c;
   }, [filter]);
 
-  if (summary.loading && !summary.data) return <Loading label="Loading command centre…" />;
+  if (summary.loading && !summary.data) return <Loading label="Loading overview…" />;
   if (summary.error) return <ErrorNote message={summary.error} />;
   if (!summary.data) return null;
 
   const t = summary.data.totals;
+  const national = !filter.state;
   const maxBreak = Math.max(1, ...summary.data.breakdown.map((b) => b.metrics.registered));
   const sortedBreakdown = [...summary.data.breakdown].sort((a, b) => {
     if (geoSort === 'registered') return b.metrics.registered - a.metrics.registered;
@@ -148,9 +149,7 @@ export function Dashboard() {
     <div className="dash">
       <div className="dash-head">
         <div>
-          <div className="eyebrow">National overview</div>
-          <h1>Command Centre</h1>
-          <p className="muted dash-tagline">Real-time visibility across Nigeria's child immunisation journey.</p>
+          <h1>Overview</h1>
         </div>
         <Link to="/register" className="btn btn-primary">Register child</Link>
       </div>
@@ -191,7 +190,9 @@ export function Dashboard() {
         <StatusBar t={t} />
       </section>
 
-      {/* Coverage by priority state: national triage, worst-first */}
+      {/* National level: the state table is the drill list. Below national,
+          the breakdown list further down takes over, so states aren't shown twice. */}
+      {national && (
       <section className="card panel">
         <div className="panel-head">
           <h2>Coverage by priority state</h2>
@@ -235,8 +236,10 @@ export function Dashboard() {
           </div>
         )}
       </section>
+      )}
 
       <div className="dash-grid">
+        {!national && (
         <section className="card panel span2">
           <div className="panel-head">
             <h2>{LEVEL_LABEL[summary.data.breakdownBy] ?? summary.data.breakdownBy}</h2>
@@ -269,6 +272,7 @@ export function Dashboard() {
             </ul>
           )}
         </section>
+        )}
 
         <section className="card panel">
           <div className="panel-head"><h2>Doses administered</h2><span className="eyebrow">last 8 weeks</span></div>

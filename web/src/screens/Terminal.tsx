@@ -51,8 +51,7 @@ export function Terminal() {
   return (
     <div className="page">
       <div className="page-head">
-        <div className="eyebrow">Verify anywhere · NCIHAP §16</div>
-        <h1>Verification terminal</h1>
+        <h1>Verify a card</h1>
         <p className="muted page-sub">
           Scan a card's QR or type the CHIN. You'll see only what your role is authorised to view,
           and the access is recorded.
