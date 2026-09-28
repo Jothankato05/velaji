@@ -256,7 +256,7 @@ export function Dashboard() {
         </section>
 
         <section className="card panel">
-          <div className="panel-head"><h2>Doses needed</h2><span className="eyebrow">per vaccine, by week starting</span></div>
+          <div className="panel-head"><h2>Doses needed</h2><span className="eyebrow">next 4 weeks, by week starting</span></div>
           {stock.data ? (stock.data.byVaccine.length === 0 ? <Empty>No doses fall due in this window.</Empty> : <DemandByWeek stock={stock.data} />) : <Loading />}
         </section>
 
@@ -442,10 +442,18 @@ function TrendChart({ points }: { points: Array<{ weekStarting: string; dosesAdm
   );
 }
 
-/** Vaccines given at the same visit (Penta, OPV, PCV, Rota at 6/10/14 weeks)
- *  have identical demand, so they share a row rather than repeating it. Each
- *  cell is shaded by its share of the busiest week, so the weeks that need
- *  delivering stand out. */
+/** Readable names for the schedule's codes; anything unlisted shows its code. */
+const VACCINE_NAME: Record<string, string> = {
+  BCG: 'BCG', HEPB: 'Hepatitis B', OPV: 'Oral polio', IPV: 'Inactivated polio', PENTA: 'Pentavalent',
+  PCV: 'Pneumococcal', ROTA: 'Rotavirus', MR: 'Measles-rubella', YF: 'Yellow fever', MENA: 'Meningitis A',
+  VITA: 'Vitamin A'
+};
+
+/** Doses due per vaccine in each of the coming weeks. Vaccines with exactly the
+ *  same weekly numbers (typically ones given together, like Pentavalent, oral
+ *  polio and pneumococcal) share a row, and the numbers are per vaccine. Cells
+ *  are shaded by their share of the busiest week, so the weeks that need
+ *  deliveries stand out. */
 function DemandByWeek({ stock }: { stock: Stock }) {
   const rows: Array<{ codes: string[]; byWeek: number[]; total: number }> = [];
   for (const v of stock.byVaccine) {
@@ -455,8 +463,7 @@ function DemandByWeek({ stock }: { stock: Stock }) {
   }
   const peak = Math.max(1, ...rows.flatMap((r) => r.byWeek));
   const start = new Date(stock.generatedAt);
-  const weekLabel = (i: number) =>
-    new Date(start.getTime() + i * 7 * 86400000).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+  const weekStart = (i: number) => new Date(start.getTime() + i * 7 * 86400000);
 
   return (
     <div className="cbs-scroll">
@@ -464,19 +471,27 @@ function DemandByWeek({ stock }: { stock: Stock }) {
         <thead>
           <tr>
             <th>Vaccine</th>
-            {stock.byVaccine[0].byWeek.map((_, i) => <th key={weekLabel(i)} className="num">{weekLabel(i)}</th>)}
+            {stock.byVaccine[0].byWeek.map((_, i) => {
+              const d = weekStart(i);
+              return (
+                <th key={d.toISOString()} className="num">
+                  <span className="demand-day">{d.getDate()}</span>{' '}
+                  <span className="demand-mon">{d.toLocaleDateString('en-NG', { month: 'short' })}</span>
+                </th>
+              );
+            })}
             <th className="num">Total</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.codes.join()}>
-              <td className="demand-codes">
-                {r.codes.join(', ')}
-                {r.codes.length > 1 && <div className="muted demand-note">Given at the same visit</div>}
+              <td className="demand-codes" title={r.codes.join(', ')}>
+                {r.codes.map((c) => VACCINE_NAME[c] ?? c).join(', ')}
+                {r.codes.length > 1 && <div className="muted demand-note">numbers are for each</div>}
               </td>
               {r.byWeek.map((n, i) => (
-                <td key={weekLabel(i)} className="num demand-cell" style={{ background: n ? `rgba(154, 107, 18, ${0.08 + 0.42 * (n / peak)})` : undefined }}>
+                <td key={weekStart(i).toISOString()} className="num demand-cell" style={{ background: n ? `rgba(154, 107, 18, ${0.08 + 0.42 * (n / peak)})` : undefined }}>
                   {n ? fmt(n) : <span className="muted">–</span>}
                 </td>
               ))}
