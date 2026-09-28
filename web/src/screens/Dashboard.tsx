@@ -43,7 +43,7 @@ interface Stock { weeks: number; generatedAt: string; byVaccine: Array<{ vaccine
 interface Outliers {
   average: number;
   threshold: number;
-  facilities: Array<{ facility: string; state: string; lga: string; registered: number; dropoutRate: number; outlier: boolean }>;
+  facilities: Array<{ facility: string; state: string; lga: string; ward: string; registered: number; dropoutRate: number; outlier: boolean }>;
 }
 interface RecoveryChild { chin: string; fullName: string; ageMonths: number; overdueVaccines: string[]; overdueCodes: string[]; mostOverdueDays: number; caregiverName: string | null; caregiverPhone: string | null; facility: string; }
 interface Recovery { count: number; children: RecoveryChild[]; }
@@ -74,7 +74,7 @@ export function Dashboard() {
   const summary = useGet<Summary>(`/api/dashboard/summary${qs(filter)}`);
   const trend = useGet<Trend>('/api/dashboard/trend?weeks=8');
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${qs(filter).replace('?', '&')}`);
-  const outliers = useGet<Outliers>('/api/dashboard/outliers');
+  const outliers = useGet<Outliers>(`/api/dashboard/outliers${qs(filter)}`);
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
   // Only fetched once drilled to a facility (ward scope) — this carries names
   // and phone numbers, so we don't pull it at the national/state level.
@@ -264,10 +264,10 @@ export function Dashboard() {
           <div className="panel-head">
             <h2>Dropout by facility</h2>
             {outliers.data && outliers.data.facilities.length > 0 && (
-              <span className="eyebrow">average {pct(outliers.data.average)} · flagged above {pct(outliers.data.threshold)}</span>
+              <span className="eyebrow">national average {pct(outliers.data.average)} · flagged above {pct(outliers.data.threshold)}</span>
             )}
           </div>
-          {outliers.data ? (outliers.data.facilities.length === 0 ? <Empty>No facility has enough children to compare yet.</Empty> : <DropoutRanking d={outliers.data} />) : <Loading />}
+          {outliers.data ? (outliers.data.facilities.length === 0 ? <Empty>No facility here has 5 or more children to compare yet.</Empty> : <DropoutRanking d={outliers.data} onOpen={(f) => setFilter({ state: f.state, lga: f.lga, ward: f.ward })} />) : <Loading />}
         </section>
 
       </div>
@@ -389,7 +389,7 @@ const DROPOUT_SHOWN = 6;
 /** Worst facilities first, each against the average (the tick on every bar).
  *  Outliers, well above the average, are flagged in red; the rest are shown
  *  for context so a facility just under the line isn't invisible. */
-function DropoutRanking({ d }: { d: Outliers }) {
+function DropoutRanking({ d, onOpen }: { d: Outliers; onOpen: (f: Outliers['facilities'][number]) => void }) {
   const shown = d.facilities.slice(0, DROPOUT_SHOWN);
   return (
     <>
@@ -397,7 +397,9 @@ function DropoutRanking({ d }: { d: Outliers }) {
         {shown.map((f) => (
           <li key={`${f.facility}-${f.lga}`} className={`dropout-row${f.outlier ? ' outlier' : ''}`}>
             <div className="dropout-who">
-              <span className="dropout-name">{f.facility}</span>
+              <button type="button" className="dropout-name" onClick={() => onOpen(f)} title="Open this facility's ward and its overdue children">
+                {f.facility} <span className="cbs-drill" aria-hidden>›</span>
+              </button>
               <span className="muted dropout-loc">{f.lga}, {f.state} · {f.registered} children</span>
             </div>
             <span className="dropout-track" aria-hidden>
@@ -410,7 +412,7 @@ function DropoutRanking({ d }: { d: Outliers }) {
         ))}
       </ul>
       <p className="muted dropout-note">
-        Dropout: children who started vaccines but are now overdue. The line on each bar is the average.
+        Dropout: children who started vaccines but are now overdue. The line on each bar is the national average. Select a facility to see its overdue children.
         {d.facilities.length > DROPOUT_SHOWN && ` Showing the ${DROPOUT_SHOWN} highest of ${d.facilities.length} facilities.`}
       </p>
     </>

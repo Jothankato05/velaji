@@ -47,9 +47,9 @@ export async function getTrend(req: Request, res: Response) {
   res.json(await administrationTrend(weeks));
 }
 
-export async function getOutliers(_req: Request, res: Response) {
-  const { average, threshold, facilities } = await facilityDropout();
-  const outliers = facilities.filter((f) => f.outlier).map(({ outlier: _outlier, ...f }) => f);
+export async function getOutliers(req: Request, res: Response) {
+  const { average, threshold, facilities } = await facilityDropout(readFilter(req));
+  const outliers = facilities.filter((f) => f.outlier).map(({ outlier: _outlier, ward: _ward, ...f }) => f);
   res.json({ count: outliers.length, outliers, average, threshold, facilities });
 }
 

@@ -1111,6 +1111,15 @@ test('outlier detection flags a facility with an unusual dropout rate', async ()
   assert(body.facilities.find((f: any) => f.facility === 'Struggling PHC')?.outlier === true, 'the struggling facility should be flagged in the ranking');
   assert(body.facilities.every((f: any, i: number, all: any[]) => i === 0 || all[i - 1].dropoutRate >= f.dropoutRate), 'ranking must be highest dropout first');
   assert(typeof body.average === 'number' && body.threshold > body.average, `threshold (${body.threshold}) should sit above the average (${body.average})`);
+
+  // Scoped to one state: only that state's facilities are listed, each with its
+  // ward (for drilling in), but the average and threshold stay national.
+  const scoped = await jsonAs(adminTokenT, 'GET', '/api/dashboard/outliers?state=Outlier-State&lga=OL-2');
+  assert(scoped.status === 200, `expected 200, got ${scoped.status}`);
+  const names = scoped.body.facilities.map((f: any) => f.facility);
+  assert(JSON.stringify(names) === '["Struggling PHC"]', `scoped list should hold only Struggling PHC, got ${JSON.stringify(names)}`);
+  assert(scoped.body.facilities[0].ward === 'W', `facility should carry its ward, got ${scoped.body.facilities[0].ward}`);
+  assert(scoped.body.average === body.average && scoped.body.threshold === body.threshold, 'average and threshold should be national, not recomputed for the area');
 });
 
 test('coverage by priority state ranks worst-first and flags each state', async () => {

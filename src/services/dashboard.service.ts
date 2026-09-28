@@ -779,8 +779,8 @@ export interface FacilityDropout {
   average: number;
   /** Facilities above this rate (mean + 1 standard deviation) are outliers. */
   threshold: number;
-  /** Every eligible facility, highest dropout first. */
-  facilities: Array<OutlierFacility & { outlier: boolean }>;
+  /** Eligible facilities in the requested area, highest dropout first. */
+  facilities: Array<OutlierFacility & { ward: string; outlier: boolean }>;
 }
 
 /**
@@ -790,7 +790,7 @@ export interface FacilityDropout {
  * deviation. Returning the whole ranking, not just the outliers, lets a
  * reviewer see the ones just under the line too.
  */
-export async function facilityDropout(minChildren = 5, now: Date = new Date()): Promise<FacilityDropout> {
+export async function facilityDropout(filter: GeoFilter = {}, minChildren = 5, now: Date = new Date()): Promise<FacilityDropout> {
   const facts = await loadFacts(now);
   const byFacility = new Map<string, { geo: FacilityGeo; m: ReturnType<typeof blank> }>();
   for (const c of facts) {
@@ -817,11 +817,15 @@ export async function facilityDropout(minChildren = 5, now: Date = new Date()): 
   return {
     average: round(mean),
     threshold: round(threshold),
+    // The average and threshold are national, so "outlier" means unusual for
+    // the country; the list itself is limited to the area being viewed.
     facilities: eligible
+      .filter((f) => inScope(f.geo, filter))
       .map((f) => ({
         facility: f.geo.facility,
         state: f.geo.state,
         lga: f.geo.lga,
+        ward: f.geo.ward,
         registered: f.metrics.registered,
         dropoutRate: f.metrics.dropoutRate,
         outlier: f.metrics.dropoutRate > threshold && f.metrics.dropoutRate > 0
