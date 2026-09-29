@@ -28,6 +28,7 @@ export interface EscalationView {
   barrier: string | null;
   barrierLabel: string | null;
   resolutionNote: string;
+  quietUntil: Date | null;
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -58,14 +59,28 @@ export async function countOpenEscalations(): Promise<number> {
 }
 
 export async function listEscalations(status: 'open' | 'resolved' = 'open'): Promise<EscalationView[]> {
-  const escalations = await EscalationModel.find({ status }).sort({ raisedAt: 1 });
+  // Resolved cases are history: the most recent 100 are enough on screen.
+  const escalations =
+    status === 'open'
+      ? await EscalationModel.find({ status }).sort({ raisedAt: 1 })
+      : await EscalationModel.find({ status }).sort({ resolvedAt: -1 }).limit(100);
   const now = Date.now();
+
+  // Three lookups for the whole list, not three per case.
+  const children = await ChildModel.find({ _id: { $in: escalations.map((e) => e.childId) } });
+  const childById = new Map(children.map((c) => [String(c._id), c]));
+  const [caregivers, facilities] = await Promise.all([
+    CaregiverModel.find({ _id: { $in: children.map((c) => c.caregiverId) } }),
+    FacilityModel.find({ _id: { $in: children.map((c) => c.currentFacilityId) } })
+  ]);
+  const caregiverById = new Map(caregivers.map((c) => [String(c._id), c]));
+  const facilityById = new Map(facilities.map((f) => [String(f._id), f]));
 
   const views: EscalationView[] = [];
   for (const esc of escalations) {
-    const child = await ChildModel.findById(esc.childId);
-    const caregiver = child ? await CaregiverModel.findById(child.caregiverId) : null;
-    const facility = child ? await FacilityModel.findById(child.currentFacilityId) : null;
+    const child = childById.get(String(esc.childId));
+    const caregiver = child ? caregiverById.get(String(child.caregiverId)) : undefined;
+    const facility = child ? facilityById.get(String(child.currentFacilityId)) : undefined;
 
     // Find the specific dose this escalation is about to report the vaccine
     // name and how overdue it is.
@@ -94,7 +109,8 @@ export async function listEscalations(status: 'open' | 'resolved' = 'open'): Pro
       outcome: esc.outcome ?? null,
       barrier: esc.barrier ?? null,
       barrierLabel: esc.barrier ? BARRIER_LABELS[esc.barrier] ?? esc.barrier : null,
-      resolutionNote: esc.resolutionNote ?? ''
+      resolutionNote: esc.resolutionNote ?? '',
+      quietUntil: esc.quietUntil ?? null
     });
   }
 
@@ -105,12 +121,21 @@ export async function listEscalations(status: 'open' | 'resolved' = 'open'): Pro
     : views.sort((a, b) => (b.resolvedAt?.getTime() ?? 0) - (a.resolvedAt?.getTime() ?? 0));
 }
 
+/** How long a hand-closed case stays out of the queue if the dose is still missing. */
+export const QUIET_DAYS: Record<string, number> = {
+  reached: 7, // unless they give a date they'll come by
+  unreachable: 14,
+  other: 14,
+  moved_away: 365
+};
+
 export async function resolveEscalation(
   id: string,
   resolvedBy: string,
   outcome: string | null,
   note: string,
-  barrier: string | null = null
+  barrier: string | null = null,
+  comeBy: Date | null = null
 ) {
   const escalation = await EscalationModel.findById(id);
   if (!escalation) throw new AppError('Escalation not found', 404);
@@ -133,6 +158,12 @@ export async function resolveEscalation(
   escalation.outcome = (outcome as typeof escalation.outcome) ?? 'other';
   escalation.barrier = (barrier as typeof escalation.barrier) ?? null;
   escalation.resolutionNote = note ?? '';
+  // If the dose is still missing when this passes, the case comes back.
+  const now = Date.now();
+  escalation.quietUntil =
+    outcome === 'reached' && comeBy
+      ? new Date(comeBy.getTime() + DAY_MS) // the day after they said they'd come
+      : new Date(now + (QUIET_DAYS[outcome ?? 'other'] ?? 14) * DAY_MS);
   await escalation.save();
 
   return escalation;

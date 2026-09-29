@@ -522,6 +522,46 @@ test('reminder engine escalates instead of texting forever past the attempt cap'
   await retireChild(childId);
 });
 
+test('a case closed by hand stays closed until the family\'s date, then comes back if still missing', async () => {
+  const { childId, chin } = await makeReminderChild(10);
+  const fake = new FakeSms();
+  let clock = NOON;
+  const svc = new ReminderService({ smsProvider: fake, now: () => clock, cooldownHours: 24, maxPerDose: 1, sendStartHour: 8, sendEndHour: 20 });
+  await svc.runCycle();
+  clock = new Date(NOON.getTime() + 2 * DAY);
+  await svc.runCycle(); // at the cap -> into the queue
+
+  const open = await EscalationModel.findOne({ chin, status: 'open' });
+  assert(open, 'the child is in the queue');
+  const comeBy = new Date(Date.now() + 5 * DAY);
+  comeBy.setHours(12, 0, 0, 0);
+  const r = await json('POST', `/api/escalations/${open?._id}/resolve`, { outcome: 'reached', comeBy: comeBy.toISOString(), note: 'Coming Friday' });
+  assert(r.status === 200, `resolve failed: ${r.status}`);
+
+  // The next cycles must not reopen it straight away.
+  clock = new Date(NOON.getTime() + 3 * DAY);
+  const quiet = await svc.runCycle();
+  assert(!quiet.escalations.some((e) => e.startsWith(chin)), 'not reopened the next cycle');
+  assert(!(await EscalationModel.exists({ chin, status: 'open' })), 'no new open case while waiting for the family');
+
+  // After their date, still not vaccinated: back in the queue.
+  clock = new Date(comeBy.getTime() + 2 * DAY);
+  const back = await svc.runCycle();
+  assert(back.escalations.some((e) => e.startsWith(chin)), 'returns once the promised date has passed');
+
+  // Moved away: stays out.
+  const again = await EscalationModel.findOne({ chin, status: 'open' });
+  await json('POST', `/api/escalations/${again?._id}/resolve`, { outcome: 'moved_away' });
+  clock = new Date(comeBy.getTime() + 30 * DAY);
+  const moved = await svc.runCycle();
+  assert(!moved.escalations.some((e) => e.startsWith(chin)), 'a family that moved away is not re-raised');
+
+  const bad = await json('POST', `/api/escalations/${again?._id}/resolve`, { outcome: 'reached', comeBy: 'not a date' });
+  assert(bad.status === 400, `a bad date is refused, got ${bad.status}`);
+
+  await retireChild(childId);
+});
+
 test('a severely overdue child stays RED (not GREY) and is still reminded', async () => {
   // NCIHAP §10: overdue is RED however long it stays overdue — it does NOT age
   // into GREY. With a reachable caregiver, it must still get a reminder.

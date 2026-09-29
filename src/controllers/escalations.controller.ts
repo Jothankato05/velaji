@@ -25,7 +25,15 @@ export async function postResolveEscalation(req: Request, res: Response) {
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   if (!mongoose.isValidObjectId(id)) throw new AppError('Invalid escalation id', 400);
 
-  const { outcome, note, barrier } = req.body ?? {};
+  const { outcome, note, barrier, comeBy } = req.body ?? {};
+  let comeByDate: Date | null = null;
+  if (comeBy) {
+    comeByDate = new Date(comeBy);
+    const days = (comeByDate.getTime() - Date.now()) / 86_400_000;
+    if (Number.isNaN(comeByDate.getTime()) || days < -1 || days > 90) {
+      throw new AppError('comeBy must be a date within the next 90 days');
+    }
+  }
   if (outcome !== undefined && outcome !== null && !VALID_OUTCOMES.includes(outcome)) {
     throw new AppError(`outcome must be one of: ${VALID_OUTCOMES.join(', ')}`);
   }
@@ -33,7 +41,7 @@ export async function postResolveEscalation(req: Request, res: Response) {
     throw new AppError(`barrier must be one of: ${BARRIERS.join(', ')}`);
   }
 
-  const resolved = await resolveEscalation(id, currentUser(req).username, outcome ?? 'other', note ?? '', barrier ?? null);
+  const resolved = await resolveEscalation(id, currentUser(req).username, outcome ?? 'other', note ?? '', barrier ?? null, comeByDate);
   res.json(resolved);
 }
 

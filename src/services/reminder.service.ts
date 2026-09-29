@@ -86,7 +86,17 @@ export class ReminderService {
     reason: EscalationReason,
     remindersSent: number,
     now: Date
-  ): Promise<void> {
+  ): Promise<boolean> {
+    // A health worker closed this recently (the family promised a date, or
+    // couldn't be reached and it's not yet time to retry, or they moved away).
+    // Don't reopen it the very next cycle.
+    const quiet = await this.escalationModel.exists({
+      childId: child._id,
+      status: 'resolved',
+      quietUntil: { $gt: now },
+      $or: [{ doseKey }, { outcome: 'moved_away' }]
+    });
+    if (quiet) return false;
     await this.escalationModel.findOneAndUpdate(
       { childId: child._id, doseKey, status: 'open' },
       {
@@ -95,6 +105,7 @@ export class ReminderService {
       },
       { upsert: true }
     );
+    return true;
   }
 
   async runCycle(): Promise<ReminderCycleSummary> {
@@ -162,8 +173,9 @@ export class ReminderService {
         // for the follow-up queue (NCIHAP §7). A merely due-soon (AMBER) child
         // isn't overdue yet, so just note we couldn't remind.
         if (lead.status === 'RED') {
-          await this.recordEscalation(child, lead.doseKey, 'lost_to_followup', 0, now);
-          summary.escalations.push(`${child.chin} ${lead.doseKey}`);
+          if (await this.recordEscalation(child, lead.doseKey, 'lost_to_followup', 0, now)) {
+            summary.escalations.push(`${child.chin} ${lead.doseKey}`);
+          }
         }
         summary.skippedNoPhone += 1;
         continue;
@@ -177,8 +189,9 @@ export class ReminderService {
         // Reminded to the cap and still due — continued default (NCIHAP §7).
         // Hand to the follow-up queue for PHC/community-health intervention.
         summary.skippedMaxAttempts += 1;
-        await this.recordEscalation(child, lead.doseKey, 'max_attempts', priorSends.length, now);
-        summary.escalations.push(`${child.chin} ${lead.doseKey}`);
+        if (await this.recordEscalation(child, lead.doseKey, 'max_attempts', priorSends.length, now)) {
+          summary.escalations.push(`${child.chin} ${lead.doseKey}`);
+        }
         continue;
       }
 

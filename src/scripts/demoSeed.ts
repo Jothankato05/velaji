@@ -227,7 +227,9 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
       childId: c._id, chin: c.chin, doseKey: `PENTA#1`, reason: i % 2 === 0 ? 'lost_to_followup' : 'max_attempts',
       remindersSent: 3, status: 'resolved', raisedAt: new Date(now - (i + 5) * DAY), lastSeenAt: new Date(now - (i + 5) * DAY),
       resolvedAt: new Date(now - (i + 1) * DAY), resolvedBy: 'nurse.amina', outcome: i % 3 === 0 ? 'immunized' : 'reached',
-      barrier: barrierMix[i]
+      barrier: barrierMix[i],
+      // As a hand-closed 'reached' case would carry: back after a week if still missing.
+      quietUntil: i % 3 === 0 ? null : new Date(now - (i + 1) * DAY + 7 * DAY)
   })));
 
   // Open follow-ups. The reminder engine hands a child to a person after its

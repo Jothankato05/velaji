@@ -96,3 +96,6 @@
 .esc-resolve { display: inline-flex; gap: 6px; }
 .esc-resolve .esc-outcome { min-width: 120px; }
 
+
+.esc-comeby { max-width: 240px; }
+.esc-after { margin: 0; }

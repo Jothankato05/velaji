@@ -37,7 +37,10 @@ const escalationSchema = new Schema(
       enum: ['hesitancy', 'distance', 'insecurity', 'financial', 'unaware', 'no_session', 'other', null],
       default: null
     },
-    resolutionNote: { type: String, default: '' }
+    resolutionNote: { type: String, default: '' },
+    // After a hand-closed case, the reminder engine won't raise it again before
+    // this date: the family said they'd come by then, or it's time to try again.
+    quietUntil: { type: Date, default: null }
   },
   { timestamps: true }
 );

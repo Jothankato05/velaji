@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGet } from '../lib/useGet';
 import { api, ApiError } from '../lib/api';
@@ -23,6 +23,11 @@ interface Escalation {
   outcome: string | null;
   barrierLabel: string | null;
   resolutionNote: string;
+  quietUntil: string | null;
+}
+interface Facility {
+  _id: string;
+  name: string;
 }
 interface EscalationList {
   status: string;
@@ -56,6 +61,13 @@ const BARRIERS: Array<[string, string]> = [
   ['other', 'Other']
 ];
 
+/** Shared with point of care and registration: the clinic this device works at. */
+const FACILITY_KEY = 'velaji.facility';
+/** Days a closed case stays out of the queue if the dose is still missing (matches the server). */
+const QUIET_DAYS: Record<string, number> = { reached: 7, unreachable: 14, other: 14, moved_away: 365 };
+const DAY = 86_400_000;
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
 }
@@ -64,12 +76,28 @@ export function Escalations() {
   const [tab, setTab] = useState<'open' | 'resolved'>('open');
   const [clinic, setClinic] = useState('');
   const list = useGet<EscalationList>(`/api/escalations?status=${tab}`);
+  const facilities = useGet<Facility[]>('/api/facilities');
+  const [clinicChosen, setClinicChosen] = useState(false);
   const [resolving, setResolving] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
 
   const all = list.data?.escalations ?? [];
   const clinics = [...new Set(all.map((e) => e.facilityName).filter((n): n is string => Boolean(n)))].sort();
   const rows = clinic ? all.filter((e) => e.facilityName === clinic) : all;
+
+  // Start on this device's clinic when it has cases; anyone can switch to all.
+  useEffect(() => {
+    if (clinicChosen || !facilities.data || !list.data) return;
+    let saved = '';
+    try {
+      saved = localStorage.getItem(FACILITY_KEY) ?? '';
+    } catch {
+      // No stored clinic: show all.
+    }
+    const name = facilities.data.find((f) => f._id === saved)?.name;
+    if (name && list.data.escalations.some((e) => e.facilityName === name)) setClinic(name);
+    setClinicChosen(true);
+  }, [facilities.data, list.data, clinicChosen]);
 
   function switchTab(t: 'open' | 'resolved') {
     setTab(t);
@@ -99,7 +127,7 @@ export function Escalations() {
         {clinics.length > 1 && (
           <label className="esc-filter">
             <span className="muted">Clinic</span>
-            <select className="input" value={clinic} onChange={(e) => setClinic(e.target.value)}>
+            <select className="input" value={clinic} onChange={(e) => { setClinic(e.target.value); setClinicChosen(true); }}>
               <option value="">All clinics</option>
               {clinics.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -110,7 +138,7 @@ export function Escalations() {
       {notice && <div className="banner ok" role="status">{notice}</div>}
 
       <section className="card panel">
-        {list.loading && !list.data ? (
+        {(list.loading && !list.data) || (list.data && list.data.status !== tab) ? (
           <Loading />
         ) : list.error ? (
           <ErrorNote message={list.error} />
@@ -150,9 +178,12 @@ export function Escalations() {
                       <ResolveForm
                         escalation={e}
                         onCancel={() => setResolving(null)}
-                        onDone={() => {
+                        onDone={(backOn) => {
                           setResolving(null);
-                          setNotice(`Closed the case for ${e.childName}.`);
+                          setNotice(
+                            `Closed the case for ${e.childName}.` +
+                              (backOn ? ` If the vaccine still isn't recorded, it comes back to the queue on ${fmtDate(backOn)}.` : '')
+                          );
                           list.reload();
                         }}
                       />
@@ -171,6 +202,13 @@ export function Escalations() {
                       {' '}· closed {e.resolvedAt ? fmtDate(e.resolvedAt) : ''}{e.resolvedBy ? ` by ${e.resolvedBy === 'system' ? 'the system when the dose was recorded' : e.resolvedBy}` : ''}
                     </span>
                     {e.resolutionNote && <div className="muted esc-note">“{e.resolutionNote}”</div>}
+                    {e.resolvedBy !== 'system' && e.quietUntil && new Date(e.quietUntil).getTime() > Date.now() && (
+                      <div className="muted esc-note">
+                        {e.outcome === 'moved_away'
+                          ? 'Not raised again unless the family is back in the area.'
+                          : `Back in the queue on ${fmtDate(e.quietUntil)} if the vaccine still isn't recorded.`}
+                      </div>
+                    )}
                   </div>
                 )}
               </li>
@@ -182,8 +220,9 @@ export function Escalations() {
   );
 }
 
-function ResolveForm({ escalation, onCancel, onDone }: { escalation: Escalation; onCancel: () => void; onDone: () => void }) {
+function ResolveForm({ escalation, onCancel, onDone }: { escalation: Escalation; onCancel: () => void; onDone: (backOn: string | null) => void }) {
   const [outcome, setOutcome] = useState('');
+  const [comeBy, setComeBy] = useState(isoDay(new Date(Date.now() + 7 * DAY)));
   const [barrier, setBarrier] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -194,9 +233,14 @@ function ResolveForm({ escalation, onCancel, onDone }: { escalation: Escalation;
     setSaving(true);
     setError('');
     try {
-      await api.post(`/api/escalations/${escalation.id}/resolve`, { outcome, barrier: barrier || null, note: note.trim() });
+      const res = await api.post<{ quietUntil: string | null }>(`/api/escalations/${escalation.id}/resolve`, {
+        outcome,
+        barrier: barrier || null,
+        note: note.trim(),
+        ...(outcome === 'reached' && comeBy ? { comeBy: `${comeBy}T12:00:00` } : {})
+      });
       window.dispatchEvent(new Event(FOLLOW_UPS_CHANGED));
-      onDone();
+      onDone(outcome === 'moved_away' ? null : res.quietUntil);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save. Try again.');
       setSaving(false);
@@ -217,6 +261,28 @@ function ResolveForm({ escalation, onCancel, onDone }: { escalation: Escalation;
           </label>
         ))}
       </fieldset>
+      {outcome === 'reached' && (
+        <label className="field esc-comeby">
+          <span>They’ll bring the child by</span>
+          <input
+            className="input"
+            type="date"
+            value={comeBy}
+            min={isoDay(new Date())}
+            max={isoDay(new Date(Date.now() + 90 * DAY))}
+            onChange={(e) => setComeBy(e.target.value)}
+          />
+        </label>
+      )}
+      {outcome && (
+        <p className="muted esc-sub esc-after">
+          {outcome === 'reached'
+            ? 'The case closes. If the vaccine isn’t recorded by that date, it comes back to the queue.'
+            : outcome === 'moved_away'
+              ? 'The case closes and isn’t raised again for a year. If they’ve moved to another clinic’s area, that clinic can record doses with the card.'
+              : `The case closes and comes back in ${QUIET_DAYS[outcome]} days if the vaccine still isn’t recorded, to try again.`}
+        </p>
+      )}
       <div className="esc-form-row">
         <label className="field">
           <span>Why was the child missed? (optional)</span>
