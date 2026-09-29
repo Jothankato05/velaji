@@ -388,6 +388,33 @@ test('reminder engine texts an overdue caregiver and logs it', async () => {
   await retireChild(childId);
 });
 
+test('reminder engine does not text about a dose held back for the 4-week gap', async () => {
+  const facility = await FacilityModel.create({ name: 'Gap PHC', lgaName: 'AMAC', stateName: 'FCT', location: { lat: 9, lng: 7 } });
+  const caregiver = await CaregiverModel.create({ fullName: 'Gap Carer', phone: '+2348066660000' });
+  const child = await ChildModel.create({
+    chin: generateChin(), fullName: 'Gap Child', sex: 'female',
+    dateOfBirth: new Date(NOON.getTime() - 200 * DAY),
+    caregiverId: caregiver._id, homeFacilityId: facility._id, currentFacilityId: facility._id,
+    doses: [
+      // Dose 1 given late, five days ago; dose 2 was due long ago but must wait until 4 weeks after it.
+      { vaccineCode: 'PENTA', displayName: 'Pentavalent (DPT-HepB-Hib)', doseNumber: 1, dueDate: new Date(NOON.getTime() - 158 * DAY), administeredDate: new Date(NOON.getTime() - 5 * DAY) },
+      { vaccineCode: 'PENTA', displayName: 'Pentavalent (DPT-HepB-Hib)', doseNumber: 2, dueDate: new Date(NOON.getTime() - 130 * DAY), administeredDate: null }
+    ]
+  });
+  const fake = new FakeSms();
+  const svc = new ReminderService({ smsProvider: fake, now: () => NOON, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20 });
+  await svc.runCycle();
+  assert(!fake.sent.some((m) => m.to === '+2348066660000'), 'no reminder while the dose is waiting out its gap');
+
+  // Once the gap has passed (23 days later, it becomes due), the family is reminded.
+  const later = new Date(NOON.getTime() + 23 * DAY);
+  const svc2 = new ReminderService({ smsProvider: fake, now: () => later, cooldownHours: 48, maxPerDose: 3, sendStartHour: 8, sendEndHour: 20 });
+  await svc2.runCycle();
+  assert(fake.sent.some((m) => m.to === '+2348066660000'), 'reminded once the dose can be given');
+
+  await retireChild(child._id);
+});
+
 test('reminder engine sends ONE consolidated text for a child with several overdue doses', async () => {
   // Build a child with 3 distinct overdue doses (not the single-dose helper).
   const facility = await FacilityModel.create({
@@ -1546,6 +1573,43 @@ test('§21 Child Health Wallet: staff add records beyond immunisation; parent se
   assert(fam.body.healthRecords.some((r: any) => r.domain === 'growth' && r.title === 'Weight-for-age'), 'the parent sees the growth record');
 
   await ChildModel.updateOne({ chin: wchin }, { completedAt: NOON });
+});
+
+test('after catch-up, parents are told when they can come, not that a held dose is overdue', async () => {
+  const phone = '+2348012348888';
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Catchup Carer', phone });
+  const dob = new Date(Date.now() - 200 * DAY).toISOString().slice(0, 10); // missed every visit so far
+  const reg = await json('POST', '/api/children', { fullName: 'Catchup Child', sex: 'female', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId });
+  const chinC = reg.body.chin as string;
+  const c = encodeURIComponent(chinC);
+  const famUrl = `/api/family/${c}?t=${encodeURIComponent(signChin(chinC))}`;
+
+  const before = (await json('GET', famUrl, undefined, { auth: false })).body;
+  assert(before.status === 'RED', `a child who missed everything is overdue, got ${before.status}`);
+
+  // The catch-up visit: everything that can be given today is given.
+  const j = (await json('GET', `/api/children/${c}/journey`)).body;
+  for (const [key, e] of Object.entries(j.eligibility as Record<string, { reason: string | null }>)) {
+    if (e.reason !== null) continue;
+    const [vaccineCode, n] = key.split('#');
+    const r = await json('POST', `/api/children/${c}/doses`, { vaccineCode, doseNumber: Number(n), facilityId: facilityAId });
+    assert(r.status === 200, `recording ${key} failed: ${r.status}`);
+  }
+
+  const fam = (await json('GET', famUrl, undefined, { auth: false })).body;
+  assert(fam.status !== 'RED', `after catching up the parent is not told a vaccine is missed, got ${fam.status}`);
+  assert(fam.nextAppointment && Math.abs(fam.nextAppointment.dueInDays - 28) <= 1, `next visit is 4 weeks on, got ${fam.nextAppointment?.dueInDays}`);
+  assert(fam.nextAppointment.vaccines.some((v: string) => /Pentavalent/.test(v)), 'and it is for the second doses');
+  assert(!fam.doses.some((d: { state: string }) => d.state === 'red'), 'no dose shows as overdue to the parent');
+
+  const ussd = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '1' }, { auth: false });
+  assert(/Due in 2[78] days/.test(ussd.body), `USSD gives the real next date: ${ussd.body}`);
+
+  // Staff still see the child as behind the original schedule.
+  const staff = (await json('GET', `/api/children/${c}/journey`)).body;
+  assert(staff.status === 'RED', `staff keep the schedule view, got ${staff.status}`);
+
+  await ChildModel.updateOne({ chin: chinC }, { completedAt: NOON });
 });
 
 test('§8 USSD: a basic-phone caregiver gets status, next vaccine and rewards by phone number', async () => {

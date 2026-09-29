@@ -7,6 +7,7 @@ import type { Types } from 'mongoose';
 import { getSmsProvider } from '../providers/sms';
 import type { SmsProvider } from '../providers/sms';
 import { computeDoseStatus } from './schedule.service';
+import { parentSchedule } from './dose-rules.service';
 import { buildReminderSms } from './reminder-content';
 import { env } from '../config/env';
 
@@ -130,12 +131,21 @@ export class ReminderService {
       // gateway. Per-dose cooldown/cap still applies, keyed to that dose.
       const remindable: { doseKey: string; displayName: string; dueDate: Date; status: 'AMBER' | 'RED' }[] = [];
 
-      for (const dose of child.doses) {
-        if (dose.administeredDate) continue;
-        const status = computeDoseStatus(dose.dueDate, now);
+      // Dated by when the family can actually come: a series dose waits four
+      // weeks after the one before, and one still waiting on an earlier dose
+      // isn't texted about (the earlier dose is).
+      const schedule = parentSchedule(
+        child.doses.map((d) => ({
+          vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+          dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+        }))
+      );
+      for (const dose of schedule) {
+        if (dose.administeredDate || dose.waitingOnEarlier) continue;
+        const status = computeDoseStatus(dose.comeDate, now);
         if (status === 'GREEN') continue; // not due yet
         const doseKey = `${dose.vaccineCode}#${dose.doseNumber}`;
-        remindable.push({ doseKey, displayName: dose.displayName, dueDate: dose.dueDate, status });
+        remindable.push({ doseKey, displayName: dose.displayName, dueDate: dose.comeDate, status });
       }
 
       if (remindable.length === 0) continue;

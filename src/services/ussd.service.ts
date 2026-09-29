@@ -4,6 +4,7 @@ import { FacilityModel } from '../models/Facility';
 import { computeChildStatus } from './schedule.service';
 import { computeMilestones, nextMilestone } from './milestone.service';
 import { phoneMatchSource } from '../utils/phone';
+import { asParentDoses, parentSchedule } from './dose-rules.service';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -79,7 +80,8 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
     dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
   }));
-  const status = computeChildStatus(doses, { now, needsReconciliation: child.needsReconciliation });
+  // What the family can act on: a series dose waits four weeks after the one before.
+  const status = computeChildStatus(asParentDoses(doses), { now, needsReconciliation: child.needsReconciliation });
   const first = firstNameOf(child.fullName);
 
   // Child main menu.
@@ -91,7 +93,10 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
   }
 
   if (menuStep === '1') {
-    const next = doses.filter((d) => !d.administeredDate).sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
+    const next = parentSchedule(doses)
+      .filter((d) => !d.administeredDate && !d.waitingOnEarlier)
+      .map((d) => ({ ...d, dueDate: d.comeDate }))
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
     if (!next) {
       return { message: `${first} is fully immunised. Well done!`, continue: false };
     }

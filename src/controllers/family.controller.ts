@@ -5,6 +5,7 @@ import { CaregiverModel } from '../models/Caregiver';
 import { CertificateModel } from '../models/Certificate';
 import { normalizeChin } from '../services/chin.service';
 import { computeChildStatus, computeDoseStatus } from '../services/schedule.service';
+import { asParentDoses, parentSchedule } from '../services/dose-rules.service';
 import { computeMilestones, nextMilestone } from '../services/milestone.service';
 import { getHealthRecords } from '../services/wallet.service';
 import { verifyChinToken } from '../services/verification-token.service';
@@ -93,30 +94,40 @@ export async function familyJourney(req: Request, res: Response) {
 
   // A flat, per-dose list for the "My vaccines" view — every dose, in date
   // order, with a plain-language state a parent understands.
-  const doseList = [...doses]
-    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+  // Dates are when the family can actually come: after a late start, a
+  // series dose moves to four weeks after the one before.
+  const parentDoses = parentSchedule(doses);
+  const doseList = [...parentDoses]
+    .sort((a, b) => a.comeDate.getTime() - b.comeDate.getTime())
     .map((d) => {
       const band = bandFor((d.dueDate.getTime() - dob.getTime()) / DAY);
       const state = d.administeredDate
         ? 'done'
-        : (computeDoseStatus(d.dueDate, now).toLowerCase() as 'green' | 'amber' | 'red');
+        : d.waitingOnEarlier
+          ? 'green'
+          : (computeDoseStatus(d.comeDate, now).toLowerCase() as 'green' | 'amber' | 'red');
       return {
         vaccine: d.displayName,
         doseNumber: d.doseNumber,
         band: band.name,
         state,
         administeredDate: d.administeredDate,
-        dueDate: d.dueDate
+        dueDate: d.administeredDate ? d.dueDate : d.comeDate
       };
     });
 
   const administered = doses.filter((d) => d.administeredDate).length;
-  const pending = doses.filter((d) => !d.administeredDate).sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  // Only doses the family can come in for now or next: not those still
+  // waiting on an earlier dose in their series.
+  const pending = parentDoses
+    .filter((d) => !d.administeredDate && !d.waitingOnEarlier)
+    .map((d) => ({ ...d, dueDate: d.comeDate }))
+    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   const next = pending[0] ?? null;
   const facility = await FacilityModel.findById(child.currentFacilityId);
   const caregiver = await CaregiverModel.findById(child.caregiverId);
   const certificate = await CertificateModel.findOne({ childId: child._id });
-  const status = computeChildStatus(doses, { needsReconciliation: child.needsReconciliation });
+  const status = computeChildStatus(asParentDoses(doses), { needsReconciliation: child.needsReconciliation });
 
   // The upcoming reminder groups everything due around the same date.
   const soonDate = next ? next.dueDate.getTime() : 0;

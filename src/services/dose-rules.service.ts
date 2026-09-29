@@ -54,3 +54,53 @@ export function doseEligibility(doses: DoseInput[], dose: DoseInput, now: Date =
   }
   return { eligibleFrom: from, reason: null };
 }
+
+export interface ParentDose extends DoseInput {
+  /** The date the family can actually bring the child for this dose. */
+  comeDate: Date;
+  /** Waiting on an earlier dose in its series that hasn't been given yet. */
+  waitingOnEarlier: boolean;
+}
+
+/**
+ * What parents are told. A late child's schedule shifts: once dose 1 is given,
+ * dose 2 is 4 weeks after it, not on its original (long past) date, and a dose
+ * still waiting on an earlier one isn't something to come in for on its own.
+ * Staff and the dashboard keep the original schedule, where a late child is
+ * rightly shown as behind.
+ */
+export function parentSchedule(doses: DoseInput[]): ParentDose[] {
+  const come = new Map<string, Date>();
+  const key = (d: Pick<DoseInput, 'vaccineCode' | 'doseNumber'>) => `${d.vaccineCode}#${d.doseNumber}`;
+  const ordered = [...doses].sort((a, b) => a.vaccineCode.localeCompare(b.vaccineCode) || a.doseNumber - b.doseNumber);
+  const out = new Map<string, ParentDose>();
+
+  for (const d of ordered) {
+    let date = d.dueDate;
+    let waiting = false;
+    if (d.doseNumber > 1) {
+      const prev = doses.find((p) => p.vaccineCode === d.vaccineCode && p.doseNumber === d.doseNumber - 1);
+      if (prev) {
+        const prevDate = prev.administeredDate ?? come.get(key(prev)) ?? prev.dueDate;
+        waiting = !prev.administeredDate;
+        const byInterval = new Date(prevDate.getTime() + SERIES_MIN_INTERVAL_DAYS * DAY_MS);
+        if (byInterval > date) date = byInterval;
+      }
+    }
+    come.set(key(d), date);
+    out.set(key(d), { ...d, comeDate: date, waitingOnEarlier: waiting && !d.administeredDate });
+  }
+  // Back in the caller's order.
+  return doses.map((d) => out.get(key(d)) as ParentDose);
+}
+
+/** The same doses with each outstanding due date moved to when the family can come. */
+export function asParentDoses(doses: DoseInput[]): DoseInput[] {
+  return parentSchedule(doses).map((d) => ({
+    vaccineCode: d.vaccineCode,
+    displayName: d.displayName,
+    doseNumber: d.doseNumber,
+    dueDate: d.administeredDate ? d.dueDate : d.comeDate,
+    administeredDate: d.administeredDate
+  }));
+}
