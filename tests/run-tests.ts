@@ -820,6 +820,7 @@ test('verifier sees ONLY the status headline, not the medical record (least-priv
   // §24: a verifier must NOT get the full medical record.
   assert(body.record.doses === undefined, 'verifier must not see the dose history');
   assert(body.record.dateOfBirth === undefined, 'verifier must not see DOB');
+  assert(body.record.sex === 'male' && /months/.test(body.record.approxAge), `verifier sees sex and a rounded age to match the child, got ${body.record.sex} ${body.record.approxAge}`);
   assert(body.record.caregiver === undefined, 'verifier must not see caregiver contact');
 });
 

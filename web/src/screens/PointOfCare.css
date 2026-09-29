@@ -6,6 +6,7 @@
 
 .poc-scan { display: flex; gap: 10px; }
 .poc-scan-input { flex: 1; padding: 10px 12px; font-size: 15px; }
+.poc-camera { flex: none; }
 
 .journey { display: flex; flex-direction: column; gap: 16px; }
 .journey-child { padding: 16px; }

@@ -74,6 +74,16 @@ function resolveChin(input: { chin?: string; qr?: string }): { chin: string; met
   throw new AppError('Provide either a CHIN (typed) or a QR (scanned)', 400);
 }
 
+/** "3 weeks", "8 months", "about 2 years": rounded so it isn't a birth date. */
+function approxAge(dob: Date, now: Date): string {
+  const days = Math.floor((now.getTime() - dob.getTime()) / (24 * 60 * 60 * 1000));
+  if (days < 14) return 'under 2 weeks';
+  if (days < 60) return `${Math.floor(days / 7)} weeks`;
+  const months = Math.floor(days / 30.44);
+  if (months < 24) return `${months} months`;
+  return `about ${Math.floor(months / 12)} years`;
+}
+
 export async function terminalLookup(
   input: { chin?: string; qr?: string },
   requester: Requester,
@@ -113,6 +123,10 @@ export async function terminalLookup(
   const base: Record<string, unknown> = {
     chin: child.chin,
     childName: child.fullName,
+    // Enough to see the card belongs to the child in front of you, without
+    // disclosing the date of birth: sex and a rounded age.
+    sex: child.sex,
+    approxAge: approxAge(child.dateOfBirth, now),
     status,
     statusHeadline: toHeadline(status),
     nextDue: nextDue ? { vaccine: nextDue.displayName, dueDate: nextDue.dueDate } : null

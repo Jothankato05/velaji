@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { StatusPill } from '../components/ui';
+import { QrScanner, cameraAvailable } from '../components/QrScanner';
 import './PointOfCare.css';
 
 interface Dose {
@@ -94,6 +95,8 @@ export function PointOfCare() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [giving, setGiving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const hasCamera = cameraAvailable();
   const [params, setParams] = useSearchParams();
 
   useEffect(() => {
@@ -159,7 +162,11 @@ export function PointOfCare() {
 
   function onScan(e: FormEvent) {
     e.preventDefault();
-    const v = value.trim();
+    lookUp(value);
+  }
+
+  function lookUp(raw: string) {
+    const v = raw.trim();
     if (!v) return;
     // A scanned QR is a card link ending in the CHIN; a typed value is the CHIN.
     let chin = v.toUpperCase();
@@ -169,6 +176,7 @@ export function PointOfCare() {
       } catch {
         // Not a usable link: look it up as typed and let the server say so.
       }
+      setValue(chin);
     }
     void load(chin);
   }
@@ -233,7 +241,17 @@ export function PointOfCare() {
         )}
       </div>
 
+      {scanning && (
+        <QrScanner
+          onResult={(text) => { setScanning(false); setValue(text); lookUp(text); }}
+          onClose={() => setScanning(false)}
+        />
+      )}
+
       <form className="poc-scan" onSubmit={onScan}>
+        {hasCamera && !scanning && (
+          <button type="button" className="btn poc-camera" onClick={() => setScanning(true)}>Scan card</button>
+        )}
         <input
           className="input poc-scan-input"
           placeholder="Scan the card's QR, or type the CHIN"
@@ -241,6 +259,9 @@ export function PointOfCare() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           autoFocus
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
         />
         <button type="submit" className="btn btn-primary" disabled={busy || !value.trim()}>
           {busy ? 'Looking up…' : 'Look up'}

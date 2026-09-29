@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { StatusPill } from '../components/ui';
+import { QrScanner, cameraAvailable } from '../components/QrScanner';
 import './Forms.css';
 
 interface LookupResult {
@@ -20,6 +21,7 @@ interface TerminalRecord {
   childName: string;
   nextDue: { vaccine: string; dueDate: string } | null;
   sex?: string;
+  approxAge?: string;
   dateOfBirth?: string;
   currentFacility?: string | null;
   caregiver?: { fullName: string; phone: string | null } | null;
@@ -62,7 +64,9 @@ export function Terminal() {
   const [result, setResult] = useState<LookupResult | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [params, setParams] = useSearchParams();
+  const hasCamera = cameraAvailable();
 
   // A CHIN handed in from the top-bar search is checked straight away, including
   // when this screen is already open (a verifier's home), so it follows the param.
@@ -90,13 +94,17 @@ export function Terminal() {
     // A scanned QR is a URL; a typed value is a CHIN.
     const body = /^https?:\/\//i.test(v) ? { qr: v } : { chin: v.toUpperCase() };
     try {
-      setResult(await api.post<LookupResult>('/api/terminal/lookup', body));
+      const res = await api.post<LookupResult>('/api/terminal/lookup', body);
+      setResult(res);
+      // Show the CHIN, not the scanned link (which carries the card's token).
+      setValue(res.record.chin);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not check this card. Try again.');
     } finally {
       setBusy(false);
-      // Ready for the next card: a scan or typing replaces what's there.
-      requestAnimationFrame(() => input.current?.select());
+      // Ready for the next card: a plug-in scanner or typing replaces what's
+      // there. Not on touch screens, where it would pop the keyboard over the result.
+      if (!window.matchMedia('(pointer: coarse)').matches) requestAnimationFrame(() => input.current?.select());
     }
   }
 
@@ -114,17 +122,32 @@ export function Terminal() {
       </div>
 
       <section className="card panel term-panel">
+        {hasCamera && !scanning && (
+          <button type="button" className="btn btn-primary term-camera" onClick={() => { setResult(null); setError(''); setScanning(true); }}>
+            Scan the card with the camera
+          </button>
+        )}
+        {scanning && (
+          <QrScanner
+            onResult={(text) => { setScanning(false); setValue(text); void check(text); }}
+            onClose={() => setScanning(false)}
+          />
+        )}
+
         <form className="lookup-form" onSubmit={onSubmit}>
           <input
             ref={input}
             className="input"
-            placeholder="Scan the QR code or type the CHIN"
+            placeholder={hasCamera ? 'Or type the CHIN (or use a scanner)' : 'Scan the QR code or type the CHIN'}
             aria-label="QR code or CHIN"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            autoFocus
+            autoFocus={!hasCamera}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
           />
-          <button type="submit" className="btn btn-primary" disabled={busy || !value.trim()}>
+          <button type="submit" className={`btn${hasCamera ? '' : ' btn-primary'}`} disabled={busy || !value.trim()}>
             {busy ? 'Checking…' : 'Verify'}
           </button>
         </form>
@@ -141,13 +164,23 @@ export function Terminal() {
               <div className="term-reason">{reason(result.status, r.nextDue)}</div>
             </div>
 
+            {(r.sex || r.approxAge) && (
+              <div className="term-identity">
+                <div className="term-identity-who">
+                  <strong>{r.childName}</strong>
+                  <span>{[r.sex === 'female' ? 'Girl' : r.sex === 'male' ? 'Boy' : r.sex, r.approxAge].filter(Boolean).join(', ')}</span>
+                </div>
+                <div className="muted term-identity-hint">Check this matches the child in front of you.</div>
+              </div>
+            )}
+
             <dl className="term-fields">
-              <div><dt>Child</dt><dd>{r.childName}</dd></div>
+              {!(r.sex || r.approxAge) && <div><dt>Child</dt><dd>{r.childName}</dd></div>}
               <div><dt>CHIN</dt><dd className="term-chin">{r.chin}</dd></div>
               {r.dateOfBirth && (
                 <div>
-                  <dt>Age</dt>
-                  <dd>{ageLabel(r.dateOfBirth)} <span className="muted">(born {fmtDate(r.dateOfBirth)})</span></dd>
+                  <dt>Born</dt>
+                  <dd>{fmtDate(r.dateOfBirth)} <span className="muted">({ageLabel(r.dateOfBirth)})</span></dd>
                 </div>
               )}
               {r.currentFacility && <div><dt>Home clinic</dt><dd>{r.currentFacility}</dd></div>}
@@ -171,8 +204,8 @@ export function Terminal() {
             <p className="muted term-note">
               {result.method === 'qr' ? 'Card QR code verified as genuine.' : 'Looked up by CHIN; scan the QR code to confirm the card itself is genuine.'}{' '}
               {result.tier === 'verifier'
-                ? 'Verifiers see the name, status and next vaccine only.'
-                : 'Health workers also see age, clinic and parent contact.'}
+                ? 'Verifiers see the name, sex, rounded age, status and next vaccine only.'
+                : 'Health workers also see date of birth, clinic and parent contact.'}
             </p>
           </div>
         )}

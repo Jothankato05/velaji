@@ -38,6 +38,13 @@
 .term-headline.attn { background: var(--st-amber-bg); border-color: var(--st-amber); }
 .term-headline-value { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .term-reason { font-size: 14px; color: var(--ink-soft); }
+.term-camera { width: 100%; padding: 12px; font-size: 15px; margin-bottom: 12px; }
+.term-panel .qr-scanner { margin-bottom: 12px; }
+.term-identity { margin-bottom: 14px; }
+.term-identity-who { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.term-identity-who strong { font-size: 19px; }
+.term-identity-who span { font-size: 15px; color: var(--ink-soft); }
+.term-identity-hint { font-size: 12.5px; margin-top: 2px; }
 .term-fields { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
 .term-fields > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .term-fields dt { font-size: 12.5px; color: var(--muted); }
@@ -88,3 +95,4 @@
 
 .esc-resolve { display: inline-flex; gap: 6px; }
 .esc-resolve .esc-outcome { min-width: 120px; }
+
