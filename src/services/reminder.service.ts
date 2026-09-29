@@ -149,10 +149,11 @@ export class ReminderService {
         child.doses.map((d) => ({
           vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
           dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
-        }))
+        })),
+        now
       );
       for (const dose of schedule) {
-        if (dose.administeredDate || dose.waitingOnEarlier) continue;
+        if (dose.administeredDate || dose.waitingOnEarlier || dose.windowClosed) continue;
         const status = computeDoseStatus(dose.comeDate, now);
         if (status === 'GREEN') continue; // not due yet
         const doseKey = `${dose.vaccineCode}#${dose.doseNumber}`;

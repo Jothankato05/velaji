@@ -1653,6 +1653,54 @@ test('after catch-up, parents are told when they can come, not that a held dose 
   await ChildModel.updateOne({ chin: chinC }, { completedAt: NOON });
 });
 
+test('birth doses past their age window are not overdue, not offered, and do not block completion', async () => {
+  const phone = '+2348012346666';
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Window Carer', phone });
+  const dob = new Date(Date.now() - 500 * DAY).toISOString().slice(0, 10); // ~16 months
+  const reg = await json('POST', '/api/children', { fullName: 'Window Child', sex: 'male', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId });
+  const chinW = reg.body.chin as string;
+  const c = encodeURIComponent(chinW);
+
+  let j = (await json('GET', `/api/children/${c}/journey`)).body;
+  assert(j.eligibility['OPV#0'].closed && /first 2 weeks/.test(j.eligibility['OPV#0'].reason), `birth polio is closed: ${JSON.stringify(j.eligibility['OPV#0'])}`);
+  assert(j.eligibility['HEPB#0'].closed, 'HepB birth dose is closed');
+  assert(j.eligibility['BCG#1'].closed && /first year/.test(j.eligibility['BCG#1'].reason), 'BCG after the first year is closed');
+  assert(j.progress.total === j.doses.length - 3, `closed doses leave the total, got ${j.progress.total} of ${j.doses.length}`);
+  const refused = await json('POST', `/api/children/${c}/doses`, { vaccineCode: 'OPV', doseNumber: 0, facilityId: facilityAId });
+  assert(refused.status === 422, `a closed dose can't be recorded, got ${refused.status}`);
+
+  // An open follow-up case for a closed dose closes itself.
+  const child = await ChildModel.findOne({ chin: chinW });
+  await EscalationModel.create({ childId: child?._id, chin: chinW, doseKey: 'OPV#0', reason: 'lost_to_followup', status: 'open', raisedAt: new Date(), lastSeenAt: new Date() });
+  const queue = (await json('GET', '/api/escalations')).body;
+  assert(!queue.escalations.some((e: { chin: string }) => e.chin === chinW), 'no one is sent to trace a dose that can no longer be given');
+  const closed = await EscalationModel.findOne({ chin: chinW, doseKey: 'OPV#0' });
+  assert(closed?.status === 'resolved' && closed.resolvedBy === 'system', 'the case was closed automatically');
+
+  // The parent is not told a birth dose is overdue; the birth reward is missed, not pending forever.
+  const famUrl = `/api/family/${c}?t=${encodeURIComponent(signChin(chinW))}`;
+  const fam = (await json('GET', famUrl, undefined, { auth: false })).body;
+  assert(fam.doses.filter((d: { state: string }) => d.state === 'closed').length === 3, 'the three birth doses show as no longer needed');
+  assert(fam.rewards.find((r: { key: string }) => r.key === 'birth').missed, 'Birth Start is missed');
+  assert(fam.nextReward?.key !== 'birth', 'and is not dangled as the next reward');
+  const ussd = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '1' }, { auth: false });
+  assert(!/Polio Vaccine\n|BCG|birth dose/.test(ussd.body), `USSD skips closed birth doses: ${ussd.body}`);
+
+  // Everything else given on time: the schedule completes and the certificate issues.
+  j = (await json('GET', `/api/children/${c}/journey`)).body;
+  const rest = j.doses
+    .filter((d: { vaccineCode: string; doseNumber: number }) => !j.eligibility[`${d.vaccineCode}#${d.doseNumber}`]?.closed)
+    .sort((a: { dueDate: string }, b: { dueDate: string }) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  for (const d of rest) {
+    const r = await json('POST', `/api/children/${c}/doses`, { vaccineCode: d.vaccineCode, doseNumber: d.doseNumber, facilityId: facilityAId, administeredAt: d.dueDate });
+    assert(r.status === 200, `recording ${d.vaccineCode}#${d.doseNumber} failed: ${r.status} ${JSON.stringify(r.body)}`);
+  }
+  const done = (await json('GET', `/api/children/${c}`)).body;
+  assert(done.status === 'BLUE' && done.completedAt, `complete without the closed birth doses, got ${done.status}`);
+  const cert = await json('GET', `/api/children/${c}/certificate`);
+  assert(cert.status === 200, `certificate issued, got ${cert.status}`);
+});
+
 test('USSD replies always fit on one screen (182 characters), even for a big family', async () => {
   const phone = '+2348012347777';
   const cg = await json('POST', '/api/caregivers', { fullName: 'Big Family Carer', phone });

@@ -4,7 +4,7 @@ import { FacilityModel } from '../models/Facility';
 import { CaregiverModel } from '../models/Caregiver';
 import { CertificateModel } from '../models/Certificate';
 import { normalizeChin } from '../services/chin.service';
-import { computeChildStatus, computeDoseStatus } from '../services/schedule.service';
+import { computeChildStatus, computeDoseStatus, isWindowClosed } from '../services/schedule.service';
 import { asParentDoses, parentSchedule } from '../services/dose-rules.service';
 import { computeMilestones, nextMilestone } from '../services/milestone.service';
 import { getHealthRecords } from '../services/wallet.service';
@@ -79,13 +79,15 @@ export async function familyJourney(req: Request, res: Response) {
   const milestones = [...groups.values()]
     .sort((a, b) => a.order - b.order)
     .map((g) => {
-      const done = g.doses.every((d) => d.administeredDate);
-      const completedDates = g.doses.map((d) => d.administeredDate).filter(Boolean) as Date[];
+      // A dose past its age window no longer counts toward the group.
+      const applicable = g.doses.filter((d) => !isWindowClosed(d, now));
+      const done = applicable.length > 0 && applicable.every((d) => d.administeredDate);
+      const completedDates = applicable.map((d) => d.administeredDate).filter(Boolean) as Date[];
       const completedAt = done && completedDates.length ? new Date(Math.max(...completedDates.map((x) => x.getTime()))) : null;
       return {
         name: g.name,
-        total: g.doses.length,
-        administered: g.doses.filter((d) => d.administeredDate).length,
+        total: applicable.length,
+        administered: applicable.filter((d) => d.administeredDate).length,
         done,
         completedAt,
         vaccines: g.doses.map((d) => d.displayName)
@@ -96,14 +98,16 @@ export async function familyJourney(req: Request, res: Response) {
   // order, with a plain-language state a parent understands.
   // Dates are when the family can actually come: after a late start, a
   // series dose moves to four weeks after the one before.
-  const parentDoses = parentSchedule(doses);
+  const parentDoses = parentSchedule(doses, now);
   const doseList = [...parentDoses]
     .sort((a, b) => a.comeDate.getTime() - b.comeDate.getTime())
     .map((d) => {
       const band = bandFor((d.dueDate.getTime() - dob.getTime()) / DAY);
       const state = d.administeredDate
         ? 'done'
-        : d.waitingOnEarlier
+        : d.windowClosed
+          ? 'closed'
+          : d.waitingOnEarlier
           ? 'green'
           : (computeDoseStatus(d.comeDate, now).toLowerCase() as 'green' | 'amber' | 'red');
       return {
@@ -116,18 +120,19 @@ export async function familyJourney(req: Request, res: Response) {
       };
     });
 
-  const administered = doses.filter((d) => d.administeredDate).length;
+  const applicableDoses = doses.filter((d) => !isWindowClosed(d, now));
+  const administered = applicableDoses.filter((d) => d.administeredDate).length;
   // Only doses the family can come in for now or next: not those still
   // waiting on an earlier dose in their series.
   const pending = parentDoses
-    .filter((d) => !d.administeredDate && !d.waitingOnEarlier)
+    .filter((d) => !d.administeredDate && !d.waitingOnEarlier && !d.windowClosed)
     .map((d) => ({ ...d, dueDate: d.comeDate }))
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   const next = pending[0] ?? null;
   const facility = await FacilityModel.findById(child.currentFacilityId);
   const caregiver = await CaregiverModel.findById(child.caregiverId);
   const certificate = await CertificateModel.findOne({ childId: child._id });
-  const status = computeChildStatus(asParentDoses(doses), { needsReconciliation: child.needsReconciliation });
+  const status = computeChildStatus(asParentDoses(doses, now), { now, needsReconciliation: child.needsReconciliation });
 
   // The upcoming reminder groups everything due around the same date.
   const soonDate = next ? next.dueDate.getTime() : 0;
@@ -150,7 +155,11 @@ export async function familyJourney(req: Request, res: Response) {
             : status === 'RED'
               ? 'has missed a vaccine. Please visit the health centre.'
               : 'has a record a health worker needs to check.',
-    progress: { administered, total: doses.length, pct: doses.length ? Math.round((administered / doses.length) * 100) : 0 },
+    progress: {
+      administered,
+      total: applicableDoses.length,
+      pct: applicableDoses.length ? Math.round((administered / applicableDoses.length) * 100) : 0
+    },
     milestones,
     doses: doseList,
     facility: facility

@@ -140,6 +140,8 @@
 .mc-dose-tag.green { background: #eef4f0; color: #5a7a6d; }
 .mc-dose-tag.amber { background: #fdf1d6; color: #9a6a12; }
 .mc-dose-tag.red { background: #fbe5e0; color: #b03a2e; }
+.mc-dose-tag.closed { background: #f1f1ee; color: #7a857f; }
+.mc-dose-dot.closed { background: #eceee9; }
 
 /* appointment detail */
 .mc-appt-card { display: flex; gap: 22px; align-items: stretch; flex-wrap: wrap; }

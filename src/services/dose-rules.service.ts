@@ -12,7 +12,7 @@
  * Prototype reference rules like the schedule itself: a health authority must
  * confirm them before real use.
  */
-import type { DoseInput } from './schedule.service';
+import { doseWindowDays, isWindowClosed, type DoseInput } from './schedule.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const EARLY_GRACE_DAYS = 4;
@@ -23,11 +23,23 @@ export interface Eligibility {
   eligibleFrom: Date | null;
   /** Why it can't be given yet, in plain words; null when it can. */
   reason: string | null;
+  /** Past the age it can be given at: not needed any more. */
+  closed?: boolean;
+}
+
+function windowText(days: number): string {
+  if (days % 365 === 0) return days === 365 ? 'first year' : `first ${days / 365} years`;
+  if (days % 7 === 0) return days === 7 ? 'first week' : `first ${days / 7} weeks`;
+  return `first ${days} days`;
 }
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
 export function doseEligibility(doses: DoseInput[], dose: DoseInput, now: Date = new Date()): Eligibility {
+  if (isWindowClosed(dose, now)) {
+    const w = doseWindowDays(dose) ?? 0;
+    return { eligibleFrom: null, reason: `Only given in the ${windowText(w)} of life, so it's no longer needed.`, closed: true };
+  }
   const byAge = new Date(dose.dueDate.getTime() - EARLY_GRACE_DAYS * DAY_MS);
   let from = byAge;
 
@@ -60,6 +72,8 @@ export interface ParentDose extends DoseInput {
   comeDate: Date;
   /** Waiting on an earlier dose in its series that hasn't been given yet. */
   waitingOnEarlier: boolean;
+  /** Past the age it can be given at: not something to come in for. */
+  windowClosed: boolean;
 }
 
 /**
@@ -69,7 +83,7 @@ export interface ParentDose extends DoseInput {
  * Staff and the dashboard keep the original schedule, where a late child is
  * rightly shown as behind.
  */
-export function parentSchedule(doses: DoseInput[]): ParentDose[] {
+export function parentSchedule(doses: DoseInput[], now: Date = new Date()): ParentDose[] {
   const come = new Map<string, Date>();
   const key = (d: Pick<DoseInput, 'vaccineCode' | 'doseNumber'>) => `${d.vaccineCode}#${d.doseNumber}`;
   const ordered = [...doses].sort((a, b) => a.vaccineCode.localeCompare(b.vaccineCode) || a.doseNumber - b.doseNumber);
@@ -88,15 +102,20 @@ export function parentSchedule(doses: DoseInput[]): ParentDose[] {
       }
     }
     come.set(key(d), date);
-    out.set(key(d), { ...d, comeDate: date, waitingOnEarlier: waiting && !d.administeredDate });
+    out.set(key(d), {
+      ...d,
+      comeDate: date,
+      waitingOnEarlier: waiting && !d.administeredDate,
+      windowClosed: isWindowClosed(d, now)
+    });
   }
   // Back in the caller's order.
   return doses.map((d) => out.get(key(d)) as ParentDose);
 }
 
 /** The same doses with each outstanding due date moved to when the family can come. */
-export function asParentDoses(doses: DoseInput[]): DoseInput[] {
-  return parentSchedule(doses).map((d) => ({
+export function asParentDoses(doses: DoseInput[], now: Date = new Date()): DoseInput[] {
+  return parentSchedule(doses, now).map((d) => ({
     vaccineCode: d.vaccineCode,
     displayName: d.displayName,
     doseNumber: d.doseNumber,

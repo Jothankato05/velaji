@@ -4,6 +4,37 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const AMBER_WINDOW_DAYS = 7; // due within this many days -> "due soon"
 
+/** Per dose (VACCINE#n): days after the due date it can still be given. */
+const WINDOW_DAYS = new Map(
+  ROUTINE_IMMUNIZATION_SCHEDULE.filter((e) => e.windowDays !== undefined).map((e) => [`${e.vaccineCode}#${e.doseNumber}`, e.windowDays as number])
+);
+
+/** The days after its due date a dose can still be given, or null for no limit. */
+export function doseWindowDays(d: Pick<DoseInput, 'vaccineCode' | 'doseNumber'>): number | null {
+  return WINDOW_DAYS.get(`${d.vaccineCode}#${d.doseNumber}`) ?? null;
+}
+
+/**
+ * Not given, and past the age it can be given at (e.g. birth polio drops after
+ * two weeks). Such a dose is no longer overdue, isn't offered, and doesn't stop
+ * the schedule completing.
+ */
+export function isWindowClosed(d: DoseInput, now: Date = new Date()): boolean {
+  if (d.administeredDate) return false;
+  const w = doseWindowDays(d);
+  return w !== null && now.getTime() > d.dueDate.getTime() + (w + 1) * DAY_MS;
+}
+
+/** Given, or no longer givable: nothing more to do for this dose. */
+export function isSettled(d: DoseInput, now: Date = new Date()): boolean {
+  return Boolean(d.administeredDate) || isWindowClosed(d, now);
+}
+
+/** Every dose settled, and at least one actually given. */
+export function isScheduleComplete(doses: DoseInput[], now: Date = new Date()): boolean {
+  return doses.some((d) => d.administeredDate) && doses.every((d) => isSettled(d, now));
+}
+
 export interface DoseInput {
   vaccineCode: string;
   displayName: string;
@@ -69,7 +100,7 @@ export function computeChildStatus(doses: DoseInput[], opts: ChildStatusInput = 
     return 'GREY';
   }
 
-  if (doses.every((d) => d.administeredDate)) {
+  if (isScheduleComplete(doses, now)) {
     return 'BLUE';
   }
 
@@ -77,7 +108,7 @@ export function computeChildStatus(doses: DoseInput[], opts: ChildStatusInput = 
   const rank: Record<'GREEN' | 'AMBER' | 'RED', number> = { GREEN: 0, AMBER: 1, RED: 2 };
 
   for (const dose of doses) {
-    if (dose.administeredDate) continue;
+    if (isSettled(dose, now)) continue;
     const doseStatus = computeDoseStatus(dose.dueDate, now);
     if (rank[doseStatus] > rank[worst as 'GREEN' | 'AMBER' | 'RED']) worst = doseStatus;
   }
@@ -85,6 +116,4 @@ export function computeChildStatus(doses: DoseInput[], opts: ChildStatusInput = 
   return worst;
 }
 
-export function isScheduleComplete(doses: DoseInput[]): boolean {
-  return doses.length > 0 && doses.every((d) => d.administeredDate);
-}
+

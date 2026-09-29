@@ -196,10 +196,10 @@ export function Escalations() {
                   </>
                 ) : (
                   <div className="esc-result">
-                    <strong>{OUTCOME_LABEL[e.outcome ?? 'other'] ?? e.outcome}</strong>
+                    <strong>{e.resolvedBy === 'system' && e.outcome === 'other' ? 'No longer needed' : OUTCOME_LABEL[e.outcome ?? 'other'] ?? e.outcome}</strong>
                     {e.barrierLabel && <> · reason: {e.barrierLabel}</>}
                     <span className="muted">
-                      {' '}· closed {e.resolvedAt ? fmtDate(e.resolvedAt) : ''}{e.resolvedBy ? ` by ${e.resolvedBy === 'system' ? 'the system when the dose was recorded' : e.resolvedBy}` : ''}
+                      {' '}· closed {e.resolvedAt ? fmtDate(e.resolvedAt) : ''}{e.resolvedBy ? (e.resolvedBy === 'system' ? ' automatically' : ` by ${e.resolvedBy}`) : ''}
                     </span>
                     {e.resolutionNote && <div className="muted esc-note">“{e.resolutionNote}”</div>}
                     {e.resolvedBy !== 'system' && e.quietUntil && new Date(e.quietUntil).getTime() > Date.now() && (

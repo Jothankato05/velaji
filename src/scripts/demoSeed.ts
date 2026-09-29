@@ -25,6 +25,7 @@ import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { EscalationModel } from '../models/Escalation';
 import { PregnancyModel } from '../models/Pregnancy';
 import { generateChin, generateAncId } from '../services/chin.service';
+import { parentSchedule } from '../services/dose-rules.service';
 import { buildDosesForChild } from '../services/schedule.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
 import { signChin } from '../services/verification-token.service';
@@ -239,8 +240,17 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   const longOverdue = (await ChildModel.find({}))
     .map((c) => ({
       c,
-      dose: c.doses
-        .filter((d) => !d.administeredDate && d.dueDate.getTime() < now - 28 * DAY)
+      // The earliest dose the family could actually come in for: not one past
+      // its age window, nor one waiting on an earlier dose in its series.
+      dose: parentSchedule(
+        c.doses.map((d) => ({
+          vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+          dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+        })),
+        new Date(now)
+      )
+        .filter((d) => !d.administeredDate && !d.windowClosed && !d.waitingOnEarlier && d.comeDate.getTime() < now - 28 * DAY)
+        .map((d) => ({ ...d, dueDate: d.comeDate }))
         .sort((x, y) => x.dueDate.getTime() - y.dueDate.getTime())[0]
     }))
     .filter((x): x is { c: typeof x.c; dose: NonNullable<typeof x.dose> } => Boolean(x.dose))

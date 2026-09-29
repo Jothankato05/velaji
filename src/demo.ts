@@ -12,7 +12,7 @@ import { StaffUserModel } from './models/StaffUser';
  *   5: children numbered per clinic, so no two share a name.
  *   6: each child has its own parent and phone number.
  */
-export const DEMO_SEED_VERSION = 7;
+export const DEMO_SEED_VERSION = 8;
 
 /** Demo dates are relative to when it was seeded, so the recent weeks empty out
  *  as time passes (nobody records real doses on the demo). Reseed once the data

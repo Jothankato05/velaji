@@ -3,7 +3,7 @@ import { NavLink, Route, Routes, useNavigate, useOutletContext, Outlet } from 'r
 import './mychild.css';
 
 interface Milestone { name: string; total: number; administered: number; done: boolean; completedAt: string | null; vaccines: string[]; }
-interface Dose { vaccine: string; doseNumber: number; band: string; state: 'done' | 'green' | 'amber' | 'red'; administeredDate: string | null; dueDate: string; }
+interface Dose { vaccine: string; doseNumber: number; band: string; state: 'done' | 'green' | 'amber' | 'red' | 'closed'; administeredDate: string | null; dueDate: string; }
 interface Family {
   chin: string;
   firstName: string;
@@ -23,7 +23,7 @@ interface Family {
   healthRecords: HealthRecordEntry[];
   tip: string;
 }
-interface MilestoneReward { key: string; title: string; reward: string; blurb: string; total: number; administered: number; attained: boolean; attainedAt: string | null; }
+interface MilestoneReward { key: string; title: string; reward: string; blurb: string; total: number; administered: number; attained: boolean; attainedAt: string | null; missed?: boolean; }
 interface HealthRecordEntry { id: string; domain: string; domainLabel: string; title: string; value: string; note: string; facility: string | null; recordedAt: string; }
 
 
@@ -335,13 +335,13 @@ function HomeView() {
         <div className="mc-rewards-head">
           <h3>Rewards along the way</h3>
           {data.nextReward && (
-            <span className="mc-next-reward">Next: {data.nextReward.reward} · {data.nextReward.dosesToGo} to go</span>
+            <span className="mc-next-reward">Next: {data.nextReward.reward} · {data.nextReward.dosesToGo} more vaccine{data.nextReward.dosesToGo === 1 ? '' : 's'}</span>
           )}
         </div>
         <div className="mc-reward-grid">
           {data.rewards.map((r) => {
             const isNext = data.nextReward?.key === r.key;
-            const cls = r.attained ? 'earned' : isNext ? 'active' : 'locked';
+            const cls = r.attained ? 'earned' : isNext ? 'active' : r.missed ? 'locked missed' : 'locked';
             return (
               <div key={r.key} className={`mc-reward ${cls}`}>
                 <span className="mc-reward-badge" aria-hidden>{r.attained ? '★' : isNext ? '◔' : '○'}</span>
@@ -350,7 +350,9 @@ function HomeView() {
                 <span className="mc-reward-state">
                   {r.attained
                     ? `Earned${r.attainedAt ? ` ${fmtDate(r.attainedAt)}` : ''}`
-                    : `${r.administered} of ${r.total} done${isNext ? ` · ${r.total - r.administered} to go` : ''}`}
+                    : r.missed
+                      ? 'These were for newborns, so this one has passed.'
+                      : `${r.administered} of ${r.total} done${isNext ? ` · ${r.total - r.administered} to go` : ''}`}
                 </span>
               </div>
             );
@@ -413,7 +415,7 @@ function ViewHead({ data, title, sub }: { data: Family; title: string; sub: stri
 }
 
 const BAND_ORDER = ['Birth vaccines', '6–14 week vaccines', '9-month vaccines', '15-month vaccines'];
-const doseStateLabel: Record<Dose['state'], string> = { done: 'Given', green: 'Scheduled', amber: 'Due soon', red: 'Overdue' };
+const doseStateLabel: Record<Dose['state'], string> = { done: 'Given', green: 'Scheduled', amber: 'Due soon', red: 'Overdue', closed: 'Not needed now' };
 
 function VaccinesView() {
   const { data } = useFamily();
@@ -443,7 +445,9 @@ function VaccinesView() {
                   <span className="mc-dose-when">
                     {d.state === 'done'
                       ? `Given ${d.administeredDate ? fmtDate(d.administeredDate) : ''}`
-                      : `Due ${fmtDate(d.dueDate)}`}
+                      : d.state === 'closed'
+                        ? 'Only given to young babies. Nothing to do.'
+                        : `Due ${fmtDate(d.dueDate)}`}
                   </span>
                 </span>
                 <span className={`mc-dose-tag ${d.state}`}>{doseStateLabel[d.state]}</span>

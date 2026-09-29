@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { ChildModel } from '../models/Child';
 import { FacilityModel } from '../models/Facility';
 import { normalizeChin } from '../services/chin.service';
-import { computeChildStatus } from '../services/schedule.service';
+import { computeChildStatus, isWindowClosed } from '../services/schedule.service';
 import { verifyChinToken } from '../services/verification-token.service';
 import { AppError } from '../utils/AppError';
 
@@ -37,7 +37,7 @@ export async function verifyChin(req: Request, res: Response) {
   const status = computeChildStatus(doses, { needsReconciliation: child.needsReconciliation });
 
   const nextDue = doses
-    .filter((d) => !d.administeredDate)
+    .filter((d) => !d.administeredDate && !isWindowClosed(d))
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
 
   res.json({

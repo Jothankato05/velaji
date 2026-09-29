@@ -1,4 +1,4 @@
-import { computeDoseStatus } from './schedule.service';
+import { computeDoseStatus, isWindowClosed } from './schedule.service';
 
 /**
  * FHIR R4 export (NCIHAP §4 / §22 interoperability).
@@ -92,7 +92,8 @@ export function childToFhirBundle(child: FhirChildInput, now: Date = new Date())
     ...(child.facilityName ? { location: { display: child.facilityName } } : {})
   }));
 
-  const outstanding = child.doses.filter((d) => !d.administeredDate);
+  // Doses past the age they're given at aren't recommended any more.
+  const outstanding = child.doses.filter((d) => !d.administeredDate && !isWindowClosed({ ...d, administeredDate: null }, now));
   const recommendation = outstanding.length
     ? [{
         resourceType: 'ImmunizationRecommendation',

@@ -4,7 +4,7 @@ import { FacilityModel } from '../models/Facility';
 import { AccessLogModel } from '../models/AccessLog';
 import { normalizeChin, isValidChinFormat } from '../services/chin.service';
 import { verifyChinToken } from '../services/verification-token.service';
-import { computeChildStatus, type ChildStatusColor } from '../services/schedule.service';
+import { computeChildStatus, isWindowClosed, type ChildStatusColor } from '../services/schedule.service';
 import { AppError } from '../utils/AppError';
 import type { StaffRole } from '../utils/token';
 
@@ -115,7 +115,7 @@ export async function terminalLookup(
   }));
   const status = computeChildStatus(doses, { now, needsReconciliation: child.needsReconciliation });
   const nextDue = doses
-    .filter((d) => !d.administeredDate)
+    .filter((d) => !d.administeredDate && !isWindowClosed(d, now))
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
 
   // --- Role-scoped disclosure (NCIHAP §24 least-privilege) ---

@@ -39,15 +39,24 @@ export interface ScheduleTemplateEntry {
   doseNumber: number;
   /** Age at which this dose is due, in days from date of birth. */
   dueOffsetDays: number;
+  /**
+   * How many days after the due date the dose can still be given. Past that it
+   * is no longer given, so it stops being "overdue" and no longer blocks the
+   * schedule from completing. Absent = no limit in this template.
+   */
+  windowDays?: number;
 }
 
 const WEEK = 7;
 const MONTH = 30;
 
 export const ROUTINE_IMMUNIZATION_SCHEDULE: ScheduleTemplateEntry[] = [
-  { vaccineCode: 'BCG', displayName: 'BCG (Tuberculosis)', doseNumber: 1, dueOffsetDays: 0 },
-  { vaccineCode: 'OPV', displayName: 'Oral Polio Vaccine', doseNumber: 0, dueOffsetDays: 0 },
-  { vaccineCode: 'HEPB', displayName: 'Hepatitis B (birth dose)', doseNumber: 0, dueOffsetDays: 0 },
+  // Birth doses. OPV0 and the HepB birth dose are only given in the first two
+  // weeks of life (after that the infant OPV and Penta series protect instead);
+  // BCG can be caught up during the first year. To verify with NPHCDA.
+  { vaccineCode: 'BCG', displayName: 'BCG (Tuberculosis)', doseNumber: 1, dueOffsetDays: 0, windowDays: 365 },
+  { vaccineCode: 'OPV', displayName: 'Oral Polio Vaccine', doseNumber: 0, dueOffsetDays: 0, windowDays: 14 },
+  { vaccineCode: 'HEPB', displayName: 'Hepatitis B (birth dose)', doseNumber: 0, dueOffsetDays: 0, windowDays: 14 },
 
   { vaccineCode: 'PENTA', displayName: 'Pentavalent (DPT-HepB-Hib)', doseNumber: 1, dueOffsetDays: 6 * WEEK },
   { vaccineCode: 'OPV', displayName: 'Oral Polio Vaccine', doseNumber: 1, dueOffsetDays: 6 * WEEK },

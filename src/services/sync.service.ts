@@ -3,7 +3,7 @@ import { ChildModel } from '../models/Child';
 import { CaregiverModel } from '../models/Caregiver';
 import { SyncTransactionModel } from '../models/SyncTransaction';
 import { generateChin, normalizeChin } from './chin.service';
-import { buildDosesForChild, computeChildStatus } from './schedule.service';
+import { buildDosesForChild, computeChildStatus, isScheduleComplete } from './schedule.service';
 import { maybeIssueCertificate } from './certificate.service';
 import { autoResolveForDose } from './escalation.service';
 import { AppError } from '../utils/AppError';
@@ -112,7 +112,11 @@ async function applyRecordDose(tx: IncomingTx): Promise<TxResult> {
 
   dose.administeredDate = recordedAt;
   dose.administeredAtFacilityId = p.facilityId;
-  if (child.doses.every((d) => d.administeredDate) && !child.completedAt) {
+  const asInputs = child.doses.map((d) => ({
+    vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+    dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+  }));
+  if (isScheduleComplete(asInputs) && !child.completedAt) {
     child.completedAt = new Date();
   }
   await child.save();

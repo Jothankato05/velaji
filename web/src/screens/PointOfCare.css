@@ -57,6 +57,7 @@
 .history-list li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .history-list li:last-child { border-bottom: none; }
 .history-list li.given span:first-child::before { content: '✓ '; color: var(--st-green); }
+.history-list li.closed span:first-child { color: var(--muted); text-decoration: line-through; }
 
 /* schedule complete */
 .payoff { padding: 16px; border: 1px solid #c3dfcd; background: var(--st-green-bg); }

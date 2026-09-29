@@ -1,4 +1,4 @@
-import type { DoseInput } from './schedule.service';
+import { isWindowClosed, type DoseInput } from './schedule.service';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -23,6 +23,8 @@ export interface MilestoneReward {
   administered: number;
   attained: boolean;
   attainedAt: string | null;
+  /** Every dose in it passed its age window without being given: can't be earned now. */
+  missed: boolean;
 }
 
 interface MilestoneDef {
@@ -44,9 +46,12 @@ const DEFS: MilestoneDef[] = [
   { key: 'healthy_start', title: 'Healthy Start', reward: '12 months of NHIA child health coverage', blurb: 'Fully immunised. Health protection unlocked.', maxAgeDays: Infinity }
 ];
 
-export function computeMilestones(doses: DoseInput[], dateOfBirth: Date): MilestoneReward[] {
+export function computeMilestones(doses: DoseInput[], dateOfBirth: Date, now: Date = new Date()): MilestoneReward[] {
   return DEFS.map((def) => {
-    const inSet = doses.filter((d) => (d.dueDate.getTime() - dateOfBirth.getTime()) / DAY < def.maxAgeDays);
+    // Doses past the age they're given at don't count either way: they can't
+    // block a milestone, and can't earn one.
+    const inBand = doses.filter((d) => (d.dueDate.getTime() - dateOfBirth.getTime()) / DAY < def.maxAgeDays);
+    const inSet = inBand.filter((d) => !isWindowClosed(d, now));
     const administeredDates = inSet.map((d) => d.administeredDate).filter(Boolean) as Date[];
     const attained = inSet.length > 0 && administeredDates.length === inSet.length;
     const attainedAt = attained && administeredDates.length
@@ -60,7 +65,8 @@ export function computeMilestones(doses: DoseInput[], dateOfBirth: Date): Milest
       total: inSet.length,
       administered: administeredDates.length,
       attained,
-      attainedAt
+      attainedAt,
+      missed: inBand.length > 0 && inSet.length === 0
     };
   });
 }
@@ -68,7 +74,7 @@ export function computeMilestones(doses: DoseInput[], dateOfBirth: Date): Milest
 /** The first milestone not yet reached, with how many doses remain — the "next
  *  reward" MyChild dangles to keep the family moving (§14 engagement). */
 export function nextMilestone(milestones: MilestoneReward[]): { key: MilestoneKey; reward: string; dosesToGo: number } | null {
-  const next = milestones.find((m) => !m.attained);
+  const next = milestones.find((m) => !m.attained && !m.missed);
   if (!next) return null;
   return { key: next.key, reward: next.reward, dosesToGo: Math.max(0, next.total - next.administered) };
 }

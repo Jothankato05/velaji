@@ -4,7 +4,7 @@ import { CaregiverModel } from '../models/Caregiver';
 import { EscalationModel } from '../models/Escalation';
 import { CertificateModel } from '../models/Certificate';
 import { FacilityHandoffModel } from '../models/FacilityHandoff';
-import { computeChildStatus } from './schedule.service';
+import { computeChildStatus, isWindowClosed } from './schedule.service';
 import { computeMilestones } from './milestone.service';
 import { coldChainCm3 } from '../data/routine-immunization-schedule';
 import { expectedBirths } from './antenatal.service';
@@ -351,7 +351,7 @@ export async function milestoneAttainment(now: Date = new Date()): Promise<Miles
       vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
       dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
     }));
-    const byKey = Object.fromEntries(computeMilestones(doses, child.dateOfBirth).map((m) => [m.key, m]));
+    const byKey = Object.fromEntries(computeMilestones(doses, child.dateOfBirth, now).map((m) => [m.key, m]));
     if (byKey.birth?.attained) birth += 1;
     if (byKey.foundation?.attained) foundation += 1;
     if (byKey.healthy_start?.attained) healthyStart += 1;
@@ -392,7 +392,7 @@ export async function overdueChildren(filter: GeoFilter, now: Date = new Date())
     const geo = { state: g?.state ?? UNKNOWN, lga: g?.lga ?? UNKNOWN, ward: g?.ward ?? UNSPECIFIED_WARD, facility: '', facilityId: '' };
     if (!inScope(geo, filter)) continue;
 
-    const doses = child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }));
+    const doses = child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }));
     const status = computeChildStatus(
       child.doses.map((d) => ({ vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null })),
       { now, needsReconciliation: child.needsReconciliation }
@@ -400,7 +400,7 @@ export async function overdueChildren(filter: GeoFilter, now: Date = new Date())
     if (status !== 'RED') continue;
 
     const overdue = doses
-      .filter((d) => !d.administeredDate && d.dueDate.getTime() < now.getTime())
+      .filter((d) => !d.administeredDate && d.dueDate.getTime() < now.getTime() && !isWindowClosed(d, now))
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
     const caregiver = await CaregiverModel.findById(child.caregiverId);
 

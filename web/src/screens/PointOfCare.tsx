@@ -32,7 +32,7 @@ interface Journey {
   coverage: Coverage | null;
   doses: Dose[];
   /** Per outstanding dose (key VACCINE#n): when it can be given, and why not yet. */
-  eligibility: Record<string, { eligibleFrom: string | null; reason: string | null }>;
+  eligibility: Record<string, { eligibleFrom: string | null; reason: string | null; closed?: boolean }>;
 }
 interface Facility {
   _id: string;
@@ -346,10 +346,14 @@ export function PointOfCare() {
               {[...journey.doses]
                 .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
                 .map((d) => (
-                  <li key={doseKey(d)} className={d.administeredDate ? 'given' : ''}>
+                  <li key={doseKey(d)} className={d.administeredDate ? 'given' : journey.eligibility?.[doseKey(d)]?.closed ? 'closed' : ''}>
                     <span>{doseLabel(d)}</span>
                     <span className="muted">
-                      {d.administeredDate ? `given ${fmtDate(d.administeredDate)}` : `due ${fmtDate(d.dueDate)}`}
+                      {d.administeredDate
+                        ? `given ${fmtDate(d.administeredDate)}`
+                        : journey.eligibility?.[doseKey(d)]?.closed
+                          ? 'not given; no longer needed at this age'
+                          : `due ${fmtDate(d.dueDate)}`}
                     </span>
                   </li>
                 ))}
@@ -378,7 +382,10 @@ function dueNow(j: Journey): Dose[] {
 function heldBack(j: Journey): Dose[] {
   const cutoff = Date.now() + HELD_WINDOW_DAYS * DAY;
   return j.doses
-    .filter((d) => !d.administeredDate && new Date(d.dueDate).getTime() <= cutoff && j.eligibility?.[doseKey(d)]?.reason)
+    .filter((d) => {
+      const e = j.eligibility?.[doseKey(d)];
+      return !d.administeredDate && new Date(d.dueDate).getTime() <= cutoff && e?.reason && !e.closed;
+    })
     .sort(byDue);
 }
 

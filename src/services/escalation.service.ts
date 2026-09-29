@@ -4,6 +4,7 @@ import { ChildModel } from '../models/Child';
 import { CaregiverModel } from '../models/Caregiver';
 import { FacilityModel } from '../models/Facility';
 import { AppError } from '../utils/AppError';
+import { doseWindowDays, isWindowClosed } from './schedule.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,11 +55,48 @@ export const BARRIERS = Object.keys(BARRIER_LABELS);
  * with who the child is, how to reach the caregiver, which vaccine, and how
  * overdue it is — everything needed to go trace the family, in one row.
  */
+/**
+ * Close open cases whose dose can no longer be given (e.g. birth polio drops
+ * once the child is past two weeks): there's nothing left to trace the family
+ * for. Returns how many were closed.
+ */
+export async function closeWindowPassedEscalations(now: Date = new Date()): Promise<number> {
+  const open = await EscalationModel.find({ status: 'open' }).select('childId doseKey');
+  const windowed = open.filter((e) => {
+    const [vaccineCode, n] = e.doseKey.split('#');
+    return doseWindowDays({ vaccineCode, doseNumber: Number(n) }) !== null;
+  });
+  if (!windowed.length) return 0;
+  const children = await ChildModel.find({ _id: { $in: windowed.map((e) => e.childId) } }).select('doses');
+  const byId = new Map(children.map((c) => [String(c._id), c]));
+  const toClose = windowed.filter((e) => {
+    const [vaccineCode, n] = e.doseKey.split('#');
+    const d = byId.get(String(e.childId))?.doses.find((x) => x.vaccineCode === vaccineCode && x.doseNumber === Number(n));
+    return d && isWindowClosed({ vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber, dueDate: d.dueDate, administeredDate: d.administeredDate ?? null }, now);
+  });
+  if (!toClose.length) return 0;
+  await EscalationModel.updateMany(
+    { _id: { $in: toClose.map((e) => e._id) }, status: 'open' },
+    {
+      $set: {
+        status: 'resolved',
+        resolvedAt: now,
+        resolvedBy: 'system',
+        outcome: 'other',
+        resolutionNote: 'This vaccine is only given in early infancy and the child is now past that age, so there is nothing to trace.'
+      }
+    }
+  );
+  return toClose.length;
+}
+
 export async function countOpenEscalations(): Promise<number> {
+  await closeWindowPassedEscalations();
   return EscalationModel.countDocuments({ status: 'open' });
 }
 
 export async function listEscalations(status: 'open' | 'resolved' = 'open'): Promise<EscalationView[]> {
+  await closeWindowPassedEscalations();
   // Resolved cases are history: the most recent 100 are enough on screen.
   const escalations =
     status === 'open'

@@ -4,6 +4,7 @@ import { FacilityModel } from '../models/Facility';
 import { computeChildStatus } from './schedule.service';
 import { computeMilestones, nextMilestone } from './milestone.service';
 import { phoneMatchSource } from '../utils/phone';
+import { ROUTINE_IMMUNIZATION_SCHEDULE } from '../data/routine-immunization-schedule';
 import { asParentDoses, parentSchedule } from './dose-rules.service';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -34,6 +35,16 @@ function statusHeadline(status: string): string {
   if (status === 'AMBER') return 'Vaccine due soon';
   if (status === 'RED') return 'Action needed';
   return 'Needs review';
+}
+
+/** Vaccines given more than once, whose dose number a parent needs to hear. */
+const MULTI_DOSE = new Set(
+  ROUTINE_IMMUNIZATION_SCHEDULE.map((e) => e.vaccineCode).filter((c, i, all) => all.indexOf(c) !== i)
+);
+
+function doseName(d: { vaccineCode: string; displayName: string; doseNumber: number }): string {
+  if (!MULTI_DOSE.has(d.vaccineCode) || /dose\)/i.test(d.displayName)) return d.displayName;
+  return d.doseNumber === 0 ? `${d.displayName} (birth)` : `${d.displayName} ${d.doseNumber}`;
 }
 
 /** Keys 1-9 on the handset, so at most nine children can be offered. */
@@ -102,7 +113,7 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
   }));
   // What the family can act on: a series dose waits four weeks after the one before.
-  const status = computeChildStatus(asParentDoses(doses), { now, needsReconciliation: child.needsReconciliation });
+  const status = computeChildStatus(asParentDoses(doses, now), { now, needsReconciliation: child.needsReconciliation });
   const first = firstNameOf(child.fullName);
 
   // Child main menu.
@@ -114,8 +125,8 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
   }
 
   if (menuStep === '1') {
-    const next = parentSchedule(doses)
-      .filter((d) => !d.administeredDate && !d.waitingOnEarlier)
+    const next = parentSchedule(doses, now)
+      .filter((d) => !d.administeredDate && !d.waitingOnEarlier && !d.windowClosed)
       .map((d) => ({ ...d, dueDate: d.comeDate }))
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
     if (!next) {
@@ -128,15 +139,15 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     const place = facility?.name ?? 'your health centre';
     return {
       message: fit(
-        `Next for ${first}:\n${next.displayName}\n${when}\nAt ${place}\nBring the card.`,
-        `Next for ${first}:\n${next.displayName}\n${when}\nAt ${place}`
+        `Next for ${first}:\n${doseName(next)}\n${when}\nAt ${place}\nBring the card.`,
+        `Next for ${first}:\n${doseName(next)}\n${when}\nAt ${place}`
       ),
       continue: false
     };
   }
 
   if (menuStep === '2') {
-    const milestones = computeMilestones(doses, child.dateOfBirth);
+    const milestones = computeMilestones(doses, child.dateOfBirth, now);
     const earned = milestones.filter((m) => m.attained).map((m) => m.title);
     const nx = nextMilestone(milestones);
     const more = (n: number) => `${n} more vaccine${n === 1 ? '' : 's'}`;

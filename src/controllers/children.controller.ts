@@ -5,7 +5,7 @@ import { FacilityModel } from '../models/Facility';
 import { CertificateModel } from '../models/Certificate';
 import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { generateChin, normalizeChin } from '../services/chin.service';
-import { buildDosesForChild, computeChildStatus } from '../services/schedule.service';
+import { buildDosesForChild, computeChildStatus, isScheduleComplete, isWindowClosed } from '../services/schedule.service';
 import { generatePrintableCardSvg } from '../services/card.service';
 import { maybeIssueCertificate } from '../services/certificate.service';
 import { autoResolveForDose } from '../services/escalation.service';
@@ -199,7 +199,11 @@ export async function recordDose(req: Request, res: Response) {
   // §17 audit: every genuine administration is written to an append-only ledger.
   await recordAdministration({ chin: child.chin, childId: child._id, vaccineCode, doseNumber: Number(doseNumber), facilityId, ...actor }).catch(() => {});
 
-  const complete = child.doses.every((d) => d.administeredDate);
+  // Complete when every dose is given or past the age it's given at.
+  const complete = isScheduleComplete(child.doses.map((d) => ({
+    vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+    dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+  })));
   if (complete && !child.completedAt) {
     child.completedAt = new Date();
   }
@@ -255,8 +259,10 @@ export async function getJourney(req: Request, res: Response) {
     administeredDate: d.administeredDate ?? null
   }));
 
-  const administered = doses.filter((d) => d.administeredDate).length;
-  const next = doses
+  // Doses past the age they're given at no longer count toward the total.
+  const applicable = doses.filter((d) => !isWindowClosed(d));
+  const administered = applicable.filter((d) => d.administeredDate).length;
+  const next = applicable
     .filter((d) => !d.administeredDate)
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
 
@@ -272,7 +278,7 @@ export async function getJourney(req: Request, res: Response) {
     status: computeChildStatus(doses, { needsReconciliation: child.needsReconciliation }),
     currentFacility: facility?.name ?? null,
     caregiver: caregiver ? { fullName: caregiver.fullName, phone: caregiver.phone || null } : null,
-    progress: { administered, total: doses.length, remaining: doses.length - administered },
+    progress: { administered, total: applicable.length, remaining: applicable.length - administered },
     nextDue: next
       ? { vaccine: next.displayName, vaccineCode: next.vaccineCode, doseNumber: next.doseNumber, dueDate: next.dueDate }
       : null,
