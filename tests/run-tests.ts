@@ -1653,6 +1653,27 @@ test('after catch-up, parents are told when they can come, not that a held dose 
   await ChildModel.updateOne({ chin: chinC }, { completedAt: NOON });
 });
 
+test('USSD replies always fit on one screen (182 characters), even for a big family', async () => {
+  const phone = '+2348012347777';
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Big Family Carer', phone });
+  for (let i = 0; i < 9; i++) {
+    const dob = new Date(Date.now() - (30 + i * 150) * DAY).toISOString().slice(0, 10);
+    const r = await json('POST', '/api/children', {
+      fullName: `Oluwatobilobaayomide${String.fromCharCode(65 + i)} Adeyemi-Ogunleye`, sex: 'female', dateOfBirth: dob,
+      caregiverId: cg.body._id, homeFacilityId: facilityAId
+    });
+    assert(r.status === 201, `child ${i} failed: ${r.status}`);
+  }
+  const screens = ['', '1', '1*1', '1*2', '9', '9*1', '9*2', '12', '1*7'];
+  for (const text of screens) {
+    const r = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text }, { auth: false });
+    assert(r.body.length <= 182, `'${text}' is ${r.body.length} characters: ${r.body}`);
+  }
+  const rewards = await json('POST', '/webhooks/ussd', { phoneNumber: phone, text: '9*2' }, { auth: false });
+  assert(/more vaccine|All rewards/.test(rewards.body), `rewards say what is left in plain words: ${rewards.body}`);
+  await ChildModel.updateMany({ caregiverId: cg.body._id }, { completedAt: NOON });
+});
+
 test('§8 USSD: a basic-phone caregiver gets status, next vaccine and rewards by phone number', async () => {
   const phone = '+2348012349999';
   const cg = await json('POST', '/api/caregivers', { fullName: 'USSD Carer', phone });

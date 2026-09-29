@@ -65,6 +65,11 @@ export function UssdSim() {
     setText('');
     setReply('');
   }
+  function backspace() {
+    if (!started) setPhone((p) => p.slice(0, -1));
+    else if (open && !busy) setReply((r) => r.slice(0, -1));
+  }
+
   function pressKey(k: string) {
     if (!started) {
       setPhone((p) => p + k);
@@ -150,6 +155,16 @@ export function UssdSim() {
           ) : (
             <button type="button" className="ussd-call" onClick={dial} disabled={busy}>Dial again</button>
           )}
+          <button
+            type="button"
+            className="ussd-del"
+            onClick={backspace}
+            disabled={started ? !open || busy || !reply : !phone}
+            aria-label="Delete last digit"
+            title="Delete"
+          >
+            ⌫
+          </button>
           <button type="button" className="ussd-end" onClick={hangUp} disabled={!started}>End</button>
         </div>
 

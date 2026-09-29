@@ -39,6 +39,24 @@ function statusHeadline(status: string): string {
 /** Keys 1-9 on the handset, so at most nine children can be offered. */
 const MAX_LISTED = 9;
 
+/**
+ * Networks cut a USSD screen off at 182 characters (the GSM limit), so a
+ * longer reply loses its end, often the part that matters. Every reply is
+ * checked; callers offer a shorter wording where one might run long.
+ */
+export const USSD_MAX_CHARS = 182;
+
+/** The first of several wordings that fits on one USSD screen. */
+function fit(...options: string[]): string {
+  return options.find((o) => o.length + 4 <= USSD_MAX_CHARS) ?? options[options.length - 1].slice(0, USSD_MAX_CHARS - 4);
+}
+
+/** A first name short enough for a numbered menu on a small screen. */
+function menuName(fullName: string): string {
+  const f = firstNameOf(fullName);
+  return f.length > 12 ? `${f.slice(0, 11)}.` : f;
+}
+
 export async function handleUssd(input: { phoneNumber: string; text: string }, now: Date = new Date()): Promise<UssdResult> {
   const steps = input.text ? input.text.split('*').map((s) => s.trim()) : [];
 
@@ -67,7 +85,10 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     }
     if (!child) {
       return {
-        message: `${invalid ? 'Invalid choice.\n' : ''}Velaji\nSelect your child:\n${children.map((c, i) => `${i + 1}. ${firstNameOf(c.fullName)}`).join('\n')}`,
+        message: fit(
+          `${invalid ? 'Invalid choice.\n' : ''}Velaji\nSelect your child:\n${children.map((c, i) => `${i + 1}. ${menuName(c.fullName)}`).join('\n')}`,
+          `${invalid ? 'Invalid choice.\n' : ''}Select child:\n${children.map((c, i) => `${i + 1}.${menuName(c.fullName)}`).join('\n')}`
+        ),
         continue: true
       };
     }
@@ -104,8 +125,12 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     const days = Math.round((next.dueDate.getTime() - now.getTime()) / DAY);
     const plural = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
     const when = days > 0 ? `Due in ${plural(days)}` : days === 0 ? 'Due today' : `Overdue by ${plural(-days)}. Please go soon.`;
+    const place = facility?.name ?? 'your health centre';
     return {
-      message: `Next for ${first}:\n${next.displayName}\n${when}\nAt ${facility?.name ?? 'your health centre'}\nBring the card.`,
+      message: fit(
+        `Next for ${first}:\n${next.displayName}\n${when}\nAt ${place}\nBring the card.`,
+        `Next for ${first}:\n${next.displayName}\n${when}\nAt ${place}`
+      ),
       continue: false
     };
   }
@@ -114,9 +139,19 @@ export async function handleUssd(input: { phoneNumber: string; text: string }, n
     const milestones = computeMilestones(doses, child.dateOfBirth);
     const earned = milestones.filter((m) => m.attained).map((m) => m.title);
     const nx = nextMilestone(milestones);
+    const more = (n: number) => `${n} more vaccine${n === 1 ? '' : 's'}`;
     const earnedLine = earned.length ? `Earned: ${earned.join(', ')}.` : 'No rewards earned yet.';
-    const nextLine = nx ? ` Next: ${nx.reward} (${nx.dosesToGo} to go).` : ' All rewards earned!';
-    return { message: `${first}'s rewards:\n${earnedLine}${nextLine}`, continue: false };
+    const earnedShort = earned.length ? `Earned ${earned.length} of ${milestones.length} rewards.` : 'No rewards earned yet.';
+    const nextLine = nx ? `\nNext: ${nx.reward}, after ${more(nx.dosesToGo)}.` : '\nAll rewards earned!';
+    const nextShort = nx ? `\nNext reward after ${more(nx.dosesToGo)}.` : '\nAll rewards earned!';
+    return {
+      message: fit(
+        `${first}'s rewards:\n${earnedLine}${nextLine}`,
+        `${first}'s rewards:\n${earnedShort}${nextLine}`,
+        `${first}'s rewards:\n${earnedShort}${nextShort}`
+      ),
+      continue: false
+    };
   }
 
   return { message: 'Thank you. Keep your child protected.', continue: false };

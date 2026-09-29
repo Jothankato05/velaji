@@ -34,7 +34,10 @@
 .ussd-field input { background: #2a332e; border: 1px solid #3a453f; border-radius: 6px; padding: 8px 10px; color: #eafaf0; font-size: 14px; font-family: var(--font-ui); }
 .ussd-field input:disabled { opacity: .6; }
 
-.ussd-calls { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.ussd-calls { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+.ussd-del { background: #2a332e; color: #eafaf0; border: 1px solid #3a453f; border-radius: 6px; padding: 9px 14px; font: inherit; font-size: 16px; cursor: pointer; }
+.ussd-del:hover:not(:disabled) { background: #33403a; }
+.ussd-del:disabled { opacity: .45; cursor: default; }
 .ussd-call, .ussd-end { border: none; border-radius: 6px; padding: 9px 14px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .ussd-call { background: #2f8f5b; color: #fff; }
 .ussd-end { background: #a3372b; color: #fff; }
@@ -47,5 +50,5 @@
 
 @media (max-width: 760px) {
   .ussd { grid-template-columns: minmax(0, 1fr); }
-  .ussd-phone { max-width: 320px; }
+  .ussd-phone { width: 100%; max-width: 340px; justify-self: center; }
 }
