@@ -184,6 +184,9 @@
   .demand { font-size: 12.5px; }
   .demand thead th { padding: 0 4px 6px; }
   .demand tbody td { padding: 8px 4px; }
-  .demand-codes { min-width: 0; }
+  .demand-codes { min-width: 0; hyphens: manual; }
   .demand-day, .demand-mon { display: block; }
 }
+
+.demand-overdue { color: var(--st-red); font-weight: 600; border-right: 2px solid var(--line-strong); }
+.demand-overdue-head { color: var(--st-red); border-right: 2px solid var(--line-strong); white-space: nowrap; }

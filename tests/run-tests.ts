@@ -1059,15 +1059,30 @@ test('dashboard drills down State → LGA → Ward', async () => {
 test('stock forecast counts upcoming demand per vaccine', async () => {
   const { status, body } = await jsonAs(adminTokenT, 'GET', `/api/dashboard/stock-forecast?weeks=4&state=${encodeURIComponent(ST)}`);
   assert(status === 200, `expected 200, got ${status}`);
-  // Within 4 weeks: B's PCV (+20d) and D's Measles (+3d). Overdue doses excluded.
+  // Within 4 weeks: B's PCV (+20d) and D's Measles (+3d).
   const pcv = body.byVaccine.find((v: any) => v.vaccineCode === 'PCV');
   const measles = body.byVaccine.find((v: any) => v.vaccineCode === 'MEASLES');
   assert(pcv && pcv.dueCount === 1, `PCV forecast expected 1, got ${pcv?.dueCount}`);
   assert(measles && measles.dueCount === 1, `Measles forecast expected 1, got ${measles?.dueCount}`);
-  assert(!body.byVaccine.some((v: any) => v.vaccineCode === 'PENTA'), 'overdue PENTA must not be in the forecast');
+  // Overdue doses are the catch-up backlog: counted as needed now, not in a future week.
+  const penta = body.byVaccine.find((v: any) => v.vaccineCode === 'PENTA');
+  assert(penta && penta.dueCount === 0 && penta.overdueNow >= 1, `overdue PENTA is backlog, got ${JSON.stringify(penta)}`);
   // Weekly split: Measles (+3d) falls in week 1, PCV (+20d) in week 3.
   assert(JSON.stringify(measles.byWeek) === '[1,0,0,0]', `Measles byWeek expected [1,0,0,0], got ${JSON.stringify(measles.byWeek)}`);
   assert(JSON.stringify(pcv.byWeek) === '[0,0,1,0]', `PCV byWeek expected [0,0,1,0], got ${JSON.stringify(pcv.byWeek)}`);
+});
+
+test('stock forecast puts a late child\'s next series dose in the week it can be given', async () => {
+  const f = await dashFacility('Catchup-State', 'CU-1', 'W', 'Catchup PHC');
+  // Penta 1 given 10 days ago (late); Penta 2 was due 60 days ago but must wait
+  // 4 weeks after dose 1, so it's needed in 18 days (week 3), not as backlog.
+  // Penta 3 waits on dose 2, so it isn't counted yet.
+  const p1 = dashDose('PENTA', 'Pentavalent', 1, -90, true);
+  p1.administeredDate = new Date(Date.now() - 10 * DAY);
+  await dashChild(f, [p1, dashDose('PENTA', 'Pentavalent', 2, -60, false), dashDose('PENTA', 'Pentavalent', 3, -30, false)]);
+  const { body } = await jsonAs(adminTokenT, 'GET', '/api/dashboard/stock-forecast?weeks=4&state=Catchup-State');
+  const penta = body.byVaccine.find((v: any) => v.vaccineCode === 'PENTA');
+  assert(penta && JSON.stringify(penta.byWeek) === '[0,0,1,0]' && penta.overdueNow === 0, `expected Penta 2 in week 3 only, got ${JSON.stringify(penta)}`);
 });
 
 test('§18 supply plan turns demand into cold-chain, staffing and deployment', async () => {

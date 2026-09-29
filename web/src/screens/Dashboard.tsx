@@ -39,7 +39,7 @@ interface StatePriority {
 }
 interface Coverage { states: StatePriority[]; }
 interface Trend { points: Array<{ weekStarting: string; dosesAdministered: number }>; }
-interface Stock { weeks: number; generatedAt: string; byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[] }>; }
+interface Stock { weeks: number; generatedAt: string; byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[]; overdueNow?: number }>; }
 interface Outliers {
   average: number;
   threshold: number;
@@ -260,7 +260,7 @@ export function Dashboard() {
         </section>
 
         <section className="card panel">
-          <div className="panel-head"><h2>Doses needed</h2><span className="eyebrow">next 4 weeks, by week starting</span></div>
+          <div className="panel-head"><h2>Doses needed</h2><span className="eyebrow">overdue now, then the next 4 weeks</span></div>
           {stock.data ? (stock.data.byVaccine.length === 0 ? <Empty>No doses fall due in this window.</Empty> : <DemandByWeek stock={stock.data} />) : <Loading />}
         </section>
 
@@ -448,7 +448,7 @@ function TrendChart({ points }: { points: Array<{ weekStarting: string; dosesAdm
 /** Readable names for the schedule's codes; anything unlisted shows its code. */
 const VACCINE_NAME: Record<string, string> = {
   BCG: 'BCG', HEPB: 'Hepatitis B', OPV: 'Oral polio', IPV: 'Inactivated polio', PENTA: 'Pentavalent',
-  PCV: 'Pneumococcal', ROTA: 'Rotavirus', MR: 'Measles-rubella', YF: 'Yellow fever', MENA: 'Meningitis A',
+  PCV: 'Pneumo\u00adcoccal', ROTA: 'Rotavirus', MR: 'Measles-rubella', YF: 'Yellow fever', MENA: 'Meningitis A',
   VITA: 'Vitamin A'
 };
 
@@ -458,13 +458,17 @@ const VACCINE_NAME: Record<string, string> = {
  *  are shaded by their share of the busiest week, so the weeks that need
  *  deliveries stand out. */
 function DemandByWeek({ stock }: { stock: Stock }) {
-  const rows: Array<{ codes: string[]; byWeek: number[]; total: number }> = [];
+  const rows: Array<{ codes: string[]; byWeek: number[]; overdue: number; total: number }> = [];
   for (const v of stock.byVaccine) {
-    const same = rows.find((r) => r.byWeek.join() === v.byWeek.join());
+    const overdue = v.overdueNow ?? 0;
+    const same = rows.find((r) => r.byWeek.join() === v.byWeek.join() && r.overdue === overdue);
     if (same) same.codes.push(v.vaccineCode);
-    else rows.push({ codes: [v.vaccineCode], byWeek: v.byWeek, total: v.dueCount });
+    else rows.push({ codes: [v.vaccineCode], byWeek: v.byWeek, overdue, total: v.dueCount + overdue });
   }
+  rows.sort((a, b) => b.total - a.total);
   const peak = Math.max(1, ...rows.flatMap((r) => r.byWeek));
+  const overduePeak = Math.max(1, ...rows.map((r) => r.overdue));
+  const anyOverdue = rows.some((r) => r.overdue > 0);
   const start = new Date(stock.generatedAt);
   const weekStart = (i: number) => new Date(start.getTime() + i * 7 * 86400000);
 
@@ -474,6 +478,7 @@ function DemandByWeek({ stock }: { stock: Stock }) {
         <thead>
           <tr>
             <th>Vaccine</th>
+            {anyOverdue && <th className="num demand-overdue-head">Overdue</th>}
             {stock.byVaccine[0].byWeek.map((_, i) => {
               const d = weekStart(i);
               return (
@@ -493,6 +498,11 @@ function DemandByWeek({ stock }: { stock: Stock }) {
                 {r.codes.map((c) => VACCINE_NAME[c] ?? c).join(', ')}
                 {r.codes.length > 1 && <div className="muted demand-note">numbers are for each</div>}
               </td>
+              {anyOverdue && (
+                <td className="num demand-cell demand-overdue" style={{ background: r.overdue ? `rgba(176, 58, 46, ${0.06 + 0.3 * (r.overdue / overduePeak)})` : undefined }}>
+                  {r.overdue ? fmt(r.overdue) : <span className="muted">–</span>}
+                </td>
+              )}
               {r.byWeek.map((n, i) => (
                 <td key={weekStart(i).toISOString()} className="num demand-cell" style={{ background: n ? `rgba(154, 107, 18, ${0.08 + 0.42 * (n / peak)})` : undefined }}>
                   {n ? fmt(n) : <span className="muted">–</span>}
@@ -503,6 +513,12 @@ function DemandByWeek({ stock }: { stock: Stock }) {
           ))}
         </tbody>
       </table>
+      {anyOverdue && (
+        <p className="muted cbs-note">
+          Overdue now: doses children could be given today but haven’t had yet, so stock them too. A late child’s next
+          dose in a series is counted in the week it can be given, four weeks after the one before.
+        </p>
+      )}
     </div>
   );
 }

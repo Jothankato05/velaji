@@ -5,6 +5,7 @@ import { EscalationModel } from '../models/Escalation';
 import { CertificateModel } from '../models/Certificate';
 import { FacilityHandoffModel } from '../models/FacilityHandoff';
 import { computeChildStatus, isWindowClosed } from './schedule.service';
+import { parentSchedule } from './dose-rules.service';
 import { computeMilestones } from './milestone.service';
 import { coldChainCm3 } from '../data/routine-immunization-schedule';
 import { expectedBirths } from './antenatal.service';
@@ -542,8 +543,12 @@ export async function recentActivity(limit = 12): Promise<ActivityEvent[]> {
 export interface StockForecast {
   weeks: number;
   scope: string;
-  /** byWeek[i] is the doses due in week i+1 of the window (week 1 starts now). */
-  byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[] }>;
+  /**
+   * byWeek[i] is the doses due in week i+1 of the window (week 1 starts now);
+   * dueCount is their sum. overdueNow is the catch-up backlog: doses children
+   * could be given today but haven't had, which a clinic must stock for too.
+   */
+  byVaccine: Array<{ vaccineCode: string; dueCount: number; byWeek: number[]; overdueNow: number }>;
   generatedAt: string;
 }
 
@@ -558,21 +563,36 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
   const facilities = await FacilityModel.find({});
   const geoById = new Map(facilities.map((f) => [String(f._id), { state: f.stateName, lga: f.lgaName, ward: f.wardName || UNSPECIFIED_WARD, facility: f.name, facilityId: String(f._id) }]));
 
-  const byVaccine = new Map<string, number[]>();
+  const byVaccine = new Map<string, { byWeek: number[]; overdueNow: number }>();
+  const slot = (code: string) => {
+    let v = byVaccine.get(code);
+    if (!v) {
+      v = { byWeek: new Array(weeks).fill(0), overdueNow: 0 };
+      byVaccine.set(code, v);
+    }
+    return v;
+  };
   for (const child of children) {
     const geo = geoById.get(String(child.currentFacilityId)) ?? { state: UNKNOWN, lga: UNKNOWN, ward: UNSPECIFIED_WARD, facility: UNKNOWN, facilityId: '' };
     if (!inScope(geo, filter)) continue;
-    for (const d of child.doses) {
-      if (d.administeredDate) continue;
-      const due = d.dueDate.getTime();
-      if (due >= now.getTime() && due <= horizon) {
-        let perWeek = byVaccine.get(d.vaccineCode);
-        if (!perWeek) {
-          perWeek = new Array(weeks).fill(0);
-          byVaccine.set(d.vaccineCode, perWeek);
-        }
+    // When each dose can actually be given: a late child's next series dose
+    // is four weeks after the previous one, and doses past their age window
+    // aren't needed at all. A dose still waiting on an earlier one in its
+    // series is counted once that earlier dose is given.
+    const schedule = parentSchedule(
+      child.doses.map((d) => ({
+        vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+        dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+      })),
+      now
+    );
+    for (const d of schedule) {
+      if (d.administeredDate || d.windowClosed || d.waitingOnEarlier) continue;
+      const due = d.comeDate.getTime();
+      if (due < now.getTime()) slot(d.vaccineCode).overdueNow++;
+      else if (due <= horizon) {
         // The horizon is inclusive, so a dose due at its very end lands in the last week.
-        perWeek[Math.min(weeks - 1, Math.floor((due - now.getTime()) / (7 * DAY)))]++;
+        slot(d.vaccineCode).byWeek[Math.min(weeks - 1, Math.floor((due - now.getTime()) / (7 * DAY)))]++;
       }
     }
   }
@@ -581,8 +601,8 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
     weeks,
     scope: [filter.state, filter.lga, filter.ward].filter(Boolean).join(' → ') || 'Nigeria',
     byVaccine: [...byVaccine.entries()]
-      .map(([vaccineCode, byWeek]) => ({ vaccineCode, dueCount: byWeek.reduce((a, b) => a + b, 0), byWeek }))
-      .sort((a, b) => b.dueCount - a.dueCount),
+      .map(([vaccineCode, v]) => ({ vaccineCode, dueCount: v.byWeek.reduce((a, b) => a + b, 0), byWeek: v.byWeek, overdueNow: v.overdueNow }))
+      .sort((a, b) => b.dueCount + b.overdueNow - (a.dueCount + a.overdueNow)),
     generatedAt: now.toISOString()
   };
 }
