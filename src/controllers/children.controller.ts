@@ -15,6 +15,7 @@ import { referForRegistration, recordRegistration } from '../services/birth-regi
 import { childToFhirBundle } from '../services/fhir.service';
 import { AppError } from '../utils/AppError';
 import { searchChildren } from '../services/child-search.service';
+import { doseEligibility } from '../services/dose-rules.service';
 import { phoneKey, phoneMatchSource } from '../utils/phone';
 
 async function findChildOr404(chinParam: string | string[]) {
@@ -177,7 +178,23 @@ export async function recordDose(req: Request, res: Response) {
     throw new AppError(`This dose was already recorded on ${dose.administeredDate.toISOString().slice(0, 10)}.`, 409);
   }
 
-  dose.administeredDate = administeredAt ? new Date(administeredAt) : new Date();
+  // Refuse a dose that wouldn't count: too young, or too soon after (or
+  // before) the previous dose in its series.
+  const givenAt = administeredAt ? new Date(administeredAt) : new Date();
+  if (Number.isNaN(givenAt.getTime()) || givenAt.getTime() > Date.now() + 60 * 60 * 1000) {
+    throw new AppError('The date given must be today or earlier.', 422);
+  }
+  const asInputs = child.doses.map((d) => ({
+    vaccineCode: d.vaccineCode, displayName: d.displayName, doseNumber: d.doseNumber,
+    dueDate: d.dueDate, administeredDate: d.administeredDate ?? null
+  }));
+  const target = asInputs.find((d) => d.vaccineCode === vaccineCode && d.doseNumber === Number(doseNumber));
+  const eligibility = target ? doseEligibility(asInputs, target, givenAt) : null;
+  if (eligibility?.reason) {
+    throw new AppError(`${dose.displayName}, dose ${dose.doseNumber}: ${eligibility.reason}`, 422);
+  }
+
+  dose.administeredDate = givenAt;
   dose.administeredAtFacilityId = facilityId;
   // §17 audit: every genuine administration is written to an append-only ledger.
   await recordAdministration({ chin: child.chin, childId: child._id, vaccineCode, doseNumber: Number(doseNumber), facilityId, ...actor }).catch(() => {});
@@ -260,6 +277,11 @@ export async function getJourney(req: Request, res: Response) {
       ? { vaccine: next.displayName, vaccineCode: next.vaccineCode, doseNumber: next.doseNumber, dueDate: next.dueDate }
       : null,
     completedAt: child.completedAt ?? null,
+    eligibility: Object.fromEntries(
+      doses
+        .filter((d) => !d.administeredDate)
+        .map((d) => [`${d.vaccineCode}#${d.doseNumber}`, doseEligibility(doses, d)])
+    ),
     coverage: certificate
       ? {
           programme: certificate.coverageProgramme,

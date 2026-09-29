@@ -166,7 +166,8 @@ test('register a child issues a valid CHIN and a full dose schedule', async () =
   const { status, body } = await json('POST', '/api/children', {
     fullName: 'Baby Yusuf',
     sex: 'female',
-    dateOfBirth: '2026-06-01',
+    // Old enough (about 16 months) that the whole schedule can be recorded.
+    dateOfBirth: new Date(Date.now() - 500 * DAY).toISOString().slice(0, 10),
     caregiverId,
     homeFacilityId: facilityAId
   });
@@ -244,11 +245,14 @@ test('printable card carries child info AND parent info (per the BSMODEL note)',
 
 test('recording every dose issues a completion certificate', async () => {
   const { body: child } = await json('GET', `/api/children/${encodeURIComponent(chin)}`);
-  for (const dose of child.doses) {
+  // Each dose on the day it fell due, in schedule order, as a clinic would have.
+  const inOrder = [...child.doses].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  for (const dose of inOrder) {
     const { status } = await json('POST', `/api/children/${encodeURIComponent(chin)}/doses`, {
       vaccineCode: dose.vaccineCode,
       doseNumber: dose.doseNumber,
-      facilityId: facilityAId
+      facilityId: facilityAId,
+      administeredAt: dose.dueDate
     });
     assert(status === 200, `expected 200 recording ${dose.vaccineCode}#${dose.doseNumber}, got ${status}`);
   }
@@ -707,6 +711,31 @@ test('terminal setup: register an overdue child for verification', async () => {
   });
   assert(reg.status === 201, `expected 201, got ${reg.status}: ${JSON.stringify(reg.body)}`);
   termChin = reg.body.chin;
+});
+
+test('doses that would not count are refused, and the journey says when they can be given', async () => {
+  const cg = await json('POST', '/api/caregivers', { fullName: 'Rules Carer', phone: '+2348077770001' });
+  const dob = new Date(Date.now() - 200 * DAY).toISOString().slice(0, 10); // ~6.5 months: Penta 1-3 all overdue
+  const reg = await json('POST', '/api/children', { fullName: 'Rules Child', sex: 'male', dateOfBirth: dob, caregiverId: cg.body._id, homeFacilityId: facilityAId });
+  const c = encodeURIComponent(reg.body.chin);
+  const give = (vaccineCode: string, doseNumber: number, administeredAt?: string) =>
+    json('POST', `/api/children/${c}/doses`, { vaccineCode, doseNumber, facilityId: facilityAId, ...(administeredAt ? { administeredAt } : {}) });
+
+  let j = (await json('GET', `/api/children/${c}/journey`)).body;
+  assert(j.eligibility['PENTA#1'].reason === null, 'Penta 1 is overdue, so can be given now');
+  assert(j.eligibility['PENTA#2'].reason && j.eligibility['PENTA#2'].eligibleFrom === null, 'Penta 2 waits for Penta 1');
+  assert(j.eligibility['MR#1'].reason?.includes('Too early'), 'measles at 6 months is too early');
+
+  assert((await give('PENTA', 2)).status === 422, 'Penta 2 before Penta 1 is refused');
+  assert((await give('MR', 1)).status === 422, 'a dose before its age is refused');
+  assert((await give('PENTA', 1, new Date(Date.now() + 3 * DAY).toISOString())).status === 422, 'a future date is refused');
+  assert((await give('PENTA', 1)).status === 200, 'Penta 1 today is fine');
+  const same = await give('PENTA', 2);
+  assert(same.status === 422 && /4 weeks/.test(same.body.error), `Penta 2 the same day is refused, got ${same.status}`);
+
+  j = (await json('GET', `/api/children/${c}/journey`)).body;
+  const from = new Date(j.eligibility['PENTA#2'].eligibleFrom).getTime();
+  assert(Math.abs(from - (Date.now() + 28 * DAY)) < 2 * DAY, 'Penta 2 opens 4 weeks after Penta 1');
 });
 
 test('search finds a child by name, caregiver, phone or part of the CHIN', async () => {

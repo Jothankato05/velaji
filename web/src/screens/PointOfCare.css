@@ -37,6 +37,17 @@
 .visit-give { padding: 10px 18px; font-size: 15px; }
 .visit-at { font-size: 12.5px; margin: 8px 0 0; }
 .visit-next { margin: 6px 0 0; }
+.visit-noclinic { color: var(--st-amber); font-weight: 500; }
+
+/* doses held back by the series interval */
+.held { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line-strong); }
+.held.untitled { margin-top: 6px; padding-top: 0; border-top: none; }
+.held-title { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
+.held-why { font-size: 12.5px; margin: 0 0 4px; }
+.held-list { list-style: none; margin: 0; padding: 0; font-size: 13.5px; }
+.held-list li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; }
+.held-name { color: var(--ink-soft); }
+.held-when { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* full record, collapsed by default */
 .history { padding: 12px 16px; }
@@ -57,5 +68,6 @@
   .poc-here { min-width: 0; width: 100%; }
   .visit-row { grid-template-columns: auto minmax(0, 1fr); }
   .visit-when { grid-column: 2; text-align: left; white-space: normal; }
-  .history-list li { flex-direction: column; gap: 0; }
+  .history-list li, .held-list li { flex-direction: column; gap: 0; }
+  .held-when { white-space: normal; }
 }

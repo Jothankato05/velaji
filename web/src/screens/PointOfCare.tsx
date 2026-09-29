@@ -30,6 +30,8 @@ interface Journey {
   completedAt: string | null;
   coverage: Coverage | null;
   doses: Dose[];
+  /** Per outstanding dose (key VACCINE#n): when it can be given, and why not yet. */
+  eligibility: Record<string, { eligibleFrom: string | null; reason: string | null }>;
 }
 interface Facility {
   _id: string;
@@ -39,8 +41,8 @@ interface Facility {
 }
 
 const DAY = 86400000;
-/** Doses due within this many days can be given at today's visit (the "due soon" window). */
-const VISIT_WINDOW_DAYS = 7;
+/** Held-back doses due within this many days are listed, so the nurse knows why. */
+const HELD_WINDOW_DAYS = 7;
 /** The clinic is chosen once per device, not on every visit. */
 const FACILITY_KEY = 'velaji.facility';
 
@@ -59,6 +61,8 @@ function relative(iso: string, now = Date.now()): string {
 }
 
 function doseLabel(d: Pick<Dose, 'displayName' | 'doseNumber'>): string {
+  // Some names already carry the dose, e.g. "Vitamin A (1st dose)".
+  if (/\bdose\)/i.test(d.displayName)) return d.displayName;
   if (d.doseNumber !== 0) return `${d.displayName}, dose ${d.doseNumber}`;
   // Some schedule names already say so, e.g. "Hepatitis B (birth dose)".
   return /birth dose/i.test(d.displayName) ? d.displayName : `${d.displayName}, birth dose`;
@@ -96,7 +100,10 @@ export function PointOfCare() {
     api.get<Facility[]>('/api/facilities').then((f) => {
       setFacilities(f);
       const saved = readSavedFacility();
-      setHereId(f.some((x) => x._id === saved) ? saved : (f[0]?._id ?? ''));
+      // Only a clinic this device chose; otherwise the child's own once loaded
+      // (below), never silently the first clinic in the list.
+      if (f.some((x) => x._id === saved)) setHereId(saved);
+      else if (f.length === 1) setHereId(f[0]._id);
     }).catch(() => undefined);
   }, []);
 
@@ -204,6 +211,7 @@ export function PointOfCare() {
 
   const facility = facilities.find((f) => f._id === hereId);
   const due = journey ? dueNow(journey) : [];
+  const held = journey ? heldBack(journey) : [];
 
   return (
     <div className="poc">
@@ -216,6 +224,7 @@ export function PointOfCare() {
           <label className="poc-here">
             <span className="eyebrow">Recording at</span>
             <select className="input" value={hereId} onChange={(e) => chooseFacility(e.target.value)}>
+              {!hereId && <option value="">Choose the clinic</option>}
               {facilities.map((f) => (
                 <option key={f._id} value={f._id}>{f.name}, {f.stateName}</option>
               ))}
@@ -288,14 +297,23 @@ export function PointOfCare() {
               >
                 {giving ? 'Recording…' : `Record ${selected.size} vaccine${selected.size === 1 ? '' : 's'}`}
               </button>
-              {facility && <p className="muted visit-at">Recorded as given today at {facility.name}.</p>}
+              {facility ? (
+                <p className="muted visit-at">Recorded as given today at {facility.name}.</p>
+              ) : (
+                <p className="visit-at visit-noclinic">Choose the clinic you’re recording at (top right) to record.</p>
+              )}
+              {held.length > 0 && <HeldBack doses={held} journey={journey} />}
             </div>
           ) : journey.nextDue ? (
             <div className="visit card">
-              <h2>Nothing due today</h2>
-              <p className="visit-next">
-                Next: <strong>{journey.nextDue.vaccine}</strong> on {fmtDate(journey.nextDue.dueDate)} ({relative(journey.nextDue.dueDate)}).
-              </p>
+              <h2>Nothing to give today</h2>
+              {held.length > 0 ? (
+                <HeldBack doses={held} journey={journey} titled={false} />
+              ) : (
+                <p className="visit-next">
+                  Next: <strong>{journey.nextDue.vaccine}</strong> on {fmtDate(journey.nextDue.dueDate)} ({relative(journey.nextDue.dueDate)}).
+                </p>
+              )}
             </div>
           ) : (
             journey.coverage && <CoveragePayoff coverage={journey.coverage} />
@@ -322,12 +340,49 @@ export function PointOfCare() {
   );
 }
 
-/** Not yet given, and overdue or falling due within the visit window. */
+const byDue = (a: Dose, b: Dose) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+
+/** Not yet given and allowed today: old enough, and the series is ready for it. */
 function dueNow(j: Journey): Dose[] {
-  const cutoff = Date.now() + VISIT_WINDOW_DAYS * DAY;
+  const e = (d: Dose) => j.eligibility?.[doseKey(d)];
+  // An older response without eligibility: fall back to the age rule alone.
+  const ok = (d: Dose) => (e(d) ? e(d)?.reason === null : new Date(d.dueDate).getTime() <= Date.now() + 4 * DAY);
+  return j.doses.filter((d) => !d.administeredDate && ok(d)).sort(byDue);
+}
+
+/**
+ * Overdue or nearly due, but held back: the previous dose in the series isn't
+ * given yet, or was given under four weeks ago. Shown so nothing looks forgotten.
+ */
+function heldBack(j: Journey): Dose[] {
+  const cutoff = Date.now() + HELD_WINDOW_DAYS * DAY;
   return j.doses
-    .filter((d) => !d.administeredDate && new Date(d.dueDate).getTime() <= cutoff)
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    .filter((d) => !d.administeredDate && new Date(d.dueDate).getTime() <= cutoff && j.eligibility?.[doseKey(d)]?.reason)
+    .sort(byDue);
+}
+
+function HeldBack({ doses, journey, titled = true }: { doses: Dose[]; journey: Journey; titled?: boolean }) {
+  return (
+    <div className={`held${titled ? '' : ' untitled'}`}>
+      {titled && <div className="held-title">Not today</div>}
+      {doses.some((d) => d.doseNumber > 1) && (
+        <p className="muted held-why">Each dose in a series needs at least 4 weeks after the one before, so these wait.</p>
+      )}
+      <ul className="held-list">
+        {doses.map((d) => {
+          const e = journey.eligibility?.[doseKey(d)];
+          return (
+            <li key={doseKey(d)}>
+              <span className="held-name">{doseLabel(d)}</span>
+              <span className="muted held-when">
+                {e?.eligibleFrom ? `from ${fmtDate(e.eligibleFrom)}` : `after dose ${d.doseNumber - 1}`}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function ProgressTrack({ progress, complete }: { progress: Journey['progress']; complete: boolean }) {
