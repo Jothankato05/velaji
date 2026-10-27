@@ -140,7 +140,7 @@ export function Login() {
           <span aria-hidden className="login-parent-arrow">→</span>
         </Link>
 
-        <p className="login-credit muted">Built by Team Primers</p>
+        <p className="login-credit muted">Built by <a href="https://primersgroup.ng" target="_blank" rel="noopener">Primers Group</a></p>
       </div>
     </div>
   );
