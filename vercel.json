@@ -5,14 +5,36 @@
   "buildCommand": "npm run build && npm --prefix web run build",
   "outputDirectory": "web/dist",
   "functions": {
-    "api/index.js": { "maxDuration": 60, "includeFiles": "dist/**" }
+    "api/index.js": {
+      "maxDuration": 60,
+      "includeFiles": "dist/**"
+    }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/webhooks/:path*", "destination": "/api/index" },
-    { "source": "/health", "destination": "/api/index" },
-    { "source": "/ready", "destination": "/api/index" },
-    { "source": "/deck", "destination": "/deck.html" },
-    { "source": "/:path*", "destination": "/index.html" }
-  ]
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/webhooks/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/ready",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/deck",
+      "destination": "/deck.html"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
+  ],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)website'"
 }
