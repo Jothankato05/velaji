@@ -9,6 +9,7 @@ import { Escalations } from './screens/Escalations';
 import { Terminal } from './screens/Terminal';
 import { UssdSim } from './screens/UssdSim';
 import { MyChildApp } from './mychild/MyChildApp';
+import { PrimersReturn } from './screens/PrimersReturn';
 import type { ReactNode } from 'react';
 
 const STAFF = ['staff', 'admin'];
@@ -45,6 +46,7 @@ export function App() {
           parent's card is their key. */}
       <Route path="/mychild/*" element={<MyChildApp />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/auth/primers" element={<PrimersReturn />} />
       <Route
         path="/*"
         element={

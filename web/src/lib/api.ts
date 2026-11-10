@@ -6,6 +6,8 @@ export interface AuthUser {
   username: string;
   fullName: string;
   role: 'verifier' | 'staff' | 'admin';
+  /** Whether a Primers ID is connected (older sessions may not say). */
+  primersIdLinked?: boolean;
 }
 
 /**

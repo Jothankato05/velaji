@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { startPrimersSignIn } from '../lib/primersId';
 import { ApiError, OfflineError } from '../lib/api';
 import './Login.css';
 
@@ -129,7 +130,17 @@ export function Login() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <p className="login-note muted">Forgot your password or need an account? Ask your programme administrator.</p>
+          <div className="login-or" aria-hidden><span>or</span></div>
+          <button
+            type="button"
+            className="btn login-submit login-primers"
+            disabled={busy}
+            onClick={() => { startPrimersSignIn('velaji', '/', 'signin').catch(() => setError("Couldn't open Primers ID. Try again.")); }}
+          >
+            Continue with Primers ID
+          </button>
+
+          <p className="login-note muted">Forgot your password or need an account? Ask your programme administrator. To sign in with Primers ID, connect it from the menu after signing in once.</p>
         </form>
 
         <Link to="/mychild" className="login-parent">

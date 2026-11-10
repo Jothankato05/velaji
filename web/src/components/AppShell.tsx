@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { SearchBox } from './SearchBox';
 import './AppShell.css';
+import { startPrimersSignIn } from '../lib/primersId';
 
 type Role = 'admin' | 'staff' | 'verifier';
 type NavItem = { to: string; label: string; roles: readonly Role[]; badge?: 'followUps' };
@@ -103,6 +104,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="user-name">{user?.fullName}</span>
             <span className="user-role">{ROLE_LABEL[role] ?? role}</span>
           </div>
+          {!user?.primersIdLinked && (
+            <button
+              type="button"
+              className="btn btn-sm sidebar-signout"
+              title="Sign in with your Primers ID next time"
+              onClick={() => { void startPrimersSignIn('velaji', window.location.pathname, 'link'); }}
+            >
+              Connect Primers ID
+            </button>
+          )}
           <button type="button" className="btn btn-sm sidebar-signout" onClick={logout}>Sign out</button>
         </div>
       </aside>

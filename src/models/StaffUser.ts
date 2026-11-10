@@ -6,7 +6,10 @@ const staffUserSchema = new Schema(
     passwordHash: { type: String, required: true, select: false },
     fullName: { type: String, required: true },
     facilityId: { type: Schema.Types.ObjectId, ref: 'Facility', default: null },
-    role: { type: String, enum: ['verifier', 'staff', 'admin'], default: 'staff' }
+    role: { type: String, enum: ['verifier', 'staff', 'admin'], default: 'staff' },
+    // Primers ID this staff member connected (its account number for Velaji). Staff accounts are
+    // issued by admins, so a Primers ID can only sign in once its owner has connected it.
+    primersIdSub: { type: String, unique: true, sparse: true, select: false }
   },
   { timestamps: true }
 );

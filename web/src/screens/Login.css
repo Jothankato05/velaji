@@ -41,3 +41,9 @@
   .login { align-items: flex-start; padding: 24px 16px; }
   .login-form { padding: 22px 18px; }
 }
+
+/* "Continue with Primers ID" */
+.login-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 10px; color: var(--muted, #6b7280); font-size: 12px; }
+.login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+.login-primers { width: 100%; background: #4D78FF; color: #fff; border-color: #4D78FF; }
+.login-primers:hover:not(:disabled) { filter: brightness(1.08); }

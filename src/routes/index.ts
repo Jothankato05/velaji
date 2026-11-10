@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { requireAuth, requireRole } from '../middleware/requireAuth';
 import { rateLimit } from '../middleware/rateLimit';
 import { auditChildAccess } from '../middleware/auditChildAccess';
-import { login, me } from '../controllers/auth.controller';
+import { login, me, loginWithPrimers, linkPrimers } from '../controllers/auth.controller';
 import { createFacility, listFacilities, nearestFacility } from '../controllers/facilities.controller';
 import { createCaregiver, findCaregiversByPhone } from '../controllers/caregivers.controller';
 import {
@@ -64,6 +64,7 @@ apiRouter.get('/ready', (_req, res) => {
 // spraying passwords does.
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
 apiRouter.post('/api/auth/login', loginLimiter, asyncHandler(login));
+apiRouter.post('/api/auth/primers', loginLimiter, asyncHandler(loginWithPrimers));
 
 // The public, card-gated endpoints guess-proof their CHIN+token pair, but a
 // throttle stops anyone trying to enumerate tokens at scale.
@@ -87,6 +88,7 @@ apiRouter.post('/webhooks/ussd', cardLimiter, asyncHandler(handleUssdWebhook));
 apiRouter.use(requireAuth);
 
 apiRouter.get('/api/auth/me', asyncHandler(me));
+apiRouter.post('/api/auth/primers/link', loginLimiter, asyncHandler(linkPrimers));
 
 apiRouter.post('/api/facilities', asyncHandler(createFacility));
 apiRouter.get('/api/facilities', asyncHandler(listFacilities));

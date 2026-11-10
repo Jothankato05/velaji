@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, clearSession, getStoredUser, setUnauthorizedHandler, storeSession, type AuthUser } from './api';
+import { api, clearSession, getStoredUser, getToken, setUnauthorizedHandler, storeSession, type AuthUser } from './api';
 
 interface AuthState {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<void>;
+  /** Finish "Continue with Primers ID" (sign in) or connect it to the signed-in account. */
+  primers: (mode: 'signin' | 'link', code: string, verifier: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -22,6 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async login(username, password) {
         const res = await api.post<{ token: string; user: AuthUser }>('/api/auth/login', { username, password });
         storeSession(res.token, res.user);
+        setUser(res.user);
+      },
+      async primers(mode, code, verifier) {
+        const path = mode === 'link' ? '/api/auth/primers/link' : '/api/auth/primers';
+        const res = await api.post<{ token?: string; user: AuthUser }>(path, { code, verifier });
+        const token = res.token ?? getToken();
+        if (!token) throw new Error('Please sign in again.');
+        storeSession(token, res.user);
         setUser(res.user);
       },
       logout() {
