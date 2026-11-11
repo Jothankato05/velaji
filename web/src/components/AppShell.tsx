@@ -134,6 +134,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
           <SearchBox canSearchRecords={seesFollowUps} />
           <span className="topbar-date">{new Date().toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          {/* Primers bar (apps + your Primers ID), filled in by id.primersgroup.ng/bar.js */}
+          <span id="primers-bar-slot" className="topbar-primers" />
         </header>
         <main className="content">{children}</main>
       </div>

@@ -18,7 +18,9 @@ import { env } from '../config/env';
 // For the SPA document: allow only what the app actually loads.
 const APP_CSP = [
   "default-src 'none'",
-  "script-src 'self'",
+  // The Primers assistant and the Primers bar (apps + Primers ID) load from primersgroup.ng.
+  "script-src 'self' https://primersgroup.ng https://id.primersgroup.ng",
+  "frame-src https://primersgroup.ng https://id.primersgroup.ng",
   // Vite injects a small inline style block, and the app sets inline styles for
   // data-driven widths/colours in the dashboard.
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
