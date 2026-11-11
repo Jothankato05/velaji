@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { Types } from 'mongoose';
 import { ChildModel } from '../models/Child';
 import { CaregiverModel } from '../models/Caregiver';
 import { FacilityModel } from '../models/Facility';
@@ -103,7 +104,7 @@ export async function registerChild(req: Request, res: Response) {
     const dayStart = new Date(Date.UTC(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()));
     const existing = carers.length
       ? await ChildModel.findOne({
-          caregiverId: { $in: carers.map((c) => c._id) },
+          caregiverId: { $in: carers.map((c) => c._id as Types.ObjectId) },
           fullName: { $regex: `^\\s*${escapeRegex(name).replace(/ /g, '\\s+')}\\s*$`, $options: 'i' },
           dateOfBirth: { $gte: new Date(dayStart.getTime() - DAY), $lt: new Date(dayStart.getTime() + 2 * DAY) }
         })
