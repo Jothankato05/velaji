@@ -12,5 +12,5 @@ _*.cjs
 scratch-*
 velaji-card-sample.svg
 
-# Local editor and tool settings — not for the repo
+# Local editor and tool settings - not for the repo
 .claude/
