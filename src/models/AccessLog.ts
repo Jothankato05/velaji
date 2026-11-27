@@ -4,7 +4,7 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
  * Append-only audit trail of every record access at the verification terminal
  * (NCIHAP §17 audit trail, §24 immutable audit trails). One row per lookup:
  * who accessed which child's record, when, how (typed CHIN vs scanned QR), and
- * which disclosure tier they were shown. Never updated or deleted — the app
+ * which disclosure tier they were shown. Never updated or deleted - the app
  * exposes no route to mutate it, only to append and to read.
  */
 const accessLogSchema = new Schema(

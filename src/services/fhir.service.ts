@@ -6,7 +6,7 @@ import { computeDoseStatus, isWindowClosed } from './schedule.service';
  * Nigeria already runs EMID for immunisation data, and NPHCDA publishes an
  * Immunization FHIR Implementation Guide. The strategic position is to build TO
  * that, not around it: EMID keeps the national record, and Velaji contributes
- * the two things it has that a reporting system does not — a child identified
+ * the two things it has that a reporting system does not - a child identified
  * across facilities, and the schedule of what that child is owed NEXT.
  *
  * That second resource is the point. An ImmunizationRecommendation is not a
@@ -14,7 +14,7 @@ import { computeDoseStatus, isWindowClosed } from './schedule.service';
  * Exporting it is what makes Velaji worth integrating rather than duplicating.
  *
  * Honest seam: this produces a conformant Bundle for an integrator to POST. It
- * does not talk to EMID — no endpoint, no credentials, no negotiated profile.
+ * does not talk to EMID - no endpoint, no credentials, no negotiated profile.
  * Wiring that is a deployment task with NPHCDA, not something a prototype can
  * assert. Profile URLs below are the published IG's canonical base.
  */
@@ -47,9 +47,9 @@ function isoDate(d: Date): string {
 
 /**
  * Build a FHIR R4 collection Bundle for one child:
- *   Patient                     — who, identified by CHIN (+ NIN / birth reg number)
- *   Immunization[]              — doses actually given
- *   ImmunizationRecommendation  — what is still due, and when
+ *   Patient - who, identified by CHIN (+ NIN / birth reg number)
+ *   Immunization[] - doses actually given
+ *   ImmunizationRecommendation - what is still due, and when
  */
 export function childToFhirBundle(child: FhirChildInput, now: Date = new Date()) {
   const patientId = `chin-${child.chin.replace(/[^A-Za-z0-9]/g, '')}`;
@@ -58,7 +58,7 @@ export function childToFhirBundle(child: FhirChildInput, now: Date = new Date())
   const identifier: Array<Record<string, unknown>> = [
     { system: SYS_CHIN, value: child.chin, use: 'usual' }
   ];
-  // Present only once civil registration has actually happened — the absence of
+  // Present only once civil registration has actually happened - the absence of
   // these is itself the finding this system exists to surface.
   if (child.birthRegistration?.registrationNumber) {
     identifier.push({ system: SYS_BRN, value: child.birthRegistration.registrationNumber, use: 'official' });

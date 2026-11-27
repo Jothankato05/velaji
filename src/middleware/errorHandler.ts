@@ -14,7 +14,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
 
   // Body-parser errors (oversized or malformed JSON) arrive as plain errors
-  // carrying a 4xx status. Answer them cleanly rather than as a 500 — a bad
+  // carrying a 4xx status. Answer them cleanly rather than as a 500 - a bad
   // request is the client's fault, not a server fault, and shouldn't be logged
   // as one or leak internals.
   const status = (err as { status?: number; statusCode?: number })?.status ?? (err as { statusCode?: number })?.statusCode;

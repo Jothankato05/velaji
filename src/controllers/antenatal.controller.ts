@@ -10,7 +10,7 @@ import {
 
 /**
  * Antenatal registration (NCIHAP §19, extended). Opening the child's record at
- * antenatal care — the last reliable contact before the gap in which children
+ * antenatal care - the last reliable contact before the gap in which children
  * become zero-dose. See models/Pregnancy.ts for the evidence.
  */
 

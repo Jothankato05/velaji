@@ -4,7 +4,7 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
  * An antenatal registration (NCIHAP §19, extended): the record opened when a
  * woman is registered at antenatal care, before the child is born.
  *
- * WHY THIS EXISTS — the evidence:
+ * WHY THIS EXISTS - the evidence:
  *
  * Antenatal contact is one of the strongest available predictors of whether a
  * child will ever be vaccinated. Across six Nigerian states (n=1,958), children
@@ -26,12 +26,12 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
  * system (which is what the USSD channel keys on), and a record is already
  * waiting when the birth dose is given.
  *
- * IMPORTANT — this is an ADDITIONAL channel, never the primary one. Around 37%
+ * IMPORTANT - this is an ADDITIONAL channel, never the primary one. Around 37%
  * of Nigerian women attend no ANC at all, and they are disproportionately the
  * rural, poor, north-western and north-eastern families this programme exists
  * for. The 92-country analysis is explicit that the same households miss BOTH
  * services, so ANC registration must sit alongside the CHW, home-birth, mobile
- * team and outreach channels in §19 — it cannot replace them.
+ * team and outreach channels in §19 - it cannot replace them.
  *
  * A pregnancy is NOT a child: this carries its own `ancId` namespace and only
  * becomes a Child (with a CHIN) when a live birth is recorded against it.
@@ -50,7 +50,7 @@ const pregnancySchema = new Schema(
     ancId: { type: String, required: true, unique: true, index: true },
     // The expectant mother / caregiver. Reuses the Caregiver record precisely so
     // the phone number captured here is the one the reminder engine and the
-    // USSD channel already use — no second contact list to keep in step.
+    // USSD channel already use - no second contact list to keep in step.
     caregiverId: { type: Schema.Types.ObjectId, ref: 'Caregiver', required: true },
     // Where antenatal care is being received; becomes the child's home facility
     // on linking, unless the birth is recorded elsewhere.
@@ -66,12 +66,12 @@ const pregnancySchema = new Schema(
       default: 'active',
       index: true
     },
-    // Set when a live birth is recorded — the pregnancy becomes a child record.
+    // Set when a live birth is recorded - the pregnancy becomes a child record.
     linkedChildId: { type: Schema.Types.ObjectId, ref: 'Child', default: null },
     linkedChin: { type: String, default: null },
     linkedAt: { type: Date, default: null },
     // Closed without a linked child. 'not_a_live_birth' exists so that a loss is
-    // recorded once, quietly, and the record stops generating follow-up work —
+    // recorded once, quietly, and the record stops generating follow-up work -
     // never left 'active' to sit in a queue chasing a birth that will not come.
     closedReason: {
       type: String,

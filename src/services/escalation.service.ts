@@ -38,7 +38,7 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 /** The documented Nigerian drivers of defaulting / zero-dose (WHO, NPHCDA,
- *  peer-reviewed surveys) — the categories a worker records on tracing. */
+ *  peer-reviewed surveys) - the categories a worker records on tracing. */
 export const BARRIER_LABELS: Record<string, string> = {
   hesitancy: 'Vaccine hesitancy / refusal',
   distance: 'Distance / access',
@@ -53,7 +53,7 @@ export const BARRIERS = Object.keys(BARRIER_LABELS);
 /**
  * The queue a health worker actually works from: each open escalation enriched
  * with who the child is, how to reach the caregiver, which vaccine, and how
- * overdue it is — everything needed to go trace the family, in one row.
+ * overdue it is - everything needed to go trace the family, in one row.
  */
 /**
  * Close open cases whose dose can no longer be given (e.g. birth polio drops
@@ -210,7 +210,7 @@ export async function resolveEscalation(
 /**
  * Why children are being missed, in aggregate (NCIHAP §11 intelligence): the
  * barriers recorded on resolved escalations, most common first. Grounds the
- * national picture in the real drivers — so intervention (demand-generation for
+ * national picture in the real drivers - so intervention (demand-generation for
  * hesitancy, outreach for distance, security-window planning for insecurity)
  * can be matched to the reason, not guessed.
  */
@@ -231,7 +231,7 @@ export async function defaultingReasons(): Promise<{ total: number; reasons: Arr
 
 /**
  * When a dose is finally recorded, close any open escalation for that exact
- * child+dose automatically — the reason it was escalated no longer exists.
+ * child+dose automatically - the reason it was escalated no longer exists.
  * Called from the record-dose flow so the queue stays honest without a human
  * having to tick it off.
  */

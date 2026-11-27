@@ -1,7 +1,7 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 
 /**
- * A record of a child's care moving from one facility to another —
+ * A record of a child's care moving from one facility to another -
  * e.g. a family relocates, or a caregiver reports at a facility that isn't
  * the child's registered home facility. Geolocation on both ends lets a
  * receiving facility confirm this is a plausible handoff (not just a typo'd
@@ -17,7 +17,7 @@ const facilityHandoffSchema = new Schema(
       lng: { type: Number, required: true }
     },
     reason: { type: String, default: '' },
-    // NCIHAP §20: why the child moved — so mobility across the country (displaced,
+    // NCIHAP §20: why the child moved - so mobility across the country (displaced,
     // nomadic, migrant, relocating families) is visible, and continuity is seen
     // to survive it.
     reasonCategory: {

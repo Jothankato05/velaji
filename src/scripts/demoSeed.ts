@@ -7,8 +7,8 @@
  * traced escalations with barriers, the antenatal register and civil
  * registration status.
  *
- * Used by `seed:serve` (local, in-memory) and — guarded by DEMO_SEED_ON_BOOT
- * and only when the database is empty — by the deployed demo instance, so a
+ * Used by `seed:serve` (local, in-memory) and - guarded by DEMO_SEED_ON_BOOT
+ * and only when the database is empty - by the deployed demo instance, so a
  * public prototype URL shows a populated Command Centre rather than zeros.
  *
  * This is DEMO data: every child in it is invented. It must never run against
@@ -129,10 +129,10 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   // The geographic picture mirrors the real Nigerian coverage map (WHO/UNICEF,
   // NPHCDA): the South and FCT do better; the north-west and north-east carry
   // the zero-dose / defaulter burden and low coverage (<40% in the worst NW
-  // states), and Kano — the epicentre of the 2022–25 diphtheria outbreak — is
+  // states), and Kano - the epicentre of the 2022–25 diphtheria outbreak - is
   // the priority state that should surface first.
 
-  // South / FCT — higher coverage (green).
+  // South / FCT - higher coverage (green).
   const fctChildren = [
     ...await seedFacility('FCT', 'AMAC', 'Wuse', 'Wuse PHC', { complete: 10, ontrack: 5, nearterm: 12 }),
     ...await seedFacility('FCT', 'Bwari', 'Kubwa', 'Kubwa PHC', { complete: 6, ontrack: 4, nearterm: 8 })
@@ -140,7 +140,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   await seedFacility('Lagos', 'Ikeja', 'Alausa', 'Alausa PHC', { complete: 8, ontrack: 4, nearterm: 8 });
   await seedFacility('Enugu', 'Enugu North', 'Ogui', 'Ogui PHC', { complete: 11, ontrack: 4, nearterm: 6 });
 
-  // North-west — the lowest-coverage states (Katsina/Sokoto/Zamfara < 40%; Kano
+  // North-west - the lowest-coverage states (Katsina/Sokoto/Zamfara < 40%; Kano
   // the outbreak epicentre) → priority (red).
   await seedFacility('Kano', 'Dala', 'Gwammaja', 'Gwammaja PHC', { complete: 1, overdue: 9, zero: 3, nearterm: 7 }, { cold: 'at_risk' });
   await seedFacility('Kano', 'Nassarawa', 'Tudun Wada', 'Tudun Wada PHC', { complete: 2, ontrack: 1, overdue: 5, nearterm: 5 });
@@ -148,7 +148,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   await seedFacility('Sokoto', 'Sokoto North', 'Runjin Sambo', 'Runjin Sambo PHC', { complete: 1, overdue: 7, zero: 6, nearterm: 4 }, { cold: 'at_risk', access: 'hard_to_reach' });
   await seedFacility('Zamfara', 'Gusau', 'Sabon Gari', 'Sabon Gari PHC', { complete: 0, overdue: 9, zero: 5, nearterm: 3 }, { access: 'hard_to_reach' });
 
-  // North-east — insecurity-affected, low coverage → priority (red); dedicated
+  // North-east - insecurity-affected, low coverage → priority (red); dedicated
   // outreach needed (Reaching Every Settlement model).
   await seedFacility('Borno', 'Maiduguri', 'Bolori', 'Bolori PHC', { complete: 2, overdue: 6, zero: 4, nearterm: 4 }, { cold: 'down', access: 'security_compromised' });
 
@@ -193,7 +193,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
     rec('development', 'Milestones', 'Sitting, babbling, age-appropriate', 12)
   ]);
 
-  // §19: a share of children are home births via non-PHC channels — inclusion.
+  // §19: a share of children are home births via non-PHC channels - inclusion.
   const sample = await ChildModel.find({}).limit(40);
   await Promise.all(sample.map((c, i) => {
     if (i % 4 === 0) return ChildModel.updateOne({ _id: c._id }, { birthSetting: 'home', registrationChannel: i % 8 === 0 ? 'chw' : 'mobile_team' });
@@ -202,7 +202,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
     return null;
   }));
 
-  // §20: a few relocations, most cross-state — continuity survives the move.
+  // §20: a few relocations, most cross-state - continuity survives the move.
   const facs = await FacilityModel.find({});
   const dests = ['Kano', 'FCT', 'Lagos']
     .map((s) => facs.find((f) => f.stateName === s))
@@ -220,7 +220,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   }));
 
   // A few traced-and-resolved cases with the barrier recorded, so the "Why
-  // children default" view has data. The mix mirrors the documented drivers —
+  // children default" view has data. The mix mirrors the documented drivers -
   // hesitancy leads, then access/awareness, with insecurity in the north-east.
   const traced = await ChildModel.find({}).limit(14);
   const barrierMix = ['hesitancy', 'hesitancy', 'hesitancy', 'hesitancy', 'distance', 'distance', 'distance', 'unaware', 'unaware', 'insecurity', 'insecurity', 'financial', 'no_session', 'other'] as const;
@@ -262,7 +262,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
     raisedAt: new Date(now - (i + 2) * DAY), lastSeenAt: new Date(now - DAY)
   })));
 
-  // §19 extended: the antenatal register — children not yet born. The contact
+  // §19 extended: the antenatal register - children not yet born. The contact
   // mix is deliberately skewed to mirror reality: NDHS 2023-24 puts ANC at 63%
   // but only 52% reaching four visits, and WHO's recommended eight contacts sits
   // near 13% across LMICs. So most active pregnancies here sit below four.

@@ -1,7 +1,7 @@
 # Deploying Velaji / NCIHAP
 
 This is a **prototype**. Before any real child's data touches it, work through
-this checklist. Nothing here deploys automatically — it documents what a real
+this checklist. Nothing here deploys automatically - it documents what a real
 deployment needs.
 
 > The API (`src/`, this repo root) and the web app (`web/`) deploy as two
@@ -14,7 +14,7 @@ deployment needs.
 - Take `MONGODB_URI` from the provider (with credentials). Never commit it.
 
 ## 2. Generate real secrets
-Two independent secrets, each ≥ 32 random chars — the app refuses to start in
+Two independent secrets, each ≥ 32 random chars - the app refuses to start in
 production with the dev defaults:
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # CARD_SIGNING_SECRET
@@ -73,13 +73,13 @@ npx tsx src/scripts/createStaffUser.ts <username> "<password>" "<Full Name>" adm
 ```
 (Run against the production `MONGODB_URI`.)
 
-## 8. Before go-live — security & data
+## 8. Before go-live - security & data
 - Run the **pre-launch-security** review (headers, HTTPS/HSTS, login rate limit,
-  body cap, dependency scan) — most items are already in place; verify against
+  body cap, dependency scan) - most items are already in place; verify against
   the deployed instance.
-- **Encryption at rest** (§5) is a conscious decision for national child data —
+- **Encryption at rest** (§5) is a conscious decision for national child data -
   DB-level at minimum; field-level for the most sensitive fields is a follow-up.
-- The routine immunization schedule (`src/data/`) is placeholder-grade — get
+- The routine immunization schedule (`src/data/`) is placeholder-grade - get
   **clinical sign-off** against current national guidance first.
 - External integrations are honest stubs, not live: SMS (`SMS_PROVIDER=stub`),
   telephony, and NHIA (`nhiaIntegrationStatus: 'not_connected'`). Wire real

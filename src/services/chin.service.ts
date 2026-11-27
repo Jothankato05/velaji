@@ -50,7 +50,7 @@ export function generateChin(now: Date = new Date()): string {
 }
 
 /**
- * Antenatal Registration Identifier (ANC ID) — the record opened when a woman
+ * Antenatal Registration Identifier (ANC ID) - the record opened when a woman
  * is registered at antenatal care, before the child exists.
  *
  *     ANC: NG-ANC-18472639
@@ -64,7 +64,7 @@ export function generateChin(now: Date = new Date()): string {
  *  2. The CHIN encodes the year and month of registration. An expected delivery
  *     date moves; an identifier must not.
  *
- * Same Luhn check digit as the CHIN, for the same reason — these numbers are
+ * Same Luhn check digit as the CHIN, for the same reason - these numbers are
  * read aloud and copied by hand.
  *
  * Modelled on the mother/child identifier split used by India's RCH portal,

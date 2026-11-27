@@ -3,7 +3,7 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
 /**
  * One row per reminder actually dispatched. This is the ledger the reminder
  * engine reads to enforce cooldown and per-dose attempt caps, and to prove
- * after the fact what was sent to whom — so it must be written only after a
+ * after the fact what was sent to whom - so it must be written only after a
  * send is attempted, never speculatively.
  *
  * `doseKey` identifies the specific dose the reminder is about

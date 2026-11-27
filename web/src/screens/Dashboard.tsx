@@ -76,7 +76,7 @@ export function Dashboard() {
   const stock = useGet<Stock>(`/api/dashboard/stock-forecast?weeks=4${qs(filter).replace('?', '&')}`);
   const outliers = useGet<Outliers>(`/api/dashboard/outliers${qs(filter)}`);
   const coverage = useGet<Coverage>('/api/dashboard/coverage-by-state');
-  // Only fetched once drilled to a facility (ward scope) — this carries names
+  // Only fetched once drilled to a facility (ward scope) - this carries names
   // and phone numbers, so we don't pull it at the national/state level.
   const recovery = useGet<Recovery>(filter.ward ? `/api/recovery${qs(filter)}` : null);
 

@@ -36,7 +36,7 @@ function toChildView(child: Awaited<ReturnType<typeof findChildOr404>>) {
     homeFacilityId: child.homeFacilityId,
     currentFacilityId: child.currentFacilityId,
     status: computeChildStatus(
-      // Explicit field access, not `{...d}` — spreading a Mongoose subdocument
+      // Explicit field access, not `{...d}` - spreading a Mongoose subdocument
       // does not reliably carry its schema fields onto the plain object.
       child.doses.map((d) => ({
         vaccineCode: d.vaccineCode,
@@ -125,7 +125,7 @@ export async function registerChild(req: Request, res: Response) {
   }));
 
   // Astronomically unlikely to collide (8 base32 chars = 40 bits of entropy)
-  // but a health ID system doesn't get to shrug at "unlikely" — retry on the
+  // but a health ID system doesn't get to shrug at "unlikely" - retry on the
   // rare unique-index conflict instead of trusting randomness blindly.
   let chin = generateChin();
   for (let attempt = 0; attempt < 5 && (await ChildModel.exists({ chin })); attempt++) {
@@ -246,8 +246,8 @@ export async function getCertificate(req: Request, res: Response) {
 /**
  * The whole story of one child in a single call, for the card-driven point-of-
  * care experience: who they are, the ONE vaccine that's next (the system
- * remembers so the caregiver doesn't), progress toward the finish, and — once
- * complete — the unlocked NHIA "Healthy Start" coverage. This is what the card
+ * remembers so the caregiver doesn't), progress toward the finish, and - once
+ * complete - the unlocked NHIA "Healthy Start" coverage. This is what the card
  * "carries the brain" so the family doesn't have to.
  */
 export async function getJourney(req: Request, res: Response) {
@@ -304,7 +304,7 @@ export async function getJourney(req: Request, res: Response) {
 }
 
 /** Child Health Wallet (NCIHAP §21): the child's non-immunisation health
- *  records — growth, Vitamin A, nutrition, development, referrals, labs, … */
+ *  records - growth, Vitamin A, nutrition, development, referrals, labs, … */
 export async function getWallet(req: Request, res: Response) {
   const child = await findChildOr404(req.params.chin);
   res.json({ chin: child.chin, records: await getHealthRecords(child.chin) });
@@ -371,7 +371,7 @@ export async function postBirthRegistration(req: Request, res: Response) {
 
 /**
  * §22 interoperability: this child as a FHIR R4 Bundle, shaped to the NPHCDA
- * Immunization IG — Patient, the doses given, and (the part EMID does not hold)
+ * Immunization IG - Patient, the doses given, and (the part EMID does not hold)
  * what is still due and when.
  */
 export async function getChildFhir(req: Request, res: Response) {

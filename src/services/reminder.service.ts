@@ -22,7 +22,7 @@ export interface ReminderCycleSummary {
   skippedMaxAttempts: number;
   skippedNoPhone: number;
   quietHoursSkipped: boolean;
-  /** `${chin} ${doseKey}` for doses that hit the attempt cap or went GREY —
+  /** `${chin} ${doseKey}` for doses that hit the attempt cap or went GREY -
    *  these need a human to trace the family, not another SMS. */
   escalations: string[];
 }
@@ -138,7 +138,7 @@ export class ReminderService {
 
       // Collect this child's outstanding doses by category. A caregiver gets
       // at most ONE text per cycle (about their most-overdue vaccine) rather
-      // than one per dose — 12 texts at once is spam, and expensive on a real
+      // than one per dose - 12 texts at once is spam, and expensive on a real
       // gateway. Per-dose cooldown/cap still applies, keyed to that dose.
       const remindable: { doseKey: string; displayName: string; dueDate: Date; status: 'AMBER' | 'RED' }[] = [];
 
@@ -170,7 +170,7 @@ export class ReminderService {
 
       if (!caregiver?.phone) {
         // No way to reach the caregiver by SMS. An overdue (RED) child in this
-        // state can't be recovered by reminders — it's a continued-default case
+        // state can't be recovered by reminders - it's a continued-default case
         // for the follow-up queue (NCIHAP §7). A merely due-soon (AMBER) child
         // isn't overdue yet, so just note we couldn't remind.
         if (lead.status === 'RED') {
@@ -187,7 +187,7 @@ export class ReminderService {
         .sort({ sentAt: -1 });
 
       if (priorSends.length >= this.maxPerDose) {
-        // Reminded to the cap and still due — continued default (NCIHAP §7).
+        // Reminded to the cap and still due - continued default (NCIHAP §7).
         // Hand to the follow-up queue for PHC/community-health intervention.
         summary.skippedMaxAttempts += 1;
         if (await this.recordEscalation(child, lead.doseKey, 'max_attempts', priorSends.length, now)) {

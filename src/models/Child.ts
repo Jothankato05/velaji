@@ -24,11 +24,11 @@ const childSchema = new Schema(
     doses: { type: [doseSchema], default: [] },
     completedAt: { type: Date, default: null },
     // NCIHAP §19: home births are not excluded. Where the child was born, and
-    // through which channel they entered the registry — a mobile team or CHW in
+    // through which channel they entered the registry - a mobile team or CHW in
     // the field is as valid an entry point as a PHC.
     birthSetting: { type: String, enum: ['facility', 'home', 'other'], default: 'facility' },
     // 'antenatal' means the record was opened during pregnancy and converted at
-    // birth (see models/Pregnancy.ts) — the child arrived already known, rather
+    // birth (see models/Pregnancy.ts) - the child arrived already known, rather
     // than being registered for the first time after the fact.
     registrationChannel: {
       type: String,
@@ -41,7 +41,7 @@ const childSchema = new Schema(
      * The zero-dose child and the unregistered child are overwhelmingly the same
      * child: only ~57% of Nigerian under-five births are registered, and the
      * distribution mirrors immunisation coverage almost exactly (Lagos 94% /
-     * FCT 87% against Jigawa 23.6% / Sokoto 22.5%), for the same reason — born
+     * FCT 87% against Jigawa 23.6% / Sokoto 22.5%), for the same reason - born
      * at home, no skilled attendant, never written down.
      *
      * That has a consequence the programme has to solve rather than observe:
@@ -50,7 +50,7 @@ const childSchema = new Schema(
      * means the children with the strongest claim on the fund cannot make it.
      *
      * So a health contact becomes a route to legal identity. Velaji does NOT
-     * register births — NPC does — but it knows the child exists, and can refer
+     * register births - NPC does - but it knows the child exists, and can refer
      * and then carry the resulting numbers. 'referred' means handed to NPC;
      * 'registered' means NPC returned a birth registration number.
      */
@@ -67,7 +67,7 @@ const childSchema = new Schema(
     },
     // NCIHAP §10: record is unverified/incomplete and needs reconciliation
     // (e.g. an offline record not yet reconciled, or a data conflict). Drives
-    // the GREY status. Defaults false — a normal record is never GREY just for
+    // the GREY status. Defaults false - a normal record is never GREY just for
     // being overdue.
     needsReconciliation: { type: Boolean, default: false }
   },

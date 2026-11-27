@@ -1,6 +1,6 @@
 /**
  * Seed a realistic NCIHAP demo dataset so the Command Centre and MyChild
- * apps show a living national picture — like the reference mockups — rather
+ * apps show a living national picture - like the reference mockups - rather
  * than an empty/alarming one. Pilot states are those named in the note (§25).
  *
  * Usage:  MONGODB_URI=... npx tsx src/scripts/seedDemo.ts

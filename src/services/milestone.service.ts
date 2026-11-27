@@ -8,9 +8,9 @@ const DAY = 24 * 60 * 60 * 1000;
  * whole way through. §12/§15 frame these as encouragement, never "payment for
  * vaccination" and never a punishment for falling behind.
  *
- *   M1 birth        — birth registration + initial immunisation → a digital badge
- *   M2 foundation   — the infant primary series checkpoint      → a wellness benefit
- *   M3 healthy_start— the full age-appropriate schedule         → NHIA coverage
+ *   M1 birth - birth registration + initial immunisation → a digital badge
+ *   M2 foundation - the infant primary series checkpoint      → a wellness benefit
+ *   M3 healthy_start - the full age-appropriate schedule         → NHIA coverage
  */
 export type MilestoneKey = 'birth' | 'foundation' | 'healthy_start';
 
@@ -71,7 +71,7 @@ export function computeMilestones(doses: DoseInput[], dateOfBirth: Date, now: Da
   });
 }
 
-/** The first milestone not yet reached, with how many doses remain — the "next
+/** The first milestone not yet reached, with how many doses remain - the "next
  *  reward" MyChild dangles to keep the family moving (§14 engagement). */
 export function nextMilestone(milestones: MilestoneReward[]): { key: MilestoneKey; reward: string; dosesToGo: number } | null {
   const next = milestones.find((m) => !m.attained && !m.missed);

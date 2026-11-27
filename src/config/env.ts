@@ -18,7 +18,7 @@ const schema = z.object({
   CARD_SIGNING_SECRET: z.string().default('dev-only-insecure-secret-change-me'),
   // Deliberately separate from CARD_SIGNING_SECRET: the QR-verification token
   // is meant to be handed to anyone scanning a card, staff bearer tokens are
-  // not — one leaking should never weaken the other.
+  // not - one leaking should never weaken the other.
   AUTH_TOKEN_SECRET: z.string().default('dev-only-insecure-auth-secret-change-me'),
 
   // --- Reminder engine ---
@@ -34,7 +34,7 @@ const schema = z.object({
   // Don't re-remind the same child for the same dose more often than this.
   REMINDER_COOLDOWN_HOURS: z.coerce.number().int().positive().default(48),
   // Give up after this many reminders for one dose (avoid harassing a caregiver
-  // who isn't responding — that dose needs human outreach, not more SMS).
+  // who isn't responding - that dose needs human outreach, not more SMS).
   REMINDER_MAX_PER_DOSE: z.coerce.number().int().positive().default(3),
   // Only send within this local-hour window [start, end). Default 08:00–20:00
   // so a caregiver is never texted in the middle of the night.

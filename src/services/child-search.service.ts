@@ -64,8 +64,8 @@ export async function searchChildren(raw: string, limit = 8): Promise<{ results:
   const lower = q.toLowerCase();
   const rank = (c: { chin: string; fullName: string }) =>
     c.chin === chinPart ? 0 : c.fullName.toLowerCase().startsWith(lower) ? 1 : 2;
-  // (Array sort is stable, so the database's natural name order — Child 2
-  // before Child 10 — survives within each rank.)
+  // (Array sort is stable, so the database's natural name order - Child 2
+  // before Child 10 - survives within each rank.)
   const top = [...children].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 
   const caregiverIds = [...new Set(top.map((c) => String(c.caregiverId)))];

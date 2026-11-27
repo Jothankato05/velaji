@@ -14,7 +14,7 @@
  *
  *   - **R21/Matrix-M malaria vaccine** (WHO-prequalified Dec 2023, manufactured
  *     by Serum Institute of India, stored +2–8°C). Nigeria began phased rollout
- *     in Kebbi + Bayelsa Dec 2024. Schedule: 4 doses — dose 1 at ~5 months,
+ *     in Kebbi + Bayelsa Dec 2024. Schedule: 4 doses - dose 1 at ~5 months,
  *     doses 2 & 3 at minimum 4-week intervals, dose 4 ≥12 months after dose 3.
  *     An optional 5th dose 1 year after dose 4 in high-seasonality areas. 0.5 mL
  *     IM per dose, single-dose vial (50 vials/carton).
@@ -26,7 +26,7 @@
  *     vaccinated by mid-2025.
  *
  *   - Vitamin A and Meningitis-A timing also vary by the current NPHCDA revision
- *     (often 9 months / 12–24 months) — verify before use.
+ *     (often 9 months / 12–24 months) - verify before use.
  *
  * IMPORTANT: this is reference data for a software prototype, not a clinical
  * source. Before this touches a real child's care, a health authority must
@@ -86,7 +86,7 @@ export function totalDosesInSchedule(): number {
 }
 
 /**
- * Packed cold-chain volume per dose (cm³), by vaccine code — the space one dose
+ * Packed cold-chain volume per dose (cm³), by vaccine code - the space one dose
  * occupies in a cold room/fridge including primary + secondary packaging. Figures
  * are from WHO EPI logistics guidance and the Niger supply-chain study (commonly
  * cited WHO/AFRO reference):
@@ -147,7 +147,7 @@ export function coldChainCm3(vaccineCode: string): number {
  *
  * R21/Matrix-M (malaria):
  *   - WHO-prequalified Dec 2023; Serum Institute of India; stored +2–8°C
- *   - Schedule: 4 doses — dose 1 at ~5 mo, dose 2 & 3 at ≥4-week intervals,
+ *   - Schedule: 4 doses - dose 1 at ~5 mo, dose 2 & 3 at ≥4-week intervals,
  *     dose 4 at ≥12 mo after dose 3. Optional 5th dose 1 yr after dose 4 in
  *     highly seasonal areas. 0.5 mL IM. Single-dose vial.
  *   - Nigeria rollout: Kebbi + Bayelsa from Dec 2024. ~206k dose-1 in Kebbi

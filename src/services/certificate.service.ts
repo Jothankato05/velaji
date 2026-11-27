@@ -7,7 +7,7 @@ const COVERAGE_MONTHS = 12; // NCIHAP §12: complete immunisation → 12 months 
 
 /**
  * If the child's schedule is now fully complete and no certificate exists yet,
- * issue one — and with it UNLOCK the NHIA "Healthy Start" health coverage
+ * issue one - and with it UNLOCK the NHIA "Healthy Start" health coverage
  * window (NCIHAP §12). This is the payoff of the whole programme: finishing
  * immunisation converts into sponsored child health coverage.
  */

@@ -37,7 +37,7 @@ function bandFor(ageDays: number): { key: string; name: string; order: number } 
 }
 
 /**
- * The family (MyChild) view of a child, reached with the card — the parent's
+ * The family (MyChild) view of a child, reached with the card - the parent's
  * key. Warm, milestone-grouped, and no clinical minutiae: what's done, what's
  * next, and the reward at the end. Card token gates access (NCIHAP §24).
  */
@@ -94,7 +94,7 @@ export async function familyJourney(req: Request, res: Response) {
       };
     });
 
-  // A flat, per-dose list for the "My vaccines" view — every dose, in date
+  // A flat, per-dose list for the "My vaccines" view - every dose, in date
   // order, with a plain-language state a parent understands.
   // Dates are when the family can actually come: after a late start, a
   // series dose moves to four weeks after the one before.

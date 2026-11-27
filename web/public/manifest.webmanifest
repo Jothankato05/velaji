@@ -1,7 +1,7 @@
 {
-  "name": "Velaji — Child Immunisation & Health Assurance",
+  "name": "Velaji · Child Immunisation & Health Assurance",
   "short_name": "Velaji",
-  "description": "One child. One record. Every vaccine. Everywhere. The platform delivering NCIHAP, Nigeria's National Child Immunisation and Health Assurance Programme.",
+  "description": "Velaji keeps one immunisation record per child, from birth registration to a completed schedule, and delivers NCIHAP, Nigeria's National Child Immunisation and Health Assurance Programme.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

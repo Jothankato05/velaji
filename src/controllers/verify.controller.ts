@@ -8,7 +8,7 @@ import { AppError } from '../utils/AppError';
 
 /**
  * Public endpoint reached by scanning a card's QR code. Deliberately returns
- * less than the full staff view (getChild) — enough for a facility worker to
+ * less than the full staff view (getChild) - enough for a facility worker to
  * confirm who they're looking at and what's due, nothing a lost card should
  * leak beyond that.
  */
@@ -25,7 +25,7 @@ export async function verifyChin(req: Request, res: Response) {
   if (!child) throw new AppError('CHIN not found', 404);
 
   const facility = await FacilityModel.findById(child.currentFacilityId);
-  // Explicit field access, not `{...d}` — spreading a Mongoose subdocument
+  // Explicit field access, not `{...d}` - spreading a Mongoose subdocument
   // does not reliably carry its schema fields onto the plain object.
   const doses = child.doses.map((d) => ({
     vaccineCode: d.vaccineCode,

@@ -1,7 +1,7 @@
 {
   "name": "velaji",
   "version": "1.0.0",
-  "description": "Velaji — immunisation programme delivery platform (working prototype).",
+  "description": "Velaji: immunisation programme delivery platform (working prototype).",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

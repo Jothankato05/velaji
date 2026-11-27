@@ -146,7 +146,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   if (res.status === 401 && token) {
-    // Token expired or invalid — drop the session and bounce to login.
+    // Token expired or invalid - drop the session and bounce to login.
     clearSession();
     onUnauthorized?.();
   }

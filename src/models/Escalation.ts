@@ -3,8 +3,8 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
 /**
  * A child+dose the reminder engine has given up texting and handed to a human
  * to trace. Two reasons raise one:
- *   - 'max_attempts'      — caregiver ignored the reminder cap; SMS isn't working
- *   - 'lost_to_followup'  — dose is severely overdue (GREY); needs active tracing
+ *   - 'max_attempts' - caregiver ignored the reminder cap; SMS isn't working
+ *   - 'lost_to_followup' - dose is severely overdue (GREY); needs active tracing
  *
  * A partial unique index enforces at most ONE open escalation per child+dose,
  * so the engine can re-assert it every cycle (upsert) without piling up
@@ -27,7 +27,7 @@ const escalationSchema = new Schema(
       enum: ['immunized', 'reached', 'moved_away', 'unreachable', 'other', null],
       default: null
     },
-    // The barrier a health worker recorded on tracing the family — the real
+    // The barrier a health worker recorded on tracing the family - the real
     // reason the child defaulted. Categories match the documented Nigerian
     // drivers (vaccine hesitancy/distrust, distance/access, insecurity,
     // financial, unaware, and no-session/stockout). Turns the recovery queue

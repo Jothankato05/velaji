@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 // Real end-to-end smoke test: boots the actual app on an ephemeral in-memory
-// DB and hits it over real HTTP with fetch — verify against reality, not mocks.
+// DB and hits it over real HTTP with fetch - verify against reality, not mocks.
 
 import './testEnv';
 import { app } from '../src/app';
@@ -88,7 +88,7 @@ test('a staff endpoint rejects a garbage token', async () => {
 });
 
 test('login rejects a wrong password, then succeeds and yields a working token', async () => {
-  // Seed the account the way ops would — the CLI script, not an open
+  // Seed the account the way ops would - the CLI script, not an open
   // registration endpoint (see src/scripts/createStaffUser.ts).
   await StaffUserModel.create({
     username: 'nurse.amina',
@@ -563,7 +563,7 @@ test('a case closed by hand stays closed until the family\'s date, then comes ba
 });
 
 test('a severely overdue child stays RED (not GREY) and is still reminded', async () => {
-  // NCIHAP §10: overdue is RED however long it stays overdue — it does NOT age
+  // NCIHAP §10: overdue is RED however long it stays overdue - it does NOT age
   // into GREY. With a reachable caregiver, it must still get a reminder.
   const { childId, chin } = await makeReminderChild(200); // 200 days overdue
   const fake = new FakeSms();
@@ -706,7 +706,7 @@ test('recording the dose auto-resolves its escalation', async () => {
   open = await EscalationModel.countDocuments({ childId, status: 'open' });
   assert(open === 1, `the case should still be open after a refused claim, got open=${open}`);
 
-  // Record the dose over real HTTP — this should auto-close the escalation.
+  // Record the dose over real HTTP - this should auto-close the escalation.
   const rec = await json('POST', `/api/children/${encodeURIComponent(chin)}/doses`, {
     vaccineCode: 'PENTA', doseNumber: 1, facilityId: facilityAId
   });
@@ -937,7 +937,7 @@ test('the audit trail is admin-only', async () => {
 
 function dashDose(code: string, name: string, dnum: number, offsetDays: number, administered: boolean) {
   // The dashboard endpoints evaluate status against the real clock, so base the
-  // fixture's due dates on real "now" too — otherwise a dose meant to be "due in
+  // fixture's due dates on real "now" too - otherwise a dose meant to be "due in
   // 3 days" silently becomes overdue once the wall clock passes NOON+3.
   const due = new Date(Date.now() + offsetDays * DAY);
   return { vaccineCode: code, displayName: name, doseNumber: dnum, dueDate: due, administeredDate: administered ? due : null };
@@ -963,16 +963,16 @@ test('dashboard setup: build a controlled state dataset', async () => {
   const f2 = await dashFacility(ST, 'LGA-1', 'Ward-B', 'PHC Beta');
   const f3 = await dashFacility(ST, 'LGA-2', 'Ward-C', 'PHC Gamma');
 
-  // A: complete (BLUE) — 2 administered
+  // A: complete (BLUE) - 2 administered
   await dashChild(f1, [dashDose('BCG', 'BCG', 1, -60, true), dashDose('OPV', 'OPV', 1, -30, true)]);
-  // B: zero-dose, on track (GREEN) — due in 20d
+  // B: zero-dose, on track (GREEN) - due in 20d
   await dashChild(f1, [dashDose('PCV', 'PCV', 1, 20, false)]);
-  // C: dropout (started then overdue, RED) — 1 administered + 1 overdue, plus
+  // C: dropout (started then overdue, RED) - 1 administered + 1 overdue, plus
   // another dose due in 3 days: overdue AND due this week, but only one status.
   await dashChild(f2, [dashDose('BCG', 'BCG', 1, -40, true), dashDose('PENTA', 'Pentavalent', 1, -10, false), dashDose('OPV', 'OPV', 2, 3, false)]);
-  // D: due this week (AMBER), zero-dose — due in 3d
+  // D: due this week (AMBER), zero-dose - due in 3d
   await dashChild(f3, [dashDose('MEASLES', 'Measles', 1, 3, false)]);
-  // E: overdue (RED), zero-dose — never started
+  // E: overdue (RED), zero-dose - never started
   await dashChild(f3, [dashDose('OPV', 'OPV', 1, -20, false)]);
 });
 
@@ -1111,7 +1111,7 @@ test('§18 supply plan turns demand into cold-chain, staffing and deployment', a
 test('§18 cold-chain volume uses per-antigen WHO figures, not a flat constant', async () => {
   // Two facilities, same dose count, different antigens: BCG (~0.9 cm³/dose) is
   // far more compact than MR (~5.2 cm³/dose incl. diluent). A flat per-dose
-  // constant would give both the same volume — which is what misled planners.
+  // constant would give both the same volume - which is what misled planners.
   const fb = await dashFacility('ColdChain-State', 'CC-BCG', 'W', 'BCG PHC');
   const fm = await dashFacility('ColdChain-State', 'CC-MR', 'W', 'MR PHC');
   for (let i = 0; i < 10; i++) await dashChild(fb, [dashDose('BCG', 'BCG', 1, 5, false)]);
@@ -1144,7 +1144,7 @@ test('§19 antenatal: a pregnancy registers, takes visits, and converts to a chi
   assert(created.body.visitCount === 0 && created.body.risk === 'at_risk',
     'a pregnancy with no recorded contacts starts at risk');
   assert(created.body.caregiverPhone === '+2348070000001',
-    'the caregiver phone must carry through — it is what the USSD channel keys on');
+    'the caregiver phone must carry through - it is what the USSD channel keys on');
 
   // Four contacts is the threshold where zero-dose risk roughly halves.
   for (let i = 0; i < 4; i++) {
@@ -1249,7 +1249,7 @@ test('§4 civil registration: refer to NPC, carry back the number and NIN', asyn
   });
   const chin = reg.body.chin;
 
-  // A child known to health but invisible to the state — the default, and the point.
+  // A child known to health but invisible to the state - the default, and the point.
   const child0 = await ChildModel.findOne({ chin });
   assert(child0!.birthRegistration.status === 'not_registered',
     'a newly registered child starts with no civil registration');
@@ -1264,7 +1264,7 @@ test('§4 civil registration: refer to NPC, carry back the number and NIN', asyn
   assert(done.status === 200, `expected 200 on record, got ${done.status}`);
   assert(done.body.status === 'registered', 'status becomes registered');
   assert(done.body.registrationNumber === 'BRN-2026-004417', 'the NPC number is carried onto the health record');
-  assert(done.body.nin === '99988877766', 'the NIN is carried too — it is what makes BHCPF enrolment possible');
+  assert(done.body.nin === '99988877766', 'the NIN is carried too - it is what makes BHCPF enrolment possible');
 
   // Re-referring an already-registered child is refused, not silently re-run.
   const again = await jsonAs(staffToken, 'POST', `/api/children/${chin}/birth-registration/refer`, {});
@@ -1308,12 +1308,12 @@ test('§22 FHIR export: Patient, doses given, and what is still due', async () =
   assert(kinds.includes('Patient'), 'Bundle carries the Patient');
   assert(kinds.includes('Immunization'), 'Bundle carries the administered dose');
   assert(kinds.includes('ImmunizationRecommendation'),
-    'Bundle carries what is still DUE — the payload a reporting system does not hold');
+    'Bundle carries what is still DUE - the payload a reporting system does not hold');
 
   const patient = body.entry.find((e: any) => e.resource.resourceType === 'Patient').resource;
   assert(patient.identifier.some((i: any) => i.value === chin), 'the CHIN is the Patient identifier');
   assert(!patient.identifier.some((i: any) => i.system.includes('nin')),
-    'no NIN identifier is emitted for an unregistered child — absence is the finding');
+    'no NIN identifier is emitted for an unregistered child - absence is the finding');
   assert(patient.gender === 'female' && patient.birthDate, 'core demographics are present');
 
   const imm = body.entry.find((e: any) => e.resource.resourceType === 'Immunization').resource;
@@ -1584,7 +1584,7 @@ test('§11 defaulting barriers: a traced case records why, and it rolls up (admi
   assert(bad.status === 400, `an unknown barrier must be rejected, got ${bad.status}`);
 
   // Resolve with a real barrier (the documented top driver).
-  const ok = await json('POST', `/api/escalations/${mine.id}/resolve`, { outcome: 'reached', barrier: 'hesitancy', note: 'Family declined — belief' });
+  const ok = await json('POST', `/api/escalations/${mine.id}/resolve`, { outcome: 'reached', barrier: 'hesitancy', note: 'Family declined - belief' });
   assert(ok.status === 200 && ok.body.barrier === 'hesitancy', `resolve must record the barrier: ${JSON.stringify(ok.body)}`);
 
   // It rolls up in the national "why children default" view (admin-only).
@@ -1863,7 +1863,7 @@ test('an offline record_dose syncs and marks the dose administered', async () =>
   assert(bcg.administeredDate, 'BCG should be administered after the sync');
 });
 
-test('re-pushing the same transaction is idempotent — no double-apply', async () => {
+test('re-pushing the same transaction is idempotent - no double-apply', async () => {
   const body = {
     deviceId: 'device-1',
     transactions: [{
@@ -1921,7 +1921,7 @@ test('a batch with one bad transaction still applies the good ones', async () =>
   assert(res.body.applied === 1 && res.body.error === 1, `expected 1 applied + 1 error, got ${JSON.stringify(res.body)}`);
 });
 
-test('sync requires a staff/admin token — a verifier is refused', async () => {
+test('sync requires a staff/admin token - a verifier is refused', async () => {
   const { status } = await jsonAs(verifierToken, 'GET', `/api/sync/pull?facilityId=${syncFacId}`);
   assert(status === 403, `expected 403 for a verifier, got ${status}`);
 });
@@ -1963,7 +1963,7 @@ test('a verifier is DENIED the direct child record (must use the terminal)', asy
   assert(card.status === 403, `expected 403 for a verifier on the card, got ${card.status}`);
 });
 
-test('registration is staff/admin only — a verifier cannot register a child', async () => {
+test('registration is staff/admin only - a verifier cannot register a child', async () => {
   const cg = await json('POST', '/api/caregivers', { fullName: 'X', phone: '+2348070000001' });
   const reg = await jsonAs(verifierToken, 'POST', '/api/children', {
     fullName: 'Nope', sex: 'male', dateOfBirth: '2026-06-01', caregiverId: cg.body._id, homeFacilityId: facilityAId
@@ -1978,7 +1978,7 @@ test('staff and admin may read the record', async () => {
   assert(a.status === 200, `expected 200 for admin, got ${a.status}`);
 });
 
-test('every direct record access is audited — including the refused ones (§24)', async () => {
+test('every direct record access is audited - including the refused ones (§24)', async () => {
   const { status, body } = await jsonAs(adminTokenT, 'GET', `/api/children/${encodeURIComponent(authzChin)}/access-log`);
   assert(status === 200, `expected 200, got ${status}`);
   const apiRows = body.accesses.filter((r: any) => r.method === 'api');
@@ -2033,7 +2033,7 @@ test('malformed JSON is rejected with 400, not a 500', async () => {
   assert(res.status === 400, `expected 400 for malformed JSON, got ${res.status}`);
 });
 
-test('login is rate limited — repeated attempts eventually get 429 with Retry-After', async () => {
+test('login is rate limited - repeated attempts eventually get 429 with Retry-After', async () => {
   let saw429 = false;
   let retryAfter: string | null = null;
   // The window is per-IP and shared with earlier login tests; 20 rapid tries

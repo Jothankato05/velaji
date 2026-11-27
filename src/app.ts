@@ -23,7 +23,7 @@ app.use(express.json({ limit: '64kb' }));
 // so the whole block is skipped.
 //
 // ORDER MATTERS, and getting it wrong is silent: apiRouter ends with an
-// unscoped `.use(requireAuth)`, which intercepts EVERY path that reaches it —
+// unscoped `.use(requireAuth)`, which intercepts EVERY path that reaches it -
 // so anything registered after apiRouter gets a 401 instead of a page. Both
 // handlers below therefore sit BEFORE it, and the fallback excludes the API
 // prefixes itself so a genuine unknown /api path still falls through to
@@ -33,7 +33,7 @@ if (fs.existsSync(webDist)) {
   // Real built files first: /assets/*.js, /assets/*.css, favicon, and so on.
   app.use(express.static(webDist, { index: false, maxAge: '1h' }));
   // The pitch deck is a standalone static page, not part of the SPA, so it gets
-  // an explicit route ahead of the fallback — otherwise /deck would be handed to
+  // an explicit route ahead of the fallback - otherwise /deck would be handed to
   // React, which has no such route. /deck.html works via express.static above;
   // this just gives it the tidier URL.
   app.get('/deck', (_req, res) => res.sendFile(path.join(webDist, 'deck.html')));

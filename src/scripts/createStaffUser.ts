@@ -1,6 +1,6 @@
 /**
  * One-off CLI to create a staff login. There is no public registration
- * endpoint on purpose — new accounts on a health system should be created
+ * endpoint on purpose - new accounts on a health system should be created
  * deliberately, not self-served.
  *
  * Usage:

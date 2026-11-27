@@ -8,7 +8,7 @@ import { env } from '../config/env';
  */
 /**
  * Roles, least-privilege first (NCIHAP §24). Disclosure at the verification
- * terminal is scoped to the role — a verifier sees only the §16 status
+ * terminal is scoped to the role - a verifier sees only the §16 status
  * headline, a health worker sees the record needed to continue care.
  */
 export type StaffRole = 'verifier' | 'staff' | 'admin';

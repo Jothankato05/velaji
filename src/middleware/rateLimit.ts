@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { AppError } from '../utils/AppError';
 
 /**
- * A small fixed-window, in-memory rate limiter — enough to blunt credential
+ * A small fixed-window, in-memory rate limiter - enough to blunt credential
  * stuffing / brute force on the login endpoint without a new dependency.
  *
  * Caveat by design: state lives in this process only. A multi-instance

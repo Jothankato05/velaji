@@ -44,7 +44,7 @@ import {
 export const apiRouter = Router();
 
 // --- Public routes. These MUST be registered before the requireAuth layer
-// below — Express middleware applies in registration order, and an
+// below - Express middleware applies in registration order, and an
 // unscoped `.use(requireAuth)` registered earlier would intercept every
 // path that comes after it in the stack, public or not. Getting this order
 // wrong silently 401s every webhook/public endpoint mounted after it. ---
@@ -70,17 +70,17 @@ apiRouter.post('/api/auth/primers', loginLimiter, asyncHandler(loginWithPrimers)
 // throttle stops anyone trying to enumerate tokens at scale.
 const cardLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
 
-// Reached by scanning a printed card's QR code — gated by the card's own
+// Reached by scanning a printed card's QR code - gated by the card's own
 // signed token, not staff auth, because a caregiver or a receiving
 // facility with no account still needs to be able to check status.
 apiRouter.get('/api/verify/:chin', cardLimiter, asyncHandler(verifyChin));
 
-// MyChild family app — the parent's own view, reached with their card
+// MyChild family app - the parent's own view, reached with their card
 // (CHIN + signed token). Public like verify; the card is the key.
 apiRouter.get('/api/family/:chin', cardLimiter, asyncHandler(familyJourney));
 
 // USSD access (NCIHAP §8): a basic-phone caregiver dials a short code; the
-// telecom gateway POSTs the session here. Public — the gateway is the caller
+// telecom gateway POSTs the session here. Public - the gateway is the caller
 // and provides the phone number; there is no bearer token.
 apiRouter.post('/webhooks/ussd', cardLimiter, asyncHandler(handleUssdWebhook));
 
@@ -99,7 +99,7 @@ apiRouter.get('/api/caregivers/by-phone', requireRole('staff', 'admin'), asyncHa
 
 // An individual child's record is care data, not something every authenticated
 // account may read. Verifiers get the role-scoped, audited §16 headline via the
-// terminal (/api/terminal/lookup) — never the full record here. Staff and
+// terminal (/api/terminal/lookup) - never the full record here. Staff and
 // admins may read/update it (the card is designed to work at any facility, so
 // staff are deliberately NOT facility-scoped), and every access is written to
 // the §24 audit trail via auditChildAccess.
@@ -119,25 +119,25 @@ apiRouter.post('/api/children/:chin/handoff', ...childRecord, asyncHandler(recor
 apiRouter.get('/api/children/:chin/reminders', ...childRecord, asyncHandler(getChildReminderLog));
 
 // §4 civil registration: refer the child to NPC, then carry back the birth
-// registration number and NIN. The identity link that makes BHCPF enrolment —
-// and so the Healthy Start reward — reachable at all.
+// registration number and NIN. The identity link that makes BHCPF enrolment -
+// and so the Healthy Start reward - reachable at all.
 apiRouter.post('/api/children/:chin/birth-registration/refer', ...childRecord, asyncHandler(postReferBirthRegistration));
 apiRouter.post('/api/children/:chin/birth-registration', ...childRecord, asyncHandler(postBirthRegistration));
 
 // §22 interoperability: the child as a FHIR R4 Bundle for the NPHCDA
-// Immunization IG — we integrate with EMID rather than duplicating it.
+// Immunization IG - we integrate with EMID rather than duplicating it.
 apiRouter.get('/api/children/:chin/fhir', ...childRecord, asyncHandler(getChildFhir));
 
 // Antenatal registration (NCIHAP §19, extended): open the record during
 // pregnancy, so the child arrives already known and the caregiver's phone is
 // captured before the gap in which children become zero-dose. These carry
-// names and contact numbers, so they are staff/admin — not verifiers.
+// names and contact numbers, so they are staff/admin - not verifiers.
 apiRouter.post('/api/pregnancies', requireRole('staff', 'admin'), asyncHandler(postPregnancy));
 apiRouter.post('/api/pregnancies/:ancId/visits', requireRole('staff', 'admin'), asyncHandler(postAncVisit));
 apiRouter.post('/api/pregnancies/:ancId/link-birth', requireRole('staff', 'admin'), asyncHandler(postLinkBirth));
 apiRouter.post('/api/pregnancies/:ancId/close', requireRole('staff', 'admin'), asyncHandler(postClosePregnancy));
 
-// The antenatal follow-up list — pregnancies past their due date the system has
+// The antenatal follow-up list - pregnancies past their due date the system has
 // heard nothing about, and those approaching delivery below four contacts.
 apiRouter.get('/api/antenatal/follow-up', requireRole('staff', 'admin'), asyncHandler(getAntenatalFollowUp));
 
@@ -159,7 +159,7 @@ apiRouter.get('/api/children/:chin/access-log', requireRole('admin'), asyncHandl
 
 // National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
 // intelligence for authorised decision-makers. Admin-only; no individual
-// child data — only counts and rates.
+// child data - only counts and rates.
 apiRouter.get('/api/dashboard/summary', requireRole('admin'), asyncHandler(getSummary));
 apiRouter.get('/api/dashboard/stock-forecast', requireRole('admin'), asyncHandler(getStockForecast));
 apiRouter.get('/api/dashboard/supply-plan', requireRole('admin'), asyncHandler(getSupplyPlan));
@@ -170,7 +170,7 @@ apiRouter.get('/api/dashboard/coverage-by-state', requireRole('admin'), asyncHan
 apiRouter.get('/api/dashboard/milestones', requireRole('admin'), asyncHandler(getMilestones));
 apiRouter.get('/api/dashboard/registration-mobility', requireRole('admin'), asyncHandler(getRegistrationMobility));
 apiRouter.get('/api/dashboard/defaulting-reasons', requireRole('admin'), asyncHandler(getDefaultingReasons));
-// The antenatal pipeline: children not yet born — how many are coming, where,
+// The antenatal pipeline: children not yet born - how many are coming, where,
 // and which are already predicted to be missed. Aggregate only (§24).
 apiRouter.get('/api/dashboard/antenatal', requireRole('admin'), asyncHandler(getAntenatalPipeline));
 
@@ -178,13 +178,13 @@ apiRouter.get('/api/dashboard/antenatal', requireRole('admin'), asyncHandler(get
 // flagged for human review. Admin-only.
 apiRouter.get('/api/fraud/alerts', requireRole('admin'), asyncHandler(getIntegrityAlerts));
 
-// The recovery call list behind the drill-down — individual overdue children in
+// The recovery call list behind the drill-down - individual overdue children in
 // a scope, for the worker who will act on them. Staff/admin only (it carries
 // names and contact numbers, unlike the aggregate dashboard).
 apiRouter.get('/api/recovery', requireRole('staff', 'admin'), asyncHandler(getRecovery));
 
 // Offline-first sync (NCIHAP §9): a health-worker device (staff/admin) pulls
-// the children it needs to work offline, and pushes queued transactions —
-// idempotently — when connectivity returns. Verifiers don't sync.
+// the children it needs to work offline, and pushes queued transactions -
+// idempotently - when connectivity returns. Verifiers don't sync.
 apiRouter.get('/api/sync/pull', requireRole('staff', 'admin'), asyncHandler(getPull));
 apiRouter.post('/api/sync/push', requireRole('staff', 'admin'), asyncHandler(postPush));

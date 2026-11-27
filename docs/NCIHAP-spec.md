@@ -1,10 +1,10 @@
 # NATIONAL CHILD IMMUNISATION & HEALTH ASSURANCE PROGRAMME (NCIHAP)
 
-> **Authoritative source spec — verbatim, exactly as typed and sent.**
-> Everything the software builds is drawn strictly from this note — including
+> **Authoritative source spec - verbatim, exactly as typed and sent.**
+> Everything the software builds is drawn strictly from this note - including
 > details like the CHIN format (§4: `NG-25-09-18472639`). Saved with the code
 > so it never gets lost to a context summary. Do not paraphrase or drift away
-> from it — it is the source of truth.
+> from it - it is the source of truth.
 
 ---
 
@@ -95,7 +95,7 @@ Health authorities often discover coverage gaps retrospectively.
 
 NCIHAP converts this fragmented system into a child-centred national record that follows the child rather than the health facility.
 
-## 4. THE CHILD HEALTH IDENTIFICATION NUMBER — CHIN
+## 4. THE CHILD HEALTH IDENTIFICATION NUMBER - CHIN
 
 Every registered child receives a unique Child Health Identification Number (CHIN).
 
@@ -144,7 +144,7 @@ Back
 - verification instructions
 - authorised programme contacts
 
-The card should function similarly to a banking card in simplicity — but it should not store sensitive medical information openly.
+The card should function similarly to a banking card in simplicity - but it should not store sensitive medical information openly.
 
 The QR code/card identifier retrieves authorised information from the secure national registry.
 
@@ -154,7 +154,7 @@ A replacement card can simply be issued.
 
 ## 6. HOW THE SYSTEM WORKS
 
-STAGE 1 — BIRTH
+STAGE 1 - BIRTH
 
 A child is born at a hospital, PHC, maternity centre or other recognised facility.
 
@@ -164,7 +164,7 @@ The child's digital health profile is created.
 
 Where technically and legally possible, the platform interfaces with NPC/NIMC systems rather than creating duplicate identity processes.
 
-STAGE 2 — FIRST IMMUNISATION
+STAGE 2 - FIRST IMMUNISATION
 
 The vaccine administered is recorded digitally.
 
@@ -258,23 +258,23 @@ The programme must therefore be designed for Nigeria's actual connectivity envir
 
 Each child's dashboard can use simple operational statuses:
 
-GREEN — ON TRACK
+GREEN - ON TRACK
 
 Vaccination schedule current.
 
-AMBER — DUE SOON
+AMBER - DUE SOON
 
 Upcoming vaccination.
 
-RED — OVERDUE
+RED - OVERDUE
 
 Scheduled vaccination missed.
 
-GREY — UNVERIFIED/INCOMPLETE RECORD
+GREY - UNVERIFIED/INCOMPLETE RECORD
 
 Requires reconciliation.
 
-BLUE — SCHEDULE COMPLETED
+BLUE - SCHEDULE COMPLETED
 
 Age-appropriate programme completed.
 
@@ -577,7 +577,7 @@ Access must depend on authorisation.
 
 ## 25. IMPLEMENTATION ROADMAP
 
-PHASE I — POLICY & DESIGN | 0–6 MONTHS
+PHASE I - POLICY & DESIGN | 0–6 MONTHS
 
 Establish Presidential/Ministerial steering structure.
 
@@ -595,16 +595,16 @@ Complete:
 - interoperability standards;
 - programme KPIs.
 
-PHASE II — TECHNOLOGY & PILOT | 6–12 MONTHS
+PHASE II - TECHNOLOGY & PILOT | 6–12 MONTHS
 
 Build Minimum Viable National Platform.
 
 Pilot across deliberately different environments, for example:
 
-- FCT — urban/peri-urban;
-- Lagos — high-volume metropolitan;
-- Kano — high birth cohort;
-- Nasarawa — mixed urban/rural;
+- FCT - urban/peri-urban;
+- Lagos - high-volume metropolitan;
+- Kano - high birth cohort;
+- Nasarawa - mixed urban/rural;
 - one hard-to-reach/conflict-affected setting subject to government security assessment.
 
 Measure:
@@ -619,7 +619,7 @@ Measure:
 - caregiver satisfaction;
 - cost per child.
 
-PHASE III — REGIONAL EXPANSION | 12–24 MONTHS
+PHASE III - REGIONAL EXPANSION | 12–24 MONTHS
 
 Expand based on evidence.
 
@@ -627,7 +627,7 @@ Train state administrators, PHCs and community health workers.
 
 Integrate progressively with approved government systems.
 
-PHASE IV — NATIONAL ROLLOUT | 24–36 MONTHS
+PHASE IV - NATIONAL ROLLOUT | 24–36 MONTHS
 
 Deploy across:
 
@@ -635,7 +635,7 @@ Deploy across:
 
 National communications campaign begins.
 
-PHASE V — CHILD HEALTH ECOSYSTEM
+PHASE V - CHILD HEALTH ECOSYSTEM
 
 Expand carefully from immunisation into broader maternal and child health services.
 

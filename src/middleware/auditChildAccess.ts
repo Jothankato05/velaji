@@ -4,7 +4,7 @@ import { normalizeChin } from '../services/chin.service';
 
 /**
  * NCIHAP §24: every access to an individual child's record is written to the
- * append-only audit trail — not only the verification-terminal lookups. This
+ * append-only audit trail - not only the verification-terminal lookups. This
  * middleware covers the direct staff endpoints (get/journey/card/certificate/
  * doses/handoff/reminders). It records the outcome the client actually got
  * (ok / not_found / denied), derived from the response status once it's sent,

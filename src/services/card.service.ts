@@ -20,7 +20,7 @@ function escapeXml(value: string): string {
 
 /**
  * A minimal, printable card as self-contained SVG (embeds the QR as a raster
- * data URI inside an <image> tag) — no client-side rendering dependency,
+ * data URI inside an <image> tag) - no client-side rendering dependency,
  * works from curl, and prints fine at a facility with a basic printer.
  */
 export async function generatePrintableCardSvg(input: {
@@ -35,7 +35,7 @@ export async function generatePrintableCardSvg(input: {
   const qrDataUrl = await generateQrPngDataUrl(input.chin);
   const dob = input.dateOfBirth.toISOString().slice(0, 10);
   // Per the BSMODEL note, the card carries the child's info AND the parent's.
-  // A guardian name/phone is basic ID + contact, not sensitive medical data —
+  // A guardian name/phone is basic ID + contact, not sensitive medical data -
   // so it stays consistent with NCIHAP §5 (nothing medical printed openly; the
   // QR still retrieves the vaccination schedule from the registry).
   const parent = input.caregiverName ? escapeXml(input.caregiverName) : '-';

@@ -17,7 +17,7 @@ export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; l
 }
 
 /**
- * Finds the closest known facility to a reported location — used both to
+ * Finds the closest known facility to a reported location - used both to
  * suggest a receiving facility for a handoff, and to sanity-check that a
  * reported handoff location is plausible.
  */

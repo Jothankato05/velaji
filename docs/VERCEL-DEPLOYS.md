@@ -7,7 +7,7 @@
 
 The pitch deck at **velaji-deck.vercel.app** deploys from `deck/` in this
 repository on every push to `main`. In August 2026 every deploy after the first
-came back with status `BLOCKED` — no build log, no error in the code, and the
+came back with status `BLOCKED` - no build log, no error in the code, and the
 live URL silently kept serving the very first version for hours while seven
 newer ones piled up behind it.
 
@@ -49,7 +49,7 @@ blocked again, which is what isolated GitHub as the real owner of the check.
 ### Why it is easy to miss
 
 Nothing looks broken. The push succeeds, GitHub is happy, the URL returns
-**200**, and the page renders perfectly — it is simply the *old* page. Checking
+**200**, and the page renders perfectly - it is simply the *old* page. Checking
 that the site is up tells you nothing. Only the deployment's `state`, or
 comparing live content against the repository, reveals it.
 
@@ -93,7 +93,7 @@ git commit --allow-empty -m "Trigger a deploy Vercel will accept" && git push
 The environment variables apply to that one command only. `git config` is
 untouched, and every other commit keeps the normal identity.
 
-This is a workaround, not a fix — it has to be repeated for every deploy until
+This is a workaround, not a fix - it has to be repeated for every deploy until
 the email is added.
 
 It also has a cost worth naming: it puts a second author identity into the
@@ -128,7 +128,7 @@ diff <(curl -s https://velaji-deck.vercel.app | tr -d '\r') \
 
 Polling these URLs in a tight loop trips Vercel's bot protection, and you will
 start getting **403 "Vercel Security Checkpoint"** instead of the page. That is
-your own traffic being challenged, not a problem with the site — a normal
+your own traffic being challenged, not a problem with the site - a normal
 browser is unaffected. Leave 15–20 seconds between checks.
 
 ---
@@ -139,7 +139,7 @@ browser is unaffected. Leave 15–20 seconds between checks.
 |---|---|
 | Pitch deck (static) | Vercel, from `deck/` |
 | Prototype (API + SPA) | Render, from the repository root |
-| Deck assets | `deck/assets/` — five portraits and the logo |
+| Deck assets | `deck/assets/` - five portraits and the logo |
 
 The two deploy independently. A blocked Vercel deploy never affects the
 prototype, and vice versa.

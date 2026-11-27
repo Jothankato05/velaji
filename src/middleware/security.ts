@@ -7,12 +7,12 @@ import { env } from '../config/env';
  * document beyond what the app genuinely needs.
  *
  * Two policies, because this process serves two different things. API and card
- * responses get `default-src 'none'` — the tightest possible policy, correct
+ * responses get `default-src 'none'` - the tightest possible policy, correct
  * for JSON and one SVG. But when the same origin also serves the built SPA
  * (see app.ts), that policy blocks the app's own script and stylesheet and the
  * page renders blank with only a console error to show for it. So document
  * responses get a policy that admits exactly the app's own bundle, its inline
- * styles, Google Fonts, and same-origin XHR — and nothing else.
+ * styles, Google Fonts, and same-origin XHR - and nothing else.
  */
 
 // For the SPA document: allow only what the app actually loads.

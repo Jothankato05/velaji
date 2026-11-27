@@ -11,8 +11,8 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /**
  * USSD access (NCIHAP §8): a caregiver on a basic phone dials a short code and
- * gets the same critical information a smartphone parent sees — child status,
- * the next vaccine and where, and reward progress — without typing a CHIN on a
+ * gets the same critical information a smartphone parent sees - child status,
+ * the next vaccine and where, and reward progress - without typing a CHIN on a
  * numeric keypad. The caller is identified by their phone number (the same
  * number the reminder engine already texts), so there's nothing to remember.
  *

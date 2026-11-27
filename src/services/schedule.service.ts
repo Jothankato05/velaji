@@ -47,14 +47,14 @@ export type ChildStatusColor = 'GREEN' | 'AMBER' | 'RED' | 'GREY' | 'BLUE';
 
 /**
  * Per-dose status for a single un-administered dose. Never GREY (GREY is a
- * record-level state — see computeChildStatus) and never BLUE.
+ * record-level state - see computeChildStatus) and never BLUE.
  */
 export type DoseStatusColor = 'GREEN' | 'AMBER' | 'RED';
 
 /**
  * Status of one un-administered dose relative to now. An administered dose has
  * no pending status, so callers must filter those out first. A missed dose is
- * RED however long it stays overdue — the spec (NCIHAP §10) keeps overdue as
+ * RED however long it stays overdue - the spec (NCIHAP §10) keeps overdue as
  * RED and does not escalate it to GREY with age.
  */
 export function computeDoseStatus(dueDate: Date, now: Date = new Date()): DoseStatusColor {
@@ -82,13 +82,13 @@ export interface ChildStatusInput {
 
 /**
  * The five-colour at-a-glance status model, exactly per NCIHAP §10:
- *   GREEN  — on track (schedule current)
- *   AMBER  — due soon (upcoming vaccination)
- *   RED    — overdue (a scheduled vaccination has been missed, any age)
- *   GREY   — unverified / INCOMPLETE record, requires reconciliation
- *   BLUE   — schedule completed (age-appropriate programme complete)
+ *   GREEN - on track (schedule current)
+ *   AMBER - due soon (upcoming vaccination)
+ *   RED - overdue (a scheduled vaccination has been missed, any age)
+ *   GREY - unverified / INCOMPLETE record, requires reconciliation
+ *   BLUE - schedule completed (age-appropriate programme complete)
  *
- * GREY is a property of the RECORD, not of how late a dose is — a flagged
+ * GREY is a property of the RECORD, not of how late a dose is - a flagged
  * reconciliation case, or a record with no schedule to evaluate. It is not
  * produced by a dose simply being very overdue (that stays RED).
  */

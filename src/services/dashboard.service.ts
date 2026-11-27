@@ -13,7 +13,7 @@ import { identityGap, type IdentityGap } from './birth-registration.service';
 
 /**
  * The National Command Dashboard (NCIHAP §11): aggregated, privacy-protected
- * intelligence over the whole registry — no individual child data ever leaves
+ * intelligence over the whole registry - no individual child data ever leaves
  * this layer, only counts and rates. Drillable Nigeria → State → LGA → Ward →
  * PHC. Admin-only at the route layer.
  *
@@ -121,7 +121,7 @@ export function classifyPriority(m: Metrics): PriorityLevel {
   // Priority keys on defaulting (overdue), not raw completion. Completion
   // naturally lags where the child population is young (many infants still
   // mid-schedule), so a state with no overdue children is on-track even if few
-  // have finished yet — flagging it red would misdirect the recovery effort.
+  // have finished yet - flagging it red would misdirect the recovery effort.
   // Children who are genuinely not being brought show up as overdue, and that
   // is what these flags and the recovery workflow act on.
   const overdueRate = m.registered ? m.overdue / m.registered : 0;
@@ -293,7 +293,7 @@ export interface CoverageByState {
 
 /**
  * Coverage by priority state (NCIHAP §11): the national triage view a
- * decision-maker opens first — every state ranked worst-first by the share of
+ * decision-maker opens first - every state ranked worst-first by the share of
  * its children who are overdue,
  * each carrying a red / amber / green flag. Unlike the drill-down list this is
  * always national and priority-ordered, so the states that need intervention
@@ -338,8 +338,8 @@ export interface MilestoneAttainment {
 
 /**
  * How far the country has moved along the staged incentive journey (NCIHAP §14):
- * how many children have reached each reward milestone. A funnel — birth badge →
- * foundation benefit → Healthy Start coverage — that shows where engagement is
+ * how many children have reached each reward milestone. A funnel - birth badge →
+ * foundation benefit → Healthy Start coverage - that shows where engagement is
  * being kept and where it drops off. Counts only, no individual data (§24).
  */
 export async function milestoneAttainment(now: Date = new Date()): Promise<MilestoneAttainment> {
@@ -375,8 +375,8 @@ export interface RecoveryChild {
 
 /**
  * The recovery call list that closes the loop from the drill-down: the actual
- * overdue (RED) children in a scope — who they are, what they're overdue for,
- * how late, and how to reach them — so a worker at the worst facility can act,
+ * overdue (RED) children in a scope - who they are, what they're overdue for,
+ * how late, and how to reach them - so a worker at the worst facility can act,
  * not just see a number. Individual data, so it's staff/admin only (not part of
  * the aggregate, no-PII dashboard contract). Worst-overdue first.
  */
@@ -440,7 +440,7 @@ export interface RegistrationMobility {
   };
   /**
    * §4: children with a health record but no civil registration. Reported here
-   * rather than as its own view because it IS a registration fact — how many of
+   * rather than as its own view because it IS a registration fact - how many of
    * the children we have reached the state still cannot see, and therefore
    * cannot enrol in the coverage completing the schedule is meant to unlock.
    */
@@ -450,8 +450,8 @@ export interface RegistrationMobility {
 
 /**
  * Registration inclusion (§19) and population mobility (§20): where and how
- * children enter the registry — home births and CHW / mobile / outreach channels
- * are counted alongside PHCs, never excluded — and how much the population moves,
+ * children enter the registry - home births and CHW / mobile / outreach channels
+ * are counted alongside PHCs, never excluded - and how much the population moves,
  * with cross-state transfers showing that the national record keeps continuity
  * as families relocate. Counts only (§24).
  */
@@ -509,7 +509,7 @@ export interface ActivityEvent {
 }
 
 /**
- * The Command Centre's live activity feed — recent verified national events,
+ * The Command Centre's live activity feed - recent verified national events,
  * composed from the real ledgers (coverage grants, terminal verifications,
  * reminders sent, follow-up assignments). NCIHAP §11 "real-time intervention".
  */
@@ -608,7 +608,7 @@ export async function stockForecast(weeks: number, filter: GeoFilter, now: Date 
 }
 
 // --- Planning assumptions for supply intelligence (NCIHAP §18). These are
-// deliberate, visible heuristics for a prototype — not clinical constants —
+// deliberate, visible heuristics for a prototype - not clinical constants -
 // surfaced with the numbers so a planner can see what they rest on. ---
 // Per-antigen cold-chain volumes are now in routine-immunization-schedule.ts
 // (coldChainCm3()), replacing the old flat 3 cm³/dose constant.
@@ -635,7 +635,7 @@ export interface SupplyPlan {
   /**
    * Demand from children not yet born, taken from the antenatal register. The
    * forecast above can only see children already registered, so without this
-   * the plan is structurally blind to birth-dose demand — every expected birth
+   * the plan is structurally blind to birth-dose demand - every expected birth
    * needs BCG, OPV0 and HepB0 within days of delivery.
    */
   expectedBirths: { births: number; birthDoses: number; coldChainCm3: number; coldChainLitres: number };
@@ -650,7 +650,7 @@ export interface SupplyPlan {
 
 /**
  * Supply & deployment plan (NCIHAP §18): turn forecast demand into the numbers a
- * planner actually acts on — cold-chain volume, vaccinators needed, where to
+ * planner actually acts on - cold-chain volume, vaccinators needed, where to
  * deploy them (one geographic level down), and where active outreach is needed
  * (overdue + zero-dose). "N children will need Vaccine X in the next weeks" →
  * "so provision this much cold storage and this many vaccinators, here."
@@ -712,7 +712,7 @@ export async function supplyPlan(weeks: number, filter: GeoFilter, now: Date = n
   }
 
   // Birth-dose demand from the antenatal register (§19 extended). Every
-  // expected birth needs BCG + OPV0 + HepB0 within days of delivery — demand the
+  // expected birth needs BCG + OPV0 + HepB0 within days of delivery - demand the
   // child-based forecast above cannot see, because those children do not exist
   // in the registry yet.
   const births = await expectedBirths(weeks, now);
@@ -757,7 +757,7 @@ export interface AdministrationTrend {
   points: Array<{ weekStarting: string; dosesAdministered: number }>;
 }
 
-/** Doses administered per week over the last `weeks` weeks — a real trend from
+/** Doses administered per week over the last `weeks` weeks - a real trend from
  * administeredDate (NCIHAP §11 "performance trends"). */
 export async function administrationTrend(weeks: number, filter: GeoFilter = {}, now: Date = new Date()): Promise<AdministrationTrend> {
   const buckets = new Map<string, number>();

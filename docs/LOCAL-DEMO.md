@@ -47,7 +47,7 @@ first. The two `VITE_DEMO_*` values are what pre-fill the sign-in form, so a
 reviewer never has to be handed a password out of band.
 
 The password itself is not written here. It is defined in the dev-only seeder,
-`src/scripts/demoSeed.ts`, and printed on every boot, so read it from there — a
+`src/scripts/demoSeed.ts`, and printed on every boot, so read it from there - a
 password copied into a committed document outlives the demo it was for:
 
 ```bash
@@ -87,7 +87,7 @@ from scratch.
 
 | What to show | Where |
 |---|---|
-| Command Centre | `http://localhost:4100/login` — credentials are pre-filled, press Sign in |
+| Command Centre | `http://localhost:4100/login` - credentials are pre-filled, press Sign in |
 | MyChild, the family view | the `CARD_LINK` line from your own output |
 | USSD on a feature phone | see below |
 | Verify a card | Command Centre → Verify Card |

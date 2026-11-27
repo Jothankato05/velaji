@@ -15,7 +15,7 @@ export async function login(req: Request, res: Response) {
     '+passwordHash +primersIdSub'
   );
   // Same generic error whether the username doesn't exist or the password is
-  // wrong — don't hand an attacker a username-enumeration oracle.
+  // wrong - don't hand an attacker a username-enumeration oracle.
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     throw new AppError('Invalid username or password', 401);
   }

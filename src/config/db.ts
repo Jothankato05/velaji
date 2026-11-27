@@ -19,7 +19,7 @@ export async function connectDatabase(): Promise<void> {
   }
 
   // Local/dev-only fallback: spin up an ephemeral in-memory MongoDB so the
-  // prototype runs with zero external setup. Never used in production —
+  // prototype runs with zero external setup. Never used in production -
   // env.ts refuses to boot with ALLOW_IN_MEMORY_DB=true when NODE_ENV=production.
   const { MongoMemoryServer } = await import('mongodb-memory-server');
   const mem = await MongoMemoryServer.create();

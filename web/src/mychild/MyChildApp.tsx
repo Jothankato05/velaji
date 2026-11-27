@@ -67,7 +67,7 @@ function parseCard(input: string): Card | null {
 }
 
 // A printed card's QR resolves to /mychild/<CHIN>?t=<token>. If someone lands
-// there, consume it into the session and drop them on Home — so scanning the
+// there, consume it into the session and drop them on Home - so scanning the
 // card just opens the app, no typing.
 function cardFromUrl(): Card | null {
   const path = window.location.pathname;

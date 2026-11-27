@@ -18,7 +18,7 @@ function formatDate(d: Date): string {
 /**
  * The actual SMS text a caregiver receives. Kept short (SMS length matters and
  * costs money per segment), names the child and vaccine specifically, and says
- * where to go. No PII beyond the child's first name and the vaccine — a lost
+ * where to go. No PII beyond the child's first name and the vaccine - a lost
  * phone shouldn't leak a full record.
  */
 export function buildReminderSms(input: ReminderContentInput): string {

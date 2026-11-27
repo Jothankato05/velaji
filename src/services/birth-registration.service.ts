@@ -6,7 +6,7 @@ import { AppError } from '../utils/AppError';
 /**
  * Civil registration referral (NCIHAP §4).
  *
- * Velaji does not register births — the National Population Commission does.
+ * Velaji does not register births - the National Population Commission does.
  * What Velaji has that NPC does not is the CONTACT: it knows the child exists,
  * has a caregiver and a phone, and is standing in a facility. NPC's own
  * direction of travel is to meet that contact (digital birth registration now
@@ -16,7 +16,7 @@ import { AppError } from '../utils/AppError';
  *
  * So this is a referral seam, not an integration: mark that a child has been
  * handed to NPC, then carry the birth registration number and NIN back onto the
- * health record when they are issued. Honest about what it is — the actual NPC
+ * health record when they are issued. Honest about what it is - the actual NPC
  * API call is where a real deployment plugs in.
  *
  * Why it matters more than a status field looks: BHCPF's Vulnerable Group Fund
@@ -70,7 +70,7 @@ export async function referForRegistration(chin: string, now: Date = new Date())
 }
 
 /**
- * NPC issued the birth registration. Carry the numbers onto the health record —
+ * NPC issued the birth registration. Carry the numbers onto the health record -
  * the registration number always, and the NIN once NIMC has issued one.
  */
 export async function recordRegistration(
@@ -95,7 +95,7 @@ export interface IdentityGap {
   known: number;
   registered: number;
   referred: number;
-  /** Known to health, invisible to civil registration — and so unenrollable. */
+  /** Known to health, invisible to civil registration - and so unenrollable. */
   unregistered: number;
   withNin: number;
   /** Worst-first: where the health system is meeting children the state cannot see. */
@@ -105,7 +105,7 @@ export interface IdentityGap {
 /**
  * The identity gap: children with a health record but no legal identity.
  *
- * This is the number that makes the case — every one of these is a child the
+ * This is the number that makes the case - every one of these is a child the
  * health system has already reached and can name, who still cannot be enrolled
  * in the fund that exists for her. Aggregate counts only (§24).
  */

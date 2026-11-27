@@ -8,7 +8,7 @@ import { buildDosesForChild } from './schedule.service';
 import { AppError } from '../utils/AppError';
 
 /**
- * Antenatal registration (NCIHAP §19, extended) — opening the record before the
+ * Antenatal registration (NCIHAP §19, extended) - opening the record before the
  * child is born, because antenatal contact is the strongest early predictor of
  * whether a child is ever vaccinated. See the header of models/Pregnancy.ts for
  * the evidence and the equity caveat.
@@ -19,7 +19,7 @@ const DAY = 24 * 60 * 60 * 1000;
 /**
  * The threshold that matters. In the six-state Nigerian study, children of
  * mothers with FEWER THAN FOUR antenatal visits were zero-dose 35.0% of the
- * time against 17.1% above it — roughly double the risk. So a pregnancy sitting
+ * time against 17.1% above it - roughly double the risk. So a pregnancy sitting
  * below four visits as its due date approaches is a predicted zero-dose child,
  * identifiable before the child exists. That is the whole point of registering
  * here: it is the only moment the system can intervene before the gap rather
@@ -37,7 +37,7 @@ export type PregnancyRisk = 'at_risk' | 'on_track' | 'recommended';
 
 /**
  * Risk band from antenatal contact alone. Deliberately keyed on visit COUNT and
- * nothing else — it is a service-contact signal, not a clinical judgement, and
+ * nothing else - it is a service-contact signal, not a clinical judgement, and
  * must never read as one.
  */
 export function classifyAncRisk(visitCount: number): PregnancyRisk {
@@ -94,7 +94,7 @@ export async function registerPregnancy(input: {
   const edd = new Date(input.expectedDeliveryDate);
   if (Number.isNaN(edd.getTime())) throw new AppError('expectedDeliveryDate is not a valid date');
 
-  // Same collision guard as the CHIN — a health identifier does not get to
+  // Same collision guard as the CHIN - a health identifier does not get to
   // shrug at "unlikely".
   let ancId = generateAncId();
   for (let attempt = 0; attempt < 5 && (await PregnancyModel.exists({ ancId })); attempt++) {
@@ -133,7 +133,7 @@ export async function recordAncVisit(ancId: string, input: { date?: string | Dat
 }
 
 /**
- * The birth happened — convert the antenatal record into a child record.
+ * The birth happened - convert the antenatal record into a child record.
  *
  * This is the handover the whole channel exists for: the child arrives already
  * known, with a caregiver and a phone number captured months earlier, so the
@@ -183,7 +183,7 @@ export async function linkBirth(ancId: string, input: {
     fullName: input.fullName,
     sex: input.sex,
     dateOfBirth: dob,
-    // The caregiver carries across from the antenatal record — same person,
+    // The caregiver carries across from the antenatal record - same person,
     // same phone, already reachable.
     caregiverId: pregnancy.caregiverId,
     homeFacilityId,
@@ -232,11 +232,11 @@ export interface AntenatalPipeline {
   /** Active pregnancies whose expected delivery date is inside the horizon. */
   expectedBirths: number;
   horizonWeeks: number;
-  /** Contact bands — the risk signal, not a clinical measure. */
+  /** Contact bands - the risk signal, not a clinical measure. */
   byRisk: { atRisk: number; onTrack: number; recommended: number };
   /**
    * Active pregnancies past their expected delivery date plus a grace period.
-   * These are the births the system has NOT heard about — disproportionately the
+   * These are the births the system has NOT heard about - disproportionately the
    * home births that produce zero-dose children. The most actionable list here.
    */
   awaitingBirth: number;
@@ -248,10 +248,10 @@ export interface AntenatalPipeline {
 
 /**
  * The antenatal pipeline (§19 extended, feeding §18): what the registry knows
- * about children who have not been born yet — how many are coming, where, and
+ * about children who have not been born yet - how many are coming, where, and
  * which of them are already predicted to be missed.
  *
- * Aggregate counts only, no individual data — same §24 contract as the rest of
+ * Aggregate counts only, no individual data - same §24 contract as the rest of
  * the dashboard.
  */
 export async function antenatalPipeline(weeks = 12, now: Date = new Date()): Promise<AntenatalPipeline> {
@@ -314,11 +314,11 @@ export async function antenatalPipeline(weeks = 12, now: Date = new Date()): Pro
 
 /**
  * The antenatal follow-up list: active pregnancies a worker should act on,
- * worst-first. Two kinds of case, both predictive of a zero-dose child —
+ * worst-first. Two kinds of case, both predictive of a zero-dose child -
  * pregnancies past their due date the system has heard nothing about, and
  * pregnancies approaching delivery with fewer than four antenatal contacts.
  *
- * Carries names and phone numbers, so staff/admin only — never the aggregate
+ * Carries names and phone numbers, so staff/admin only - never the aggregate
  * dashboard.
  */
 export async function antenatalFollowUp(now: Date = new Date()): Promise<PregnancyView[]> {
@@ -330,7 +330,7 @@ export async function antenatalFollowUp(now: Date = new Date()): Promise<Pregnan
     .sort((a, b) => a.daysToDelivery - b.daysToDelivery);
 }
 
-/** Expected births inside a horizon — used by the §18 supply plan for birth doses. */
+/** Expected births inside a horizon - used by the §18 supply plan for birth doses. */
 export async function expectedBirths(weeks: number, now: Date = new Date()): Promise<number> {
   const horizon = now.getTime() + weeks * 7 * DAY;
   const pregnancies = await PregnancyModel.find({ status: 'active' });

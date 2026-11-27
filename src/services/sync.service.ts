@@ -99,7 +99,7 @@ async function applyRecordDose(tx: IncomingTx): Promise<TxResult> {
       return { result: 'duplicate', chin, detail: 'dose already recorded (same facility, same day)' };
     }
     // Otherwise two sources disagree. Keep the EARLIER administration (the true
-    // first vaccination) and flag the record for human reconciliation — which
+    // first vaccination) and flag the record for human reconciliation - which
     // is exactly what GREY means (NCIHAP §10).
     if (recordedAt < dose.administeredDate) {
       dose.administeredDate = recordedAt;
