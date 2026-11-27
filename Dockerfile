@@ -1,4 +1,4 @@
-# Velaji — production image. Builds the API and the web SPA, then serves both
+# Velaji - production image. Builds the API and the web SPA, then serves both
 # from one origin: the SPA at /, the API at /api. One URL, no CORS to configure.
 #
 # Multi-stage: full toolchain in the build stages, lean runtime at the end.
@@ -25,7 +25,7 @@ FROM node:20-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json* ./
-# Omit dev deps (typescript, tsx, mongodb-memory-server) — production connects
+# Omit dev deps (typescript, tsx, mongodb-memory-server) - production connects
 # to a real MONGODB_URI and runs the compiled JS.
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=api-build /app/dist ./dist
